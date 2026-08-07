@@ -46,7 +46,7 @@ vi.mock('firebase/storage', () => {
   };
 });
 
-import { app, auth, db, storage, getFirestoreDatabaseId } from '../firebase/client';
+import { app, auth, db, storage, getFirestoreDatabaseId } from '@/lib/firebase/client';
 
 describe('Firebase Client SDK Module Initialization', () => {
   it('correctly exports the mock-initialized app, auth, db, and storage instances', () => {
