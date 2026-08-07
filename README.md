@@ -31,6 +31,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is set up to deploy automatically via the [Vercel Platform](https://vercel.com).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Deployment Pipeline Setup
+
+To set up the deployment pipeline:
+
+1. **Link the Repository**: A human must manually link the GitHub repository within the Vercel dashboard.
+2. **Environment Variables**: Configure the environment variables on Vercel's project settings dashboard under the Environment Variables section. Use the variables listed in [`.env.example`](./.env.example) as a reference:
+   - `NEXT_PUBLIC_APP_ENV`
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+   - `FIREBASE_ADMIN_PROJECT_ID`
+   - `FIREBASE_ADMIN_CLIENT_EMAIL`
+   - `FIREBASE_ADMIN_PRIVATE_KEY`
+3. **CI/CD Workflow**:
+   - **Preview Deployments**: Pull requests (PRs) targeting the main branch automatically trigger preview deployments once the project is linked.
+   - **Production Deployments**: Pushes or merges to the `main` branch automatically deploy to production once linked.
