@@ -27,6 +27,8 @@ let adminStorage: Storage | undefined;
 if (projectId && clientEmail && privateKey) {
   const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
 
+  const databaseId = process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID;
+
   adminApp = !getApps().length
     ? initializeApp({
         credential: cert({
@@ -38,8 +40,16 @@ if (projectId && clientEmail && privateKey) {
     : getApp();
 
   adminAuth = getAdminAuth(adminApp);
-  adminDb = getAdminDb(adminApp);
+  // Pass database ID if it is set and not '(default)'
+  adminDb =
+    databaseId && databaseId !== '(default)'
+      ? getAdminDb(adminApp, databaseId)
+      : getAdminDb(adminApp);
   adminStorage = getAdminStorage(adminApp);
+
+  // NOTE: The Firebase Admin SDK automatically respects the standard emulator environment variables
+  // (e.g. FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST, FIREBASE_STORAGE_EMULATOR_HOST)
+  // if they are exported when running 'firebase emulators:start'. No extra connection code is required.
 }
 
 export { adminApp, adminAuth, adminDb, adminStorage };

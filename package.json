@@ -9,7 +9,8 @@
     "lint": "next lint",
     "prepare": "husky",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "emulators": "firebase emulators:start"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
