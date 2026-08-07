@@ -28,22 +28,25 @@ vi.mock('firebase/app', () => {
 vi.mock('firebase/auth', () => {
   return {
     getAuth: vi.fn(() => ({})),
+    connectAuthEmulator: vi.fn(),
   };
 });
 
 vi.mock('firebase/firestore', () => {
   return {
     getFirestore: vi.fn(() => ({})),
+    connectFirestoreEmulator: vi.fn(),
   };
 });
 
 vi.mock('firebase/storage', () => {
   return {
     getStorage: vi.fn(() => ({})),
+    connectStorageEmulator: vi.fn(),
   };
 });
 
-import { app, auth, db, storage } from '../firebase/client';
+import { app, auth, db, storage, getFirestoreDatabaseId } from '../firebase/client';
 
 describe('Firebase Client SDK Module Initialization', () => {
   it('correctly exports the mock-initialized app, auth, db, and storage instances', () => {
@@ -51,5 +54,21 @@ describe('Firebase Client SDK Module Initialization', () => {
     expect(auth).toBeDefined();
     expect(db).toBeDefined();
     expect(storage).toBeDefined();
+  });
+});
+
+describe('getFirestoreDatabaseId helper', () => {
+  it('returns undefined if value is empty or undefined', () => {
+    expect(getFirestoreDatabaseId()).toBeUndefined();
+    expect(getFirestoreDatabaseId('')).toBeUndefined();
+  });
+
+  it("returns undefined if value is '(default)'", () => {
+    expect(getFirestoreDatabaseId('(default)')).toBeUndefined();
+  });
+
+  it('returns the database ID if it is any other string', () => {
+    expect(getFirestoreDatabaseId('staging')).toBe('staging');
+    expect(getFirestoreDatabaseId('production-db')).toBe('production-db');
   });
 });

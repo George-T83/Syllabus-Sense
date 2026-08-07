@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,13 +17,33 @@ let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
 
+// Pure helper function for getting the database ID to make it unit-testable
+export function getFirestoreDatabaseId(envVal?: string): string | undefined {
+  return envVal && envVal !== '(default)' ? envVal : undefined;
+}
+
 // Safe runtime/build guard: only initialize if config parameters are present.
 // Prevents module-load crashes during static builds when env vars are missing.
 if (firebaseConfig.apiKey) {
   app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
   auth = getAuth(app);
-  db = getFirestore(app);
+
+  const databaseId = getFirestoreDatabaseId(process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID);
+  db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+
   storage = getStorage(app);
+
+  // Client-side only emulator setup (prevents double-connecting via global/internal flag)
+  if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true' && typeof window !== 'undefined') {
+    const globalEmulatorKey = '_firebase_emulators_connected_';
+    const anyWindow = window as unknown as Record<string, unknown>;
+    if (!anyWindow[globalEmulatorKey]) {
+      anyWindow[globalEmulatorKey] = true;
+      connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+      connectFirestoreEmulator(db, '127.0.0.1', 8080);
+      connectStorageEmulator(storage, '127.0.0.1', 9199);
+    }
+  }
 }
 
 export { app, auth, db, storage };

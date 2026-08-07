@@ -148,3 +148,42 @@ Verify that everything is set up correctly by running the application and checks
   npm run test    # Runs the unit tests with Vitest
   npm run build   # Verifies production build succeeds locally
   ```
+
+## Environment Strategy
+
+This project uses a single Firebase project (`syllabus-sense`) across all environments, with data isolation achieved using Firebase's multi-database Firestore features and the Local Emulator Suite.
+
+### 1. Multi-Database Setup & Data Isolation
+
+- **Production Environment**: Connects to the `(default)` Firestore database.
+- **Staging / Preview Environments**: Connects to a named `staging` Firestore database.
+- **Local Development**: Connects to the named `staging` Firestore database by default, or optionally, to the Firebase Local Emulator Suite.
+
+### 2. Firebase Auth Sharing
+
+- Firebase Auth configuration and users are shared globally across all cloud environments. This is a known Firebase multi-database limitation and is accepted as a tradeoff for this free-tier project.
+
+### 3. Local Emulator Suite
+
+For risk-free local testing without affecting cloud database data, you can run the Firebase Local Emulator Suite:
+
+1. Start the emulators:
+   ```bash
+   npm run emulators
+   ```
+2. Enable emulators in your local environment by setting the following variable in `.env.local`:
+   ```env
+   NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true
+   ```
+3. When running, the client-side code will route to local ports:
+   - Firebase Auth: port `9099`
+   - Firestore: port `8080`
+   - Firebase Storage: port `9199`
+   - Emulator UI: port `4000`
+
+### 4. Vercel Environment Mapping
+
+When deploying on Vercel, the environment variable configuration maps as follows:
+
+- **Production Vercel Environment**: `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` should be unset or set to `(default)`.
+- **Preview / Development Vercel Environments**: `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` should be set to `staging`.
