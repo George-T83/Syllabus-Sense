@@ -52,3 +52,99 @@ To set up the deployment pipeline:
 3. **CI/CD Workflow**:
    - **Preview Deployments**: Pull requests (PRs) targeting the main branch automatically trigger preview deployments once the project is linked.
    - **Production Deployments**: Pushes or merges to the `main` branch automatically deploy to production once linked.
+
+## Local Development Setup
+
+To set up the project on a new development machine, follow these steps in order:
+
+### 1. Prerequisites
+
+Ensure you have the following installed:
+
+- **Node.js**: Version `20.x`
+- **npm**: Comes with Node.js
+- **Git**
+- **GitHub CLI (`gh`)**
+- **Firebase CLI (`firebase-tools`)**: Installed globally via `npm install -g firebase-tools`
+- **Vercel CLI (`vercel`)**: Installed globally via `npm install -g vercel`
+
+### 2. Clone the Repository
+
+Clone the project repository to your local machine:
+
+```bash
+git clone https://github.com/George-T83/Syllabus-Sense.git
+cd Syllabus-Sense
+```
+
+### 3. Install Dependencies
+
+Run the installation command. This will also automatically initialize Git hooks via Husky:
+
+```bash
+npm install
+```
+
+### 4. Authenticate CLIs and Link Vercel Project
+
+To pull environment variables and work with external services, authenticate your command-line tools:
+
+1. **GitHub CLI**:
+
+   ```bash
+   gh auth login
+   ```
+
+   Follow the prompts to log in to your GitHub account.
+
+2. **Vercel CLI**:
+
+   ```bash
+   vercel login
+   ```
+
+   Log in using your Vercel credentials (or OAuth via GitHub).
+
+3. **Link to the Vercel Project**:
+   ```bash
+   vercel link
+   ```
+   During execution, select the existing project scope and when prompted, link to the existing project: `george-dev1/syllabus-sense`.
+
+### 5. Pull Environment Variables
+
+Once linked, retrieve all Client and Admin environment secrets directly from Vercel without sharing raw env files by hand:
+
+```bash
+vercel env pull .env.local
+```
+
+This fetches the secrets stored in the cloud and writes them to a local `.env.local` file.
+
+### 6. Firebase Authentication (if needed)
+
+Authenticate the Firebase CLI:
+
+```bash
+firebase login
+```
+
+### 7. Run and Verify the App
+
+Verify that everything is set up correctly by running the application and checks locally:
+
+- **Start Development Server**:
+
+  ```bash
+  npm run dev
+  ```
+
+  Open [http://localhost:3000](http://localhost:3000) to confirm the app boots successfully.
+
+- **Run Checks**:
+  Verify code quality, build success, and tests match CI environment requirements:
+  ```bash
+  npm run lint    # Verifies there are no lint issues
+  npm run test    # Runs the unit tests with Vitest
+  npm run build   # Verifies production build succeeds locally
+  ```
