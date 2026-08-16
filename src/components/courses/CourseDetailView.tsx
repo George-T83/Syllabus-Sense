@@ -14,6 +14,8 @@ import {
 } from '@/lib/firestore/scheduleItems';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
+import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
+import { SyllabusList } from '@/components/syllabus/SyllabusList';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { ScheduleItem } from '@/types/schedule';
@@ -173,6 +175,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             )}
           </div>
         </div>
+      </Card>
+
+      <Card className="rounded-2xl p-6 space-y-4">
+        <h2 className="text-base font-semibold text-foreground">Syllabus</h2>
+        <SyllabusList userId={user?.uid} courseId={course.id} />
+        <SyllabusUploader userId={user?.uid ?? ''} courseId={course.id} />
       </Card>
 
       <Card className="rounded-2xl p-6">
