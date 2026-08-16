@@ -88,6 +88,15 @@ describe('AppStateContext Reducer & Selectors', () => {
     expect(state.selectedCourseId).toBeNull();
   });
 
+  it('handles UPDATE_COURSE', () => {
+    let state = appStateReducer(initialAppState, { type: 'ADD_COURSE', payload: mockCourse });
+    const updated: Course = { ...mockCourse, title: 'Intro to Computer Science' };
+
+    state = appStateReducer(state, { type: 'UPDATE_COURSE', payload: updated });
+    expect(state.courses).toHaveLength(1);
+    expect(state.courses[0].title).toBe('Intro to Computer Science');
+  });
+
   it('REMOVE_COURSE also removes that course schedule items, leaving other courses untouched', () => {
     const otherItem: ScheduleItem = {
       id: 'i2',

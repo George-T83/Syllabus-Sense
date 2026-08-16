@@ -13,6 +13,7 @@ export interface AppState {
 export type AppAction =
   | { type: 'SET_COURSES'; payload: Course[] }
   | { type: 'ADD_COURSE'; payload: Course }
+  | { type: 'UPDATE_COURSE'; payload: Course }
   | { type: 'REMOVE_COURSE'; payload: string }
   | { type: 'SET_SCHEDULE_ITEMS'; payload: ScheduleItem[] }
   | { type: 'ADD_SCHEDULE_ITEM'; payload: ScheduleItem }
@@ -34,6 +35,11 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
       return { ...state, courses: action.payload, initialized: true };
     case 'ADD_COURSE':
       return { ...state, courses: [...state.courses, action.payload] };
+    case 'UPDATE_COURSE':
+      return {
+        ...state,
+        courses: state.courses.map((c) => (c.id === action.payload.id ? action.payload : c)),
+      };
     case 'REMOVE_COURSE':
       // Removing a course also drops its schedule items. Without this the
       // items linger with a courseId pointing at a course that no longer
