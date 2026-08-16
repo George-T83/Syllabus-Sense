@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PlannerView } from '@/components/schedule/PlannerView';
 
 export const metadata: Metadata = {
   title: 'Schedule | Syllabus Sense',
@@ -6,10 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function SchedulePage() {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Schedule</h1>
-      <p className="text-muted-foreground text-sm">This page will be built out in a later issue.</p>
-    </div>
-  );
+  return <PlannerView />;
 }
