@@ -5,8 +5,11 @@ import { Card } from '@/components/ui/Card';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
+import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
+import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import type { CourseFormValues } from '@/lib/validation/course';
+import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
@@ -14,6 +17,7 @@ export function DashboardView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const [addCourseOpen, setAddCourseOpen] = useState(false);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
 
   const { courses, scheduleItems } = state;
   const pendingTasks = scheduleItems.filter((item) => !item.completed);
@@ -47,6 +51,27 @@ export function DashboardView() {
         color: values.color,
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
+      },
+      dispatch,
+    );
+  };
+
+  const handleAddTask = async (values: ScheduleItemFormValues) => {
+    if (!user) throw new Error('You must be signed in to add a task.');
+    // Firestore's setDoc rejects `undefined` field values, so optional fields
+    // are only included when they actually have a value.
+    await createScheduleItem(
+      user.uid,
+      {
+        id: crypto.randomUUID(),
+        title: values.title,
+        type: values.type,
+        courseId: values.courseId,
+        dueDate: new Date(`${values.dueDate}T23:59:00`).toISOString(),
+        completed: false,
+        priority: values.priority,
+        ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
+        ...(values.notes ? { notes: values.notes } : {}),
       },
       dispatch,
     );
@@ -120,7 +145,12 @@ export function DashboardView() {
           <Card className="rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-foreground">Upcoming Tasks</h2>
-              <span className="text-xs text-muted-foreground">Next {upcomingTasks.length}</span>
+              <button
+                onClick={() => setAddTaskOpen(true)}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                + Add Task
+              </button>
             </div>
             {upcomingTasks.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -162,6 +192,12 @@ export function DashboardView() {
         open={addCourseOpen}
         onClose={() => setAddCourseOpen(false)}
         onSubmit={handleAddCourse}
+      />
+      <TaskFormModal
+        open={addTaskOpen}
+        onClose={() => setAddTaskOpen(false)}
+        onSubmit={handleAddTask}
+        courses={courses}
       />
     </div>
   );
