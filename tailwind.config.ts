@@ -1,71 +1,75 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    // Scans all of src/, not just pages/components/app: files like
+    // src/lib/mock-data.ts hold literal Tailwind class strings (e.g.
+    // course.color: 'bg-blue-500') that Tailwind's JIT scanner needs to see
+    // to generate their CSS - narrower globs silently drop that class.
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: "class",
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        background: "hsl(var(--background) / <alpha-value>)",
-        foreground: "hsl(var(--foreground) / <alpha-value>)",
+        background: 'hsl(var(--background) / <alpha-value>)',
+        foreground: 'hsl(var(--foreground) / <alpha-value>)',
         primary: {
-          DEFAULT: "hsl(var(--primary) / <alpha-value>)",
-          foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
+          DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
+          foreground: 'hsl(var(--primary-foreground) / <alpha-value>)',
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
-          foreground: "hsl(var(--secondary-foreground) / <alpha-value>)",
+          DEFAULT: 'hsl(var(--secondary) / <alpha-value>)',
+          foreground: 'hsl(var(--secondary-foreground) / <alpha-value>)',
         },
         accent: {
-          DEFAULT: "hsl(var(--accent) / <alpha-value>)",
-          foreground: "hsl(var(--accent-foreground) / <alpha-value>)",
+          DEFAULT: 'hsl(var(--accent) / <alpha-value>)',
+          foreground: 'hsl(var(--accent-foreground) / <alpha-value>)',
         },
         muted: {
-          DEFAULT: "hsl(var(--muted) / <alpha-value>)",
-          foreground: "hsl(var(--muted-foreground) / <alpha-value>)",
+          DEFAULT: 'hsl(var(--muted) / <alpha-value>)',
+          foreground: 'hsl(var(--muted-foreground) / <alpha-value>)',
         },
         card: {
-          DEFAULT: "hsl(var(--card) / <alpha-value>)",
-          foreground: "hsl(var(--card-foreground) / <alpha-value>)",
+          DEFAULT: 'hsl(var(--card) / <alpha-value>)',
+          foreground: 'hsl(var(--card-foreground) / <alpha-value>)',
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
-          foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
+          DEFAULT: 'hsl(var(--destructive) / <alpha-value>)',
+          foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)',
         },
-        border: "hsl(var(--border) / <alpha-value>)",
+        border: 'hsl(var(--border) / <alpha-value>)',
         load: {
-          low: "hsl(var(--load-low) / <alpha-value>)",
-          medium: "hsl(var(--load-medium) / <alpha-value>)",
-          high: "hsl(var(--load-high) / <alpha-value>)",
-          critical: "hsl(var(--load-critical) / <alpha-value>)",
+          low: 'hsl(var(--load-low) / <alpha-value>)',
+          medium: 'hsl(var(--load-medium) / <alpha-value>)',
+          high: 'hsl(var(--load-high) / <alpha-value>)',
+          critical: 'hsl(var(--load-critical) / <alpha-value>)',
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        glass: "1rem",
-        "glass-lg": "1.5rem",
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+        glass: '1rem',
+        'glass-lg': '1.5rem',
       },
       spacing: {
-        "glass-padding": "1.5rem",
-        "glass-gap": "2rem",
+        'glass-padding': '1.5rem',
+        'glass-gap': '2rem',
       },
       fontSize: {
-        "glass-title": ["2.25rem", { lineHeight: "2.75rem", letterSpacing: "-0.02em", fontWeight: "700" }],
-        "glass-subtitle": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.01em" }],
+        'glass-title': [
+          '2.25rem',
+          { lineHeight: '2.75rem', letterSpacing: '-0.02em', fontWeight: '700' },
+        ],
+        'glass-subtitle': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
       },
       boxShadow: {
-        glass: "0 8px 32px 0 rgba(0, 0, 0, 0.08)",
-        "glass-hover": "0 12px 40px 0 rgba(0, 0, 0, 0.12)",
+        glass: '0 8px 32px 0 rgba(0, 0, 0, 0.08)',
+        'glass-hover': '0 12px 40px 0 rgba(0, 0, 0, 0.12)',
       },
     },
   },
   plugins: [],
 };
 export default config;
-
