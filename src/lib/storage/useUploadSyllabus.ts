@@ -1,7 +1,13 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL, type UploadTask } from 'firebase/storage';
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+  type UploadTask,
+} from 'firebase/storage';
 import { doc, setDoc } from 'firebase/firestore';
 import { storage, db } from '@/lib/firebase/client';
 import type { SyllabusUpload } from '@/types/syllabus';
@@ -75,6 +81,10 @@ export function useUploadSyllabus(userId: string, courseId: string) {
               setState({ status: 'success', progress: 100, error: null });
               resolve(record);
             } catch (err) {
+              // The file made it to Storage but the Firestore record failed -
+              // without this it would be an orphaned file with nothing
+              // referencing it, invisible to the UI but still costing storage.
+              await deleteObject(task.snapshot.ref).catch(() => {});
               setState({
                 status: 'error',
                 progress: 0,
