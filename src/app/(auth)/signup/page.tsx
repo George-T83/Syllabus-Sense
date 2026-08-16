@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useAuth } from '@/context/AuthContext';
+import Logo from '@/components/layout/Logo';
 
 export default function SignupPage() {
   const { signUp, signInWithGoogle, error, clearError } = useAuth();
@@ -39,7 +40,11 @@ export default function SignupPage() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="items-center text-center">
+        <div className="flex items-center gap-2.5 mb-3">
+          <Logo className="h-12 w-12" />
+          <span className="text-2xl font-bold text-foreground tracking-tight">Syllabus Sense</span>
+        </div>
         <CardTitle>Create your account</CardTitle>
         <CardDescription>Start tracking your syllabi with Syllabus Sense</CardDescription>
       </CardHeader>
