@@ -6,12 +6,14 @@ import { AppStateProvider } from '@/context/AppStateContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import FirestoreSync from './FirestoreSync';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       <SidebarProvider>
         <AppStateProvider>
+          <FirestoreSync />
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <Navbar />
             <div className="flex flex-1 pt-20">
