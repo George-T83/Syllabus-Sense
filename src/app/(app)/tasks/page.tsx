@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import { PlannerView } from '@/components/schedule/PlannerView';
 
 export const metadata: Metadata = {
-  title: 'Schedule | Syllabus Sense',
-  description: 'Manage your class schedule and assignments.',
+  title: 'Tasks | Syllabus Sense',
+  description: 'Filter and sort every task across your courses.',
 };
 
-export default function SchedulePage() {
+export default function TasksPage() {
   return <PlannerView />;
 }

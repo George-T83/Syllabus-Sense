@@ -32,6 +32,13 @@
     --load-medium: 38 92% 50%;
     --load-high: 24 95% 53%;
     --load-critical: 0 84% 60%;
+
+    /* Card v2: a soft, brand-tinted shadow rather than a flat gray one, so
+       every card (they all share this component) reads as "lifted" without
+       needing per-page custom shadow work. */
+    --card-shadow: 0 1px 2px rgba(16, 12, 30, 0.04), 0 10px 28px -8px rgba(91, 61, 245, 0.16);
+    --card-shadow-hover:
+      0 2px 4px rgba(16, 12, 30, 0.06), 0 18px 40px -10px rgba(91, 61, 245, 0.28);
   }
 
   .dark {
@@ -62,6 +69,11 @@
     --load-medium: 38 92% 50%;
     --load-high: 24 95% 53%;
     --load-critical: 0 84% 60%;
+
+    /* Dark mode: shadows read as depth via a soft brand glow rather than a
+       dark blur (which is nearly invisible against an already-dark page). */
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -8px rgba(139, 92, 246, 0.35);
+    --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 40px -10px rgba(139, 92, 246, 0.5);
   }
 }
 
@@ -73,6 +85,19 @@
 }
 
 @layer utilities {
+  /* Matches the Logo mark's own gradient (Logo.tsx) so brand color isn't
+     confined to the icon - hero panels, progress rings, and CTAs can pick up
+     the same identity. */
+  .bg-gradient-brand {
+    background-image: linear-gradient(135deg, #8c6eff 0%, #5b3df5 55%, #00bfa0 100%);
+  }
+  .text-gradient-brand {
+    background-image: linear-gradient(135deg, #8c6eff 0%, #5b3df5 55%, #00bfa0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   .glass {
     backdrop-filter: blur(12px);
     background-color: rgba(255, 255, 255, 0.75);
@@ -84,4 +109,3 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
 }
-

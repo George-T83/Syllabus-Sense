@@ -29,17 +29,25 @@ describe('Card Component Suite', () => {
     const { container: container1 } = render(<Card interactive>Interactive Card</Card>);
     const outerDiv1 = container1.firstChild as HTMLElement;
     expect(outerDiv1.className).toContain('hover:-translate-y-1');
-    expect(outerDiv1.className).toContain('hover:shadow-glass-hover');
+    expect(outerDiv1.className).toContain('hover:shadow-card-hover');
 
     const { container: container2 } = render(<Card hoverable>Hoverable Card</Card>);
     const outerDiv2 = container2.firstChild as HTMLElement;
     expect(outerDiv2.className).toContain('hover:-translate-y-1');
-    expect(outerDiv2.className).toContain('hover:shadow-glass-hover');
+    expect(outerDiv2.className).toContain('hover:shadow-card-hover');
 
     const { container: container3 } = render(<Card>Static Card</Card>);
     const outerDiv3 = container3.firstChild as HTMLElement;
     expect(outerDiv3.className).not.toContain('hover:-translate-y-1');
-    expect(outerDiv3.className).not.toContain('hover:shadow-glass-hover');
+    expect(outerDiv3.className).not.toContain('hover:shadow-card-hover');
+  });
+
+  it('renders the gradient accent bar only when accent is set', () => {
+    const { container: withAccent } = render(<Card accent>Accented</Card>);
+    expect(withAccent.querySelector('.bg-gradient-brand')).not.toBeNull();
+
+    const { container: withoutAccent } = render(<Card>Plain</Card>);
+    expect(withoutAccent.querySelector('.bg-gradient-brand')).toBeNull();
   });
 
   it('renders sub-components and merges their custom classNames', () => {

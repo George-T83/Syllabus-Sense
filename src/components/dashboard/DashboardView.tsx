@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { useAppState } from '@/context/AppStateContext';
@@ -9,10 +9,35 @@ import { createCourse } from '@/lib/firestore/courses';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
+import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
+import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
+/**
+ * Infers the "current" term as whichever term the most courses belong to.
+ * There's no explicit term-switcher yet (that's #101) - this is a reasonable
+ * interim default that degrades gracefully to "show everything" once a user
+ * has courses spanning multiple terms without a clear majority.
+ */
+function inferCurrentTerm(courses: { term?: string }[]): string | null {
+  const counts = new Map<string, number>();
+  for (const course of courses) {
+    if (!course.term) continue;
+    counts.set(course.term, (counts.get(course.term) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [term, count] of Array.from(counts)) {
+    if (count > bestCount) {
+      best = term;
+      bestCount = count;
+    }
+  }
+  return best;
+}
 
 export function DashboardView() {
   const { state, dispatch } = useAppState();
@@ -27,7 +52,10 @@ export function DashboardView() {
     ? Math.round((completedTasksCount / scheduleItems.length) * 100)
     : 0;
 
-  const courseLoad = courses.map((course) => {
+  const currentTerm = useMemo(() => inferCurrentTerm(courses), [courses]);
+  const semesterCourses = currentTerm ? courses.filter((c) => c.term === currentTerm) : courses;
+
+  const courseLoad = semesterCourses.map((course) => {
     const items = scheduleItems.filter((item) => item.courseId === course.id);
     const completed = items.filter((item) => item.completed).length;
     const pct = items.length ? Math.round((completed / items.length) * 100) : 0;
@@ -38,6 +66,13 @@ export function DashboardView() {
     .slice()
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 3);
+
+  const referenceDate = useMemo(() => getLocalReferenceDate(), []);
+  const plan = useMemo(
+    () => computeSmartPlan(scheduleItems, referenceDate),
+    [scheduleItems, referenceDate],
+  );
+  const plannerPreview = [...plan.startToday, ...plan.startThisWeek].slice(0, 4);
 
   const handleAddCourse = async (values: CourseFormValues) => {
     if (!user) throw new Error('You must be signed in to add a course.');
@@ -108,13 +143,24 @@ export function DashboardView() {
         <div className="flex-1 flex flex-col gap-4">
           <Card className="rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-foreground">Course Load</h2>
-              <button
-                onClick={() => setAddCourseOpen(true)}
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                + Add Course
-              </button>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Course Load</h2>
+                {currentTerm && <p className="text-xs text-muted-foreground">{currentTerm}</p>}
+              </div>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/courses"
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  View all courses →
+                </Link>
+                <button
+                  onClick={() => setAddCourseOpen(true)}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  + Add Course
+                </button>
+              </div>
             </div>
 
             {courseLoad.length === 0 ? (
@@ -149,12 +195,17 @@ export function DashboardView() {
           <Card className="rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-foreground">Upcoming Tasks</h2>
-              <button
-                onClick={() => setAddTaskOpen(true)}
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                + Add Task
-              </button>
+              <div className="flex items-center gap-3">
+                <Link href="/tasks" className="text-xs font-semibold text-primary hover:underline">
+                  View all tasks →
+                </Link>
+                <button
+                  onClick={() => setAddTaskOpen(true)}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  + Add Task
+                </button>
+              </div>
             </div>
             {upcomingTasks.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -191,6 +242,60 @@ export function DashboardView() {
           </Card>
         </div>
       </div>
+
+      <Card className="rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-foreground">Planner Preview</h2>
+          <Link href="/planner" className="text-xs font-semibold text-primary hover:underline">
+            Open planner →
+          </Link>
+        </div>
+        {plannerPreview.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nothing needs attention yet. Check the calendar for what&apos;s ahead.
+          </p>
+        ) : (
+          <div className="divide-y divide-border">
+            {plannerPreview.map(({ item, startDate, overloaded }) => {
+              const course = courses.find((c) => c.id === item.courseId);
+              const startsToday = startDate <= plan.weekLoad[0].key;
+              return (
+                <div key={item.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                  <span
+                    className={cn('h-2 w-2 rounded-full shrink-0', course?.color || 'bg-primary')}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-foreground truncate">{item.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {course ? course.code : 'General'}
+                    </div>
+                  </div>
+                  {overloaded ? (
+                    <span className="text-[10px] font-semibold text-load-critical shrink-0">
+                      Overloaded
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        'text-[10px] font-semibold shrink-0',
+                        startsToday ? 'text-load-high' : 'text-muted-foreground',
+                      )}
+                    >
+                      {startsToday ? 'Start today' : 'This week'}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
+      <Link href="/calendar">
+        <Card hoverable className="rounded-2xl p-4 text-center">
+          <span className="text-sm font-semibold text-primary">View full calendar →</span>
+        </Card>
+      </Link>
 
       <CourseFormModal
         open={addCourseOpen}
