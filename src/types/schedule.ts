@@ -14,12 +14,26 @@ export interface Course {
   color?: string;
   /** The academic term, e.g., 'Fall 2026' */
   term?: string;
+  /** Free-text notes about the course */
+  notes?: string;
+  /** Whether this course was entered manually or created from AI syllabus extraction. Defaults to 'manual' when absent. */
+  source?: DataSource;
 }
 
 /**
  * Union representing different types of coursework or schedule items.
  */
 export type AssignmentType = 'assignment' | 'exam' | 'quiz' | 'project' | 'reading' | 'other';
+
+/**
+ * Priority level a user can assign to a schedule item.
+ */
+export type Priority = 'low' | 'medium' | 'high';
+
+/**
+ * Whether a record originated from manual user entry or AI syllabus extraction.
+ */
+export type DataSource = 'manual' | 'ai';
 
 /**
  * Represents a dated piece of work/task associated with a course.
@@ -39,6 +53,16 @@ export interface ScheduleItem {
   estimatedHours?: number;
   /** Completion status of the task */
   completed: boolean;
+  /** User-assigned priority */
+  priority?: Priority;
+  /** Free-text notes */
+  notes?: string;
+  /** Weight of this item toward the course's final grade, as a percentage (e.g. 15 for 15%) */
+  gradeWeight?: number;
+  /** Grading category this item falls under, e.g. 'Homework', 'Exam' */
+  gradeCategory?: string;
+  /** Whether this item was entered manually or created from AI syllabus extraction. Defaults to 'manual' when absent. */
+  source?: DataSource;
 }
 
 /**
