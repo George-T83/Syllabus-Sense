@@ -67,6 +67,10 @@ const config: Config = {
       boxShadow: {
         glass: '0 8px 32px 0 rgba(0, 0, 0, 0.08)',
         'glass-hover': '0 12px 40px 0 rgba(0, 0, 0, 0.12)',
+        // Card v2: brand-tinted, theme-aware shadow driven by CSS vars
+        // (globals.css) so the same class works in light and dark.
+        card: 'var(--card-shadow)',
+        'card-hover': 'var(--card-shadow-hover)',
       },
     },
   },

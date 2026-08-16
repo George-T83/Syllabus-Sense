@@ -4,22 +4,25 @@ import { cn } from '@/lib/utils';
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   interactive?: boolean;
   hoverable?: boolean;
+  /** Renders a brand-gradient bar along the card's top edge. */
+  accent?: boolean;
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, children, interactive, hoverable, ...props }, ref) => {
+  ({ className, children, interactive, hoverable, accent, ...props }, ref) => {
     const isInteractive = interactive || hoverable;
     return (
       <div
         ref={ref}
         className={cn(
-          'relative rounded-glass border border-border bg-card/90 backdrop-blur-md shadow-sm overflow-hidden',
+          'relative rounded-glass border border-border bg-card/90 backdrop-blur-md shadow-card overflow-hidden',
           isInteractive &&
-            'transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-glass-hover',
+            'transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover',
           className,
         )}
         {...props}
       >
+        {accent && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-brand" />}
         {children}
       </div>
     );
