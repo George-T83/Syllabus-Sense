@@ -2,15 +2,15 @@
 
 import React from 'react';
 import { SidebarProvider } from './SidebarContext';
-import { ThemeProvider } from '@/context/ThemeProvider';
 import { AppStateProvider } from '@/context/AppStateContext';
+import AuthGuard from '@/components/auth/AuthGuard';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <ThemeProvider>
+    <AuthGuard>
+      <SidebarProvider>
         <AppStateProvider>
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <Navbar />
@@ -22,7 +22,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             </div>
           </div>
         </AppStateProvider>
-      </ThemeProvider>
-    </SidebarProvider>
+      </SidebarProvider>
+    </AuthGuard>
   );
 }
