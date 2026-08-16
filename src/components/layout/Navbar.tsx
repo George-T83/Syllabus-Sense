@@ -11,7 +11,7 @@ import Logo from './Logo';
 export default function Navbar() {
   const { toggle } = useSidebar();
   const { resolvedTheme, setTheme } = useTheme();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -55,6 +55,14 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        {mounted && user && (
+          <Link
+            href="/profile"
+            className="hidden sm:block text-sm font-medium text-foreground hover:text-primary transition-colors"
+          >
+            Hi, {user.displayName || user.email?.split('@')[0] || 'there'}
+          </Link>
+        )}
         {!mounted ? (
           <button
             className="p-2 rounded-md hover:bg-accent text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background opacity-0"
