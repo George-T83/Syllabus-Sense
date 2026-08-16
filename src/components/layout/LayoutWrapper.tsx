@@ -16,7 +16,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             <Navbar />
             <div className="flex flex-1 pt-20">
               <Sidebar />
-              <main className="flex-1 p-6 md:pl-72 md:p-8 max-w-7xl mx-auto w-full transition-all duration-300">
+              <main className="flex-1 p-6 md:pl-72 md:p-8 max-w-7xl transition-all duration-300">
                 {children}
               </main>
             </div>
