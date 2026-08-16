@@ -8,6 +8,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
+  updateProfile,
   User,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
@@ -20,6 +21,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<boolean>;
   signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<boolean>;
+  updateDisplayName: (displayName: string) => Promise<boolean>;
   clearError: () => void;
 }
 
@@ -89,11 +91,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = () => runAuthAction(() => firebaseSignOut(auth!));
 
+  const updateDisplayName = (displayName: string) =>
+    runAuthAction(async () => {
+      await updateProfile(auth!.currentUser!, { displayName });
+      // updateProfile doesn't trigger onAuthStateChanged, so the cached user
+      // object won't reflect the new name without a manual refresh here.
+      setUser(auth!.currentUser ? { ...auth!.currentUser } : null);
+    });
+
   const clearError = () => setError(null);
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, signIn, signUp, signInWithGoogle, signOut, clearError }}
+      value={{
+        user,
+        loading,
+        error,
+        signIn,
+        signUp,
+        signInWithGoogle,
+        signOut,
+        updateDisplayName,
+        clearError,
+      }}
     >
       {children}
     </AuthContext.Provider>
