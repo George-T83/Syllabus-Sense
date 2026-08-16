@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
@@ -125,9 +126,12 @@ export function DashboardView() {
                 {courseLoad.map(({ course, pct }) => (
                   <div key={course.id}>
                     <div className="flex justify-between text-xs mb-1.5">
-                      <span className="font-medium text-foreground">
+                      <Link
+                        href={`/courses/${course.id}`}
+                        className="font-medium text-foreground hover:text-primary hover:underline"
+                      >
                         {course.code} · {course.title}
-                      </span>
+                      </Link>
                       <span className="text-muted-foreground">{pct}%</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
