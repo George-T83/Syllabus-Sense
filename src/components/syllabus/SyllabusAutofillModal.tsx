@@ -276,7 +276,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-8"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4 py-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="autofill-title"

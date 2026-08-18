@@ -110,173 +110,175 @@ export function PlannerView() {
     'rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Tasks</h1>
-        <p className="text-sm text-muted-foreground mt-1">All your tasks, across every course.</p>
-      </div>
-
-      {scheduleItems.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl bg-accent/50 px-4 py-2.5 text-xs">
-          <span className="font-semibold text-foreground">{stats.pending} pending</span>
-          {stats.overdue > 0 && (
-            <span className="flex items-center gap-1 font-semibold text-destructive">
-              <svg
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-              {stats.overdue} overdue
-            </span>
-          )}
-          <span className="text-muted-foreground">{stats.completed} completed</span>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        <select
-          value={courseFilter}
-          onChange={(e) => setCourseFilter(e.target.value)}
-          className={selectClass}
-        >
-          <option value="all">All Courses</option>
-          {courses.map((course) => (
-            <option key={course.id} value={course.id}>
-              {course.code}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as 'all' | AssignmentType)}
-          className={selectClass}
-        >
-          <option value="all">All Types</option>
-          {Object.entries(TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className={selectClass}
-        >
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
-        </select>
-
-        <select
-          value={sortMode}
-          onChange={(e) => setSortMode(e.target.value as SortMode)}
-          className={selectClass}
-        >
-          <option value="dueDate">Sort: Due Date</option>
-          <option value="priority">Sort: Priority</option>
-        </select>
-      </div>
-
-      <Card className="rounded-2xl p-6">
-        <div className="mb-4 flex items-center gap-3">
-          <SectionIcon icon="tasks" />
-          <h2 className="text-base font-semibold text-foreground">
-            {filteredItems.length} task{filteredItems.length === 1 ? '' : 's'}
-          </h2>
+    <>
+      <div className="max-w-4xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Tasks</h1>
+          <p className="text-sm text-muted-foreground mt-1">All your tasks, across every course.</p>
         </div>
 
-        {filteredItems.length === 0 ? (
-          <EmptyState
-            icon={
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            }
-            title="No tasks match these filters"
-            description="Try widening your filters, or add a task from a course page."
-          />
-        ) : (
-          <div className="divide-y divide-border">
-            {filteredItems.map((item) => {
-              const course = courses.find((c) => c.id === item.courseId);
-              const overdue = isOverdue(item, today);
-              return (
-                <TaskRow
-                  key={item.id}
-                  title={item.title}
-                  href={'/tasks/' + item.id}
-                  type={item.type}
-                  courseCode={
-                    course ? `${course.code} · ${TYPE_LABELS[item.type]}` : TYPE_LABELS[item.type]
-                  }
-                  courseColor={course?.color}
-                  completed={item.completed}
-                  priority={item.priority}
-                  onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
-                  trailing={
-                    <>
-                      {overdue && (
-                        <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                          Overdue
-                        </span>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        Due {dueDateFormatter.format(new Date(item.dueDate))}
-                      </span>
-                      <button
-                        onClick={() => setEditingItem(item)}
-                        className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                      >
-                        Edit
-                      </button>
-                      {confirmingDeleteId === item.id ? (
-                        <div className="flex items-center gap-2 text-xs">
-                          <button
-                            onClick={() => handleDeleteTask(item)}
-                            className="font-semibold text-destructive hover:underline"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={() => setConfirmingDeleteId(null)}
-                            className="text-muted-foreground hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmingDeleteId(item.id)}
-                          className="text-xs font-semibold text-destructive hover:underline"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </>
-                  }
-                />
-              );
-            })}
+        {scheduleItems.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-accent/50 px-4 py-2.5 text-xs">
+            <span className="font-semibold text-foreground">{stats.pending} pending</span>
+            {stats.overdue > 0 && (
+              <span className="flex items-center gap-1 font-semibold text-destructive">
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                {stats.overdue} overdue
+              </span>
+            )}
+            <span className="text-muted-foreground">{stats.completed} completed</span>
           </div>
         )}
-      </Card>
+
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className={selectClass}
+          >
+            <option value="all">All Courses</option>
+            {courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.code}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as 'all' | AssignmentType)}
+            className={selectClass}
+          >
+            <option value="all">All Types</option>
+            {Object.entries(TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className={selectClass}
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+          </select>
+
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as SortMode)}
+            className={selectClass}
+          >
+            <option value="dueDate">Sort: Due Date</option>
+            <option value="priority">Sort: Priority</option>
+          </select>
+        </div>
+
+        <Card className="rounded-2xl p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <SectionIcon icon="tasks" />
+            <h2 className="text-base font-semibold text-foreground">
+              {filteredItems.length} task{filteredItems.length === 1 ? '' : 's'}
+            </h2>
+          </div>
+
+          {filteredItems.length === 0 ? (
+            <EmptyState
+              icon={
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              }
+              title="No tasks match these filters"
+              description="Try widening your filters, or add a task from a course page."
+            />
+          ) : (
+            <div className="divide-y divide-border">
+              {filteredItems.map((item) => {
+                const course = courses.find((c) => c.id === item.courseId);
+                const overdue = isOverdue(item, today);
+                return (
+                  <TaskRow
+                    key={item.id}
+                    title={item.title}
+                    href={'/tasks/' + item.id}
+                    type={item.type}
+                    courseCode={
+                      course ? `${course.code} · ${TYPE_LABELS[item.type]}` : TYPE_LABELS[item.type]
+                    }
+                    courseColor={course?.color}
+                    completed={item.completed}
+                    priority={item.priority}
+                    onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+                    trailing={
+                      <>
+                        {overdue && (
+                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                            Overdue
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          Due {dueDateFormatter.format(new Date(item.dueDate))}
+                        </span>
+                        <button
+                          onClick={() => setEditingItem(item)}
+                          className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                        >
+                          Edit
+                        </button>
+                        {confirmingDeleteId === item.id ? (
+                          <div className="flex items-center gap-2 text-xs">
+                            <button
+                              onClick={() => handleDeleteTask(item)}
+                              className="font-semibold text-destructive hover:underline"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => setConfirmingDeleteId(null)}
+                              className="text-muted-foreground hover:underline"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmingDeleteId(item.id)}
+                            className="text-xs font-semibold text-destructive hover:underline"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </>
+                    }
+                  />
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
 
       <TaskFormModal
         open={editingItem !== null}
@@ -285,6 +287,6 @@ export function PlannerView() {
         courses={courses}
         initialItem={editingItem ?? undefined}
       />
-    </div>
+    </>
   );
 }

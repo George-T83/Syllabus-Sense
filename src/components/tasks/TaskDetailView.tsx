@@ -92,157 +92,159 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <BackLink href="/tasks">Back to tasks</BackLink>
+    <>
+      <div className="max-w-2xl space-y-6">
+        <BackLink href="/tasks">Back to tasks</BackLink>
 
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <span
-            className={cn(
-              'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-sm',
-              course?.color || 'bg-primary',
-            )}
-          >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <span
+              className={cn(
+                'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-sm',
+                course?.color || 'bg-primary',
+              )}
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d={ICON_PATHS.tasks} />
+              </svg>
+            </span>
+            <div>
+              <h1
+                className={cn(
+                  'text-2xl font-bold tracking-tight text-foreground',
+                  item.completed && 'text-muted-foreground line-through',
+                )}
+              >
+                {item.title}
+              </h1>
+              {course && (
+                <Link
+                  href={`/courses/${course.id}`}
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                >
+                  {course.code} · {course.title}
+                </Link>
+              )}
+            </div>
+          </div>
+          <label className="flex shrink-0 items-center gap-2 text-xs font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={item.completed}
+              onChange={handleToggleComplete}
+              className="h-4 w-4 rounded border-border accent-primary"
+            />
+            Done
+          </label>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            {TYPE_LABELS[item.type]}
+          </span>
+          {item.priority && (
+            <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium capitalize text-muted-foreground">
+              {item.priority} priority
+            </span>
+          )}
+          {overdue && (
+            <span className="rounded-full bg-load-critical/10 px-2.5 py-1 text-xs font-semibold text-load-critical">
+              Overdue
+            </span>
+          )}
+          {item.gradeWeight !== undefined && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {item.gradeWeight}% of grade{item.gradeCategory ? ` · ${item.gradeCategory}` : ''}
+            </span>
+          )}
+          {item.source === 'ai' && (
+            <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              From syllabus
+            </span>
+          )}
+        </div>
+
+        <dl className="grid grid-cols-2 gap-4 border-t border-border pt-5 text-sm">
+          <div>
+            <dt className="text-xs text-muted-foreground">Due</dt>
+            <dd className="mt-0.5 font-medium text-foreground">
+              {dueDateFormatter.format(new Date(item.dueDate))}
+            </dd>
+          </div>
+          {item.estimatedHours !== undefined && (
+            <div>
+              <dt className="text-xs text-muted-foreground">Estimated effort</dt>
+              <dd className="mt-0.5 font-medium text-foreground">{item.estimatedHours}h</dd>
+            </div>
+          )}
+        </dl>
+
+        {item.notes && (
+          <div className="border-t border-border pt-5">
+            <dt className="text-xs text-muted-foreground">Notes</dt>
+            <dd className="mt-1 whitespace-pre-wrap text-sm text-foreground">{item.notes}</dd>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
+          <button onClick={() => setEditOpen(true)} className={solidButtonClass}>
             <svg
-              className="h-5 w-5"
+              className="h-4 w-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
               strokeWidth={2}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d={ICON_PATHS.tasks} />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
             </svg>
-          </span>
-          <div>
-            <h1
-              className={cn(
-                'text-2xl font-bold tracking-tight text-foreground',
-                item.completed && 'text-muted-foreground line-through',
-              )}
-            >
-              {item.title}
-            </h1>
-            {course && (
-              <Link
-                href={`/courses/${course.id}`}
-                className="text-sm text-muted-foreground hover:text-primary hover:underline"
-              >
-                {course.code} · {course.title}
-              </Link>
+            Edit
+          </button>
+          <a
+            href={generateGoogleCalendarUrl(item, course)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={outlineButtonClass}
+          >
+            Google Calendar
+          </a>
+          <a
+            href={generateOutlookCalendarUrl(item, course)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={outlineButtonClass}
+          >
+            Outlook
+          </a>
+          <div className="ml-auto">
+            {confirmingDelete ? (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Delete this task?</span>
+                <button
+                  onClick={handleDelete}
+                  className="rounded-lg bg-destructive px-3.5 py-2 font-semibold text-destructive-foreground transition-opacity hover:opacity-90"
+                >
+                  Confirm
+                </button>
+                <button onClick={() => setConfirmingDelete(false)} className={outlineButtonClass}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmingDelete(true)} className={destructiveButtonClass}>
+                Delete
+              </button>
             )}
           </div>
-        </div>
-        <label className="flex shrink-0 items-center gap-2 text-xs font-medium text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={item.completed}
-            onChange={handleToggleComplete}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-          Done
-        </label>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {TYPE_LABELS[item.type]}
-        </span>
-        {item.priority && (
-          <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium capitalize text-muted-foreground">
-            {item.priority} priority
-          </span>
-        )}
-        {overdue && (
-          <span className="rounded-full bg-load-critical/10 px-2.5 py-1 text-xs font-semibold text-load-critical">
-            Overdue
-          </span>
-        )}
-        {item.gradeWeight !== undefined && (
-          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-            {item.gradeWeight}% of grade{item.gradeCategory ? ` · ${item.gradeCategory}` : ''}
-          </span>
-        )}
-        {item.source === 'ai' && (
-          <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground">
-            From syllabus
-          </span>
-        )}
-      </div>
-
-      <dl className="grid grid-cols-2 gap-4 border-t border-border pt-5 text-sm">
-        <div>
-          <dt className="text-xs text-muted-foreground">Due</dt>
-          <dd className="mt-0.5 font-medium text-foreground">
-            {dueDateFormatter.format(new Date(item.dueDate))}
-          </dd>
-        </div>
-        {item.estimatedHours !== undefined && (
-          <div>
-            <dt className="text-xs text-muted-foreground">Estimated effort</dt>
-            <dd className="mt-0.5 font-medium text-foreground">{item.estimatedHours}h</dd>
-          </div>
-        )}
-      </dl>
-
-      {item.notes && (
-        <div className="border-t border-border pt-5">
-          <dt className="text-xs text-muted-foreground">Notes</dt>
-          <dd className="mt-1 whitespace-pre-wrap text-sm text-foreground">{item.notes}</dd>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
-        <button onClick={() => setEditOpen(true)} className={solidButtonClass}>
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-          Edit
-        </button>
-        <a
-          href={generateGoogleCalendarUrl(item, course)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={outlineButtonClass}
-        >
-          Google Calendar
-        </a>
-        <a
-          href={generateOutlookCalendarUrl(item, course)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={outlineButtonClass}
-        >
-          Outlook
-        </a>
-        <div className="ml-auto">
-          {confirmingDelete ? (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Delete this task?</span>
-              <button
-                onClick={handleDelete}
-                className="rounded-lg bg-destructive px-3.5 py-2 font-semibold text-destructive-foreground transition-opacity hover:opacity-90"
-              >
-                Confirm
-              </button>
-              <button onClick={() => setConfirmingDelete(false)} className={outlineButtonClass}>
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmingDelete(true)} className={destructiveButtonClass}>
-              Delete
-            </button>
-          )}
         </div>
       </div>
 
@@ -253,6 +255,6 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
         courses={state.courses}
         initialItem={item}
       />
-    </div>
+    </>
   );
 }

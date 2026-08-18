@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
-import { adminAuth } from '@/lib/firebase/admin';
+import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import {
   SYLLABUS_EXTRACTION_SYSTEM_PROMPT,
@@ -16,9 +16,10 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 async function requireUser(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !adminAuth) return null;
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  if (!token || !projectId) return null;
   try {
-    return await adminAuth.verifyIdToken(token);
+    return await verifyFirebaseIdToken(token, projectId);
   } catch {
     return null;
   }
