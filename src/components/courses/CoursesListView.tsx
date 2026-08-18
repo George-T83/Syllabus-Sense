@@ -61,6 +61,8 @@ export function CoursesListView() {
         color: values.color,
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
+        ...(values.modality ? { modality: values.modality } : {}),
+        ...(values.meetingTimes?.length ? { meetingTimes: values.meetingTimes } : {}),
       },
       dispatch,
     );

@@ -61,8 +61,10 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         code: values.code,
         title: values.title,
         color: values.color,
+        meetingTimes: values.meetingTimes ?? [],
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
+        ...(values.modality ? { modality: values.modality } : {}),
       },
       dispatch,
     );

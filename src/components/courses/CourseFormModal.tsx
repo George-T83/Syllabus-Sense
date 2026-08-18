@@ -10,7 +10,7 @@ import {
   CardFooter,
 } from '@/components/ui/Card';
 import { courseFormSchema, type CourseFormValues } from '@/lib/validation/course';
-import type { Course } from '@/types/schedule';
+import type { Course, CourseModality, MeetingTime } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 
 const COURSE_COLORS = [
@@ -21,6 +21,29 @@ const COURSE_COLORS = [
   'bg-orange-500',
   'bg-teal-500',
 ];
+
+const MODALITY_OPTIONS: { value: CourseModality; label: string }[] = [
+  { value: 'in-person', label: 'In-person' },
+  { value: 'online', label: 'Online' },
+  { value: 'hybrid', label: 'Hybrid' },
+];
+
+const WEEKDAY_OPTIONS = [
+  { value: 0, label: 'Sun' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+];
+
+const emptyMeetingTime: MeetingTime = {
+  dayOfWeek: 1,
+  startTime: '09:00',
+  endTime: '10:15',
+  location: '',
+};
 
 export interface CourseFormModalProps {
   open: boolean;
@@ -36,6 +59,8 @@ const emptyValues: CourseFormValues = {
   instructor: '',
   term: '',
   color: COURSE_COLORS[0],
+  modality: undefined,
+  meetingTimes: [],
 };
 
 export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: CourseFormModalProps) {
@@ -54,6 +79,8 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
             instructor: initialCourse.instructor ?? '',
             term: initialCourse.term ?? '',
             color: initialCourse.color ?? COURSE_COLORS[0],
+            modality: initialCourse.modality,
+            meetingTimes: initialCourse.meetingTimes ?? [],
           }
         : emptyValues,
     );
@@ -66,6 +93,30 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
   const updateField = (key: keyof CourseFormValues, value: string) => {
     setValues((s) => ({ ...s, [key]: value }));
     setErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
+  };
+
+  const meetingTimes = values.meetingTimes ?? [];
+
+  const addMeetingTime = () => {
+    setValues((s) => ({
+      ...s,
+      meetingTimes: [...(s.meetingTimes ?? []), { ...emptyMeetingTime }],
+    }));
+  };
+
+  const removeMeetingTime = (index: number) => {
+    setValues((s) => ({
+      ...s,
+      meetingTimes: (s.meetingTimes ?? []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateMeetingTime = (index: number, patch: Partial<MeetingTime>) => {
+    setValues((s) => ({
+      ...s,
+      meetingTimes: (s.meetingTimes ?? []).map((m, i) => (i === index ? { ...m, ...patch } : m)),
+    }));
+    setErrors((e) => (e.meetingTimes ? { ...e, meetingTimes: undefined } : e));
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -177,6 +228,107 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                     />
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-sm font-medium text-foreground">Modality</span>
+                <div className="flex gap-2">
+                  {MODALITY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        setValues((s) => ({
+                          ...s,
+                          modality: s.modality === opt.value ? undefined : opt.value,
+                        }))
+                      }
+                      className={cn(
+                        'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                        values.modality === opt.value
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:bg-accent',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Weekly meetings</span>
+                  <button
+                    type="button"
+                    onClick={addMeetingTime}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    + Add meeting time
+                  </button>
+                </div>
+                {meetingTimes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No recurring class sessions yet — add one so it shows up on the calendar.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {meetingTimes.map((meeting, index) => (
+                      <div
+                        key={index}
+                        className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2"
+                      >
+                        <select
+                          aria-label={`Meeting ${index + 1} day of week`}
+                          value={meeting.dayOfWeek}
+                          onChange={(e) =>
+                            updateMeetingTime(index, { dayOfWeek: Number(e.target.value) })
+                          }
+                          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          {WEEKDAY_OPTIONS.map((d) => (
+                            <option key={d.value} value={d.value}>
+                              {d.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          aria-label={`Meeting ${index + 1} start time`}
+                          type="time"
+                          value={meeting.startTime}
+                          onChange={(e) => updateMeetingTime(index, { startTime: e.target.value })}
+                          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <span className="text-xs text-muted-foreground">to</span>
+                        <input
+                          aria-label={`Meeting ${index + 1} end time`}
+                          type="time"
+                          value={meeting.endTime}
+                          onChange={(e) => updateMeetingTime(index, { endTime: e.target.value })}
+                          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <input
+                          aria-label={`Meeting ${index + 1} location`}
+                          value={meeting.location ?? ''}
+                          onChange={(e) => updateMeetingTime(index, { location: e.target.value })}
+                          placeholder="Location (optional)"
+                          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeMeetingTime(index)}
+                          aria-label={`Remove meeting ${index + 1}`}
+                          className="rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {errors.meetingTimes && (
+                  <p className="text-xs text-destructive">{errors.meetingTimes}</p>
+                )}
               </div>
             </CardContent>
             <CardFooter className="justify-end gap-2">
