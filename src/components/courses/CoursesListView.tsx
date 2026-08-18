@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useAppState } from '@/context/AppStateContext';
+import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
@@ -27,7 +27,13 @@ export function CoursesListView() {
   const { courses, scheduleItems } = state;
 
   const [search, setSearch] = useState('');
-  const [termFilter, setTermFilter] = useState('all');
+  // Seeded from the global term switcher (#101) so this page opens already
+  // scoped to whatever term the rest of the app is showing, while staying a
+  // fully independent local filter the user can change without affecting
+  // the global selection.
+  const [termFilter, setTermFilter] = useState(
+    () => resolveActiveTerm(state.selectedTerm, state.courses) ?? 'all',
+  );
   const [sortMode, setSortMode] = useState<SortMode>('code');
   const [addCourseOpen, setAddCourseOpen] = useState(false);
 
