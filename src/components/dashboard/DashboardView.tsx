@@ -162,33 +162,17 @@ export function DashboardView() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="relative overflow-hidden rounded-2xl">
-        {/* Soft brand-gradient glow behind the greeting - the one hero moment
-            on the page's first screen, kept subtle (blurred, low opacity)
-            per the "don't go gradient crazy" rule rather than a solid fill. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-10 -top-16 h-56 w-56 rounded-full bg-gradient-brand opacity-[0.12] blur-3xl"
-        />
-        <div className="relative py-1">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">
-            {greeting}, <span className="text-gradient-brand">{firstName}</span>
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {currentTerm || courses[0]?.term || 'No courses yet'}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-4xl font-bold tracking-tight text-foreground">
+          {greeting}, <span className="text-gradient-brand">{firstName}</span>
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {currentTerm || courses[0]?.term || 'No courses yet'}
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-[15rem_1fr]">
-        <Card
-          accent
-          className="relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl p-6"
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-gradient-brand opacity-[0.08] blur-2xl"
-          />
+        <Card accent className="flex flex-col items-center justify-center gap-4 rounded-2xl p-6">
           <ProgressRing percent={termProgressPct} size={116} strokeWidth={10}>
             <div className="text-center">
               <div className="text-3xl font-bold text-foreground">{termProgressPct}%</div>
