@@ -525,6 +525,7 @@ export function MonthCalendar() {
                         <TaskRow
                           key={item.id}
                           title={item.title}
+                          href={`/tasks/${item.id}`}
                           type={item.type}
                           courseCode={course ? course.code : 'General'}
                           courseColor={course?.color}
@@ -698,6 +699,7 @@ function DayDetailCard({
                     <TaskRow
                       key={item.id}
                       title={item.title}
+                      href={`/tasks/${item.id}`}
                       type={item.type}
                       courseCode={course ? course.code : 'General'}
                       courseColor={course?.color}

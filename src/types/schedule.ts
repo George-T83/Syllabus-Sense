@@ -41,6 +41,14 @@ export interface Course {
   modality?: CourseModality;
   /** Recurring weekly meeting times, e.g. "MWF 9:00-10:15" */
   meetingTimes?: MeetingTime[];
+  /** General required/optional materials from the syllabus (textbook,
+   * calculator, supplies) that aren't tied to a specific due date. */
+  materials?: string[];
+  /** ISO dates (YYYY-MM-DD) on which recurring meetings should NOT render -
+   * holidays and breaks called out in the syllabus (e.g. "1/19 - HOLIDAY").
+   * Only suppresses `meetingTimes` occurrences; never affects `ScheduleItem`
+   * due dates, since a real deadline shouldn't disappear on a break. */
+  skipDates?: string[];
 }
 
 /**
@@ -86,6 +94,17 @@ export interface ScheduleItem {
   gradeCategory?: string;
   /** Whether this item was entered manually or created from AI syllabus extraction. Defaults to 'manual' when absent. */
   source?: DataSource;
+  /** How confident the AI extractor was in `dueDate`, when `source` is 'ai'.
+   * 'approximate' means the syllabus only gave a week/range and the date was
+   * resolved (e.g. via a stated "all due Fridays" rule or the range's last
+   * day) rather than stated explicitly - surfaced as a "please confirm"
+   * badge. Absent for manually-entered items, which are always exact. */
+  dateConfidence?: 'exact' | 'approximate';
+  /** Set when the AI extractor judged this item unusually high-stakes (large
+   * grade weight, or explicit "mandatory"/"automatic F if missed" language)
+   * so it can be visually flagged during review instead of blending in with
+   * routine items. */
+  highStakes?: boolean;
 }
 
 /**

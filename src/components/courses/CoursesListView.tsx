@@ -3,11 +3,13 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
+import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import type { CourseFormValues } from '@/lib/validation/course';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +38,7 @@ export function CoursesListView() {
   );
   const [sortMode, setSortMode] = useState<SortMode>('code');
   const [addCourseOpen, setAddCourseOpen] = useState(false);
+  const [autofillOpen, setAutofillOpen] = useState(false);
 
   const terms = useMemo(
     () => Array.from(new Set(courses.map((c) => c.term).filter(Boolean))) as string[],
@@ -94,12 +97,27 @@ export function CoursesListView() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Courses</h1>
           <p className="text-sm text-muted-foreground mt-1">Every course you&apos;re tracking.</p>
         </div>
-        <button
-          onClick={() => setAddCourseOpen(true)}
-          className="text-sm font-semibold text-primary hover:underline shrink-0"
-        >
-          + Add Course
-        </button>
+        <div className="flex items-center gap-2">
+          <CardActionButton onClick={() => setAutofillOpen(true)}>
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            Autofill from Syllabus
+          </CardActionButton>
+          <CardActionButton variant="solid" withPlus onClick={() => setAddCourseOpen(true)}>
+            Add Course
+          </CardActionButton>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -237,6 +255,7 @@ export function CoursesListView() {
         onClose={() => setAddCourseOpen(false)}
         onSubmit={handleAddCourse}
       />
+      <SyllabusAutofillModal open={autofillOpen} onClose={() => setAutofillOpen(false)} />
     </div>
   );
 }

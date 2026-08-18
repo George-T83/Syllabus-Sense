@@ -221,6 +221,7 @@ export function PlannerView() {
                 <TaskRow
                   key={item.id}
                   title={item.title}
+                  href={'/tasks/' + item.id}
                   type={item.type}
                   courseCode={
                     course ? `${course.code} · ${TYPE_LABELS[item.type]}` : TYPE_LABELS[item.type]
@@ -241,7 +242,7 @@ export function PlannerView() {
                       </span>
                       <button
                         onClick={() => setEditingItem(item)}
-                        className="text-xs font-semibold text-primary hover:underline"
+                        className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                       >
                         Edit
                       </button>

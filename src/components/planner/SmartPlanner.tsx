@@ -184,6 +184,7 @@ export function SmartPlanner() {
                   <TaskRow
                     key={item.id}
                     title={item.title}
+                    href={`/tasks/${item.id}`}
                     type={item.type}
                     courseCode={courses.find((c) => c.id === item.courseId)?.code ?? 'General'}
                     courseColor={courses.find((c) => c.id === item.courseId)?.color}
@@ -232,6 +233,7 @@ function PlannedTaskRow({
   return (
     <TaskRow
       title={item.title}
+      href={`/tasks/${item.id}`}
       type={item.type}
       courseCode={course ? course.code : 'General'}
       courseColor={course?.color}
