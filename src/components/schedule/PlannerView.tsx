@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SectionIcon } from '@/components/ui/SectionIcon';
+import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem, deleteScheduleItem } from '@/lib/firestore/scheduleItems';
@@ -25,6 +28,10 @@ const TYPE_LABELS: Record<AssignmentType, string> = {
 
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
 
+function isOverdue(item: ScheduleItem, today: Date): boolean {
+  return !item.completed && new Date(item.dueDate) < today;
+}
+
 export function PlannerView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
@@ -36,6 +43,18 @@ export function PlannerView() {
   const [sortMode, setSortMode] = useState<SortMode>('dueDate');
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
+  const today = useMemo(() => new Date(), []);
+
+  const stats = useMemo(() => {
+    const pending = scheduleItems.filter((i) => !i.completed);
+    const overdue = pending.filter((i) => isOverdue(i, today));
+    return {
+      pending: pending.length,
+      overdue: overdue.length,
+      completed: scheduleItems.length - pending.length,
+    };
+  }, [scheduleItems, today]);
 
   const filteredItems = useMemo(() => {
     let items = scheduleItems.slice();
@@ -97,6 +116,31 @@ export function PlannerView() {
         <p className="text-sm text-muted-foreground mt-1">All your tasks, across every course.</p>
       </div>
 
+      {scheduleItems.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl bg-accent/50 px-4 py-2.5 text-xs">
+          <span className="font-semibold text-foreground">{stats.pending} pending</span>
+          {stats.overdue > 0 && (
+            <span className="flex items-center gap-1 font-semibold text-destructive">
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              {stats.overdue} overdue
+            </span>
+          )}
+          <span className="text-muted-foreground">{stats.completed} completed</span>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         <select
           value={courseFilter}
@@ -145,69 +189,88 @@ export function PlannerView() {
       </div>
 
       <Card className="rounded-2xl p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <SectionIcon icon="tasks" />
+          <h2 className="text-base font-semibold text-foreground">
+            {filteredItems.length} task{filteredItems.length === 1 ? '' : 's'}
+          </h2>
+        </div>
+
         {filteredItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No tasks match these filters.</p>
+          <EmptyState
+            icon={
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            }
+            title="No tasks match these filters"
+            description="Try widening your filters, or add a task from a course page."
+          />
         ) : (
           <div className="divide-y divide-border">
             {filteredItems.map((item) => {
               const course = courses.find((c) => c.id === item.courseId);
+              const overdue = isOverdue(item, today);
               return (
-                <div key={item.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <input
-                    type="checkbox"
-                    checked={item.completed}
-                    onChange={() => handleToggleComplete(item)}
-                    className="h-4 w-4 rounded border-border accent-primary shrink-0"
-                    aria-label={`Mark ${item.title} complete`}
-                  />
-                  <span
-                    className={`h-2 w-2 rounded-full shrink-0 ${course?.color || 'bg-primary'}`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className={`text-sm font-medium truncate ${
-                        item.completed ? 'text-muted-foreground line-through' : 'text-foreground'
-                      }`}
-                    >
-                      {item.title}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {course ? course.code : 'General'} · {TYPE_LABELS[item.type]}
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground shrink-0">
-                    Due {dueDateFormatter.format(new Date(item.dueDate))}
-                  </div>
-                  <button
-                    onClick={() => setEditingItem(item)}
-                    className="text-xs font-semibold text-primary hover:underline shrink-0"
-                  >
-                    Edit
-                  </button>
-                  {confirmingDeleteId === item.id ? (
-                    <div className="flex items-center gap-2 text-xs shrink-0">
+                <TaskRow
+                  key={item.id}
+                  title={item.title}
+                  type={item.type}
+                  courseCode={
+                    course ? `${course.code} · ${TYPE_LABELS[item.type]}` : TYPE_LABELS[item.type]
+                  }
+                  courseColor={course?.color}
+                  completed={item.completed}
+                  priority={item.priority}
+                  onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+                  trailing={
+                    <>
+                      {overdue && (
+                        <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                          Overdue
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        Due {dueDateFormatter.format(new Date(item.dueDate))}
+                      </span>
                       <button
-                        onClick={() => handleDeleteTask(item)}
-                        className="font-semibold text-destructive hover:underline"
+                        onClick={() => setEditingItem(item)}
+                        className="text-xs font-semibold text-primary hover:underline"
                       >
-                        Confirm
+                        Edit
                       </button>
-                      <button
-                        onClick={() => setConfirmingDeleteId(null)}
-                        className="text-muted-foreground hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmingDeleteId(item.id)}
-                      className="text-xs font-semibold text-destructive hover:underline shrink-0"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
+                      {confirmingDeleteId === item.id ? (
+                        <div className="flex items-center gap-2 text-xs">
+                          <button
+                            onClick={() => handleDeleteTask(item)}
+                            className="font-semibold text-destructive hover:underline"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setConfirmingDeleteId(null)}
+                            className="text-muted-foreground hover:underline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmingDeleteId(item.id)}
+                          className="text-xs font-semibold text-destructive hover:underline"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </>
+                  }
+                />
               );
             })}
           </div>
