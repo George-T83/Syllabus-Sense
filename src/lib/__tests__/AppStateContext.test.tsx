@@ -148,6 +148,14 @@ describe('AppStateContext Reducer & Selectors', () => {
     expect(state.scheduleItems).toHaveLength(0);
   });
 
+  it('handles SELECT_TERM', () => {
+    let state = appStateReducer(initialAppState, { type: 'SELECT_TERM', payload: 'Fall 2026' });
+    expect(state.selectedTerm).toBe('Fall 2026');
+
+    state = appStateReducer(state, { type: 'SELECT_TERM', payload: 'all' });
+    expect(state.selectedTerm).toBe('all');
+  });
+
   it('handles SET_COURSES and SET_SCHEDULE_ITEMS', () => {
     let state = appStateReducer(initialAppState, { type: 'SET_COURSES', payload: [mockCourse] });
     expect(state.courses).toHaveLength(1);
@@ -162,6 +170,7 @@ describe('AppStateContext Reducer & Selectors', () => {
       courses: [mockCourse],
       scheduleItems: [mockItem],
       selectedCourseId: 'c1',
+      selectedTerm: null,
       initialized: true,
     };
 

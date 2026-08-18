@@ -1,12 +1,17 @@
 'use client';
 
-import React, { createContext, useContext, useMemo, useReducer } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { Course, ScheduleItem } from '@/types/schedule';
 
 export interface AppState {
   courses: Course[];
   scheduleItems: ScheduleItem[];
   selectedCourseId: string | null;
+  /** #101 semester switcher. `null` means "no explicit choice made yet" -
+   * consumers should fall back to `inferCurrentTerm`. The literal string
+   * 'all' is an explicit user choice to see every term, distinct from "no
+   * opinion yet". A specific term string filters to that term. */
+  selectedTerm: string | null;
   initialized: boolean;
 }
 
@@ -20,12 +25,14 @@ export type AppAction =
   | { type: 'UPDATE_SCHEDULE_ITEM'; payload: ScheduleItem }
   | { type: 'REMOVE_SCHEDULE_ITEM'; payload: string }
   | { type: 'TOGGLE_SCHEDULE_ITEM_COMPLETED'; payload: string }
-  | { type: 'SELECT_COURSE'; payload: string | null };
+  | { type: 'SELECT_COURSE'; payload: string | null }
+  | { type: 'SELECT_TERM'; payload: string | null };
 
 export const initialAppState: AppState = {
   courses: [],
   scheduleItems: [],
   selectedCourseId: null,
+  selectedTerm: null,
   initialized: false,
 };
 
@@ -76,6 +83,8 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
       };
     case 'SELECT_COURSE':
       return { ...state, selectedCourseId: action.payload };
+    case 'SELECT_TERM':
+      return { ...state, selectedTerm: action.payload };
     default:
       return state;
   }
@@ -93,13 +102,48 @@ interface AppStateProviderProps {
   initialState?: Partial<AppState>;
 }
 
+const TERM_STORAGE_KEY = 'syllabus-sense-selected-term';
+
+function readStoredTerm(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(TERM_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function AppStateProvider({ children, initialState }: AppStateProviderProps) {
   const mergedInitialState: AppState = {
     ...initialAppState,
     ...initialState,
   };
 
-  const [state, dispatch] = useReducer(appStateReducer, mergedInitialState);
+  // Reads localStorage synchronously in the reducer's lazy initializer
+  // (runs during the very first render, before any child mounts) rather
+  // than in a useEffect - restoring it in an effect would leave a window
+  // where children's own mount-time reads (e.g. a filter's lazy useState
+  // seeded from selectedTerm) see the still-null default and miss the
+  // restored value entirely. Guarded on the caller's own initialState so a
+  // test/consumer that explicitly passes initialState.selectedTerm is never
+  // silently overridden by a stale value from a previous session.
+  const [state, dispatch] = useReducer(appStateReducer, mergedInitialState, (init) => {
+    if (init.selectedTerm !== null) return init;
+    const stored = readStoredTerm();
+    return stored ? { ...init, selectedTerm: stored } : init;
+  });
+
+  useEffect(() => {
+    try {
+      if (state.selectedTerm) {
+        window.localStorage.setItem(TERM_STORAGE_KEY, state.selectedTerm);
+      } else {
+        window.localStorage.removeItem(TERM_STORAGE_KEY);
+      }
+    } catch {
+      // ignore localStorage errors (e.g. private browsing)
+    }
+  }, [state.selectedTerm]);
 
   // Memoized so consumers only re-render when app state actually changes.
   // This provider sits below SidebarProvider and ThemeProvider, so without
@@ -126,4 +170,46 @@ export function getSelectedCourse(state: AppState): Course | null {
 export function getScheduleItemsByCourse(state: AppState, courseId: string | null): ScheduleItem[] {
   if (!courseId) return [];
   return state.scheduleItems.filter((item) => item.courseId === courseId);
+}
+
+/**
+ * #101 semester switcher support.
+ *
+ * Infers the "current" term as whichever term the most courses belong to.
+ * There's no explicit term-boundary data (courses only carry a free-text
+ * `term` label, not start/end dates) - this is a reasonable default that
+ * degrades gracefully to "show everything" once a user has courses spanning
+ * multiple terms without a clear majority.
+ */
+export function inferCurrentTerm(courses: Pick<Course, 'term'>[]): string | null {
+  const counts = new Map<string, number>();
+  for (const course of courses) {
+    if (!course.term) continue;
+    counts.set(course.term, (counts.get(course.term) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [term, count] of Array.from(counts)) {
+    if (count > bestCount) {
+      best = term;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+/**
+ * Resolves what term the app should actually scope views to, given the
+ * user's stored preference (`AppState.selectedTerm`) and their courses.
+ * Returns `null` to mean "no filter - show every term" (either because the
+ * user explicitly chose 'All Terms', or because there's nothing to infer
+ * yet), or a specific term string to filter by.
+ */
+export function resolveActiveTerm(
+  selectedTerm: string | null,
+  courses: Pick<Course, 'term'>[],
+): string | null {
+  if (selectedTerm === 'all') return null;
+  if (selectedTerm) return selectedTerm;
+  return inferCurrentTerm(courses);
 }

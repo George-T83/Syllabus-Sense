@@ -7,6 +7,7 @@ import { useSidebar } from './SidebarContext';
 import { useTheme } from '@/context/ThemeProvider';
 import { useAuth } from '@/context/AuthContext';
 import Logo from './Logo';
+import { TermSwitcher } from './TermSwitcher';
 
 export default function Navbar() {
   const { toggle } = useSidebar();
@@ -55,6 +56,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        {mounted && user && <TermSwitcher />}
         {mounted && user && (
           <Link
             href="/profile"
