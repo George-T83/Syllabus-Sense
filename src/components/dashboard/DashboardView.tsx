@@ -122,12 +122,12 @@ export function DashboardView() {
 
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex flex-row md:flex-col gap-3 md:w-40 shrink-0">
-          <Card className="rounded-xl bg-primary/10 border-0 shadow-none p-4 flex-1 flex flex-col justify-center">
-            <div className="text-2xl font-bold text-primary">{termProgressPct}%</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Term Progress</div>
+          <Card className="rounded-xl bg-gradient-brand border-0 shadow-none p-4 flex-1 flex flex-col justify-center">
+            <div className="text-2xl font-bold text-white">{termProgressPct}%</div>
+            <div className="text-xs text-white/80 mt-0.5">Term Progress</div>
           </Card>
-          <Card className="rounded-xl bg-muted/60 border-0 shadow-none p-4 flex-1 flex flex-col justify-center">
-            <div className="text-2xl font-bold text-foreground">{courses.length}</div>
+          <Card className="rounded-xl bg-primary/10 border-0 shadow-none p-4 flex-1 flex flex-col justify-center">
+            <div className="text-2xl font-bold text-primary">{courses.length}</div>
             <div className="text-xs text-muted-foreground mt-0.5">Courses</div>
           </Card>
           <Card className="rounded-xl bg-load-medium/10 border-0 shadow-none p-4 flex-1 flex flex-col justify-center">
@@ -291,7 +291,7 @@ export function DashboardView() {
         )}
       </Card>
 
-      <Link href="/calendar">
+      <Link href="/calendar" className="block">
         <Card hoverable className="rounded-2xl p-4 text-center">
           <span className="text-sm font-semibold text-primary">View full calendar →</span>
         </Card>

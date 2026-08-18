@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import defaultTheme from 'tailwindcss/defaultTheme';
 
 const config: Config = {
   content: [
@@ -11,6 +12,18 @@ const config: Config = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        // Wires the Geist variable font (loaded via next/font/local in
+        // layout.tsx) into Tailwind's default sans stack. Without this, the
+        // --font-geist-sans CSS variable is defined but nothing ever
+        // consumes it, so the app silently falls back to the browser's raw
+        // system-font stack - and different font-weight utilities on that
+        // stack can resolve to genuinely different typefaces (e.g. a bold
+        // number rendering in a different font family than adjacent medium-
+        // weight text), which is exactly the mismatch this fixes.
+        sans: ['var(--font-geist-sans)', ...defaultTheme.fontFamily.sans],
+        mono: ['var(--font-geist-mono)', ...defaultTheme.fontFamily.mono],
+      },
       colors: {
         background: 'hsl(var(--background) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
