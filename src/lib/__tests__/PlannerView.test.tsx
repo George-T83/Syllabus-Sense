@@ -121,6 +121,6 @@ describe('PlannerView', () => {
   it('shows an empty state when no tasks match the filters', () => {
     renderPlanner();
     fireEvent.change(screen.getByDisplayValue('All Types'), { target: { value: 'quiz' } });
-    expect(screen.getByText('No tasks match these filters.')).toBeDefined();
+    expect(screen.getByText('No tasks match these filters')).toBeDefined();
   });
 });
