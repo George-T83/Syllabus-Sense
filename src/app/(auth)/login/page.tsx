@@ -32,7 +32,10 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader className="items-center text-center">
-        <div className="flex items-center gap-2.5 mb-3">
+        {/* The brand panel ((auth)/layout.tsx) carries the primary logo
+            moment on desktop; this stays visible only on mobile, where that
+            panel is hidden and the card is the user's only orientation cue. */}
+        <div className="flex items-center gap-2.5 mb-3 md:hidden">
           <Logo className="h-12 w-12" />
           <span className="text-2xl font-bold text-foreground tracking-tight">Syllabus Sense</span>
         </div>
