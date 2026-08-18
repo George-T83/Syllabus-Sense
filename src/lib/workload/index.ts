@@ -8,3 +8,4 @@ export * from './constants';
 export * from './dateUtils';
 export * from './dailyLoad';
 export * from './scheduling';
+export * from './uiClasses';

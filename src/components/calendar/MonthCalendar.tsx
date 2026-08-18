@@ -24,7 +24,14 @@ import {
   type MeetingOccurrence,
 } from '@/lib/calendar/meetings';
 import { cn } from '@/lib/utils';
-import { calculateDailyLoad, getWorkloadLevel, WORKLOAD_LEVEL_LABELS } from '@/lib/workload';
+import {
+  calculateDailyLoad,
+  getWorkloadLevel,
+  WORKLOAD_LEVEL_LABELS,
+  WORKLOAD_CHIP_CLASS,
+  WORKLOAD_SWATCH_CLASS,
+  WORKLOAD_TINT_CLASS,
+} from '@/lib/workload';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import type { Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
@@ -54,34 +61,6 @@ function formatWeekRangeLabel(weekDays: Date[]): string {
 
 const MAX_VISIBLE_CHIPS = 2;
 const AGENDA_WINDOW_DAYS = 30;
-
-/** Subtle per-cell background tint keyed off the day's cognitive-load level -
- * the calendar surfaces the workload engine (Epic 7) instead of only ever
- * showing raw due-date dots. Deliberately faint (low opacity) so it reads as
- * texture, not as a competing signal to the "today" treatment. */
-const HEAT_TINT_CLASS: Record<WorkloadLevel, string> = {
-  low: '',
-  medium: 'bg-load-medium/10',
-  high: 'bg-load-high/10',
-  critical: 'bg-load-critical/15',
-};
-
-const HEAT_SWATCH_CLASS: Record<WorkloadLevel, string> = {
-  low: 'bg-load-low',
-  medium: 'bg-load-medium',
-  high: 'bg-load-high',
-  critical: 'bg-load-critical',
-};
-
-/** Tinted chip background for the legend, keyed the same as the swatch color
- * so each workload level reads as one cohesive color-coded badge rather than
- * a plain dot floating next to text. */
-const HEAT_CHIP_CLASS: Record<WorkloadLevel, string> = {
-  low: 'border-load-low/30 bg-load-low/10',
-  medium: 'border-load-medium/30 bg-load-medium/10',
-  high: 'border-load-high/30 bg-load-high/10',
-  critical: 'border-load-critical/30 bg-load-critical/10',
-};
 
 const LEGEND_LEVELS: WorkloadLevel[] = ['low', 'medium', 'high', 'critical'];
 
@@ -345,7 +324,7 @@ export function MonthCalendar() {
                 <span
                   className={cn(
                     'h-2 w-2 rounded-full',
-                    HEAT_SWATCH_CLASS[getWorkloadLevel(monthStats.busiestDay.hours)],
+                    WORKLOAD_SWATCH_CLASS[getWorkloadLevel(monthStats.busiestDay.hours)],
                   )}
                 />
                 Busiest: {monthStats.busiestDay.day.getDate()}{' '}
@@ -388,7 +367,7 @@ export function MonthCalendar() {
                       'min-h-[6.5rem] rounded-xl p-1.5 flex flex-col items-start gap-1 text-left transition-colors',
                       inCurrentMonth ? 'hover:bg-accent' : 'opacity-40 hover:bg-accent/50',
                       isSelected && 'ring-2 ring-primary',
-                      !isSelected && inCurrentMonth && HEAT_TINT_CLASS[heatLevel],
+                      !isSelected && inCurrentMonth && WORKLOAD_TINT_CLASS[heatLevel],
                     )}
                   >
                     <span
@@ -452,10 +431,12 @@ export function MonthCalendar() {
                     key={level}
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-foreground',
-                      HEAT_CHIP_CLASS[level],
+                      WORKLOAD_CHIP_CLASS[level],
                     )}
                   >
-                    <span className={cn('h-2.5 w-2.5 rounded-full', HEAT_SWATCH_CLASS[level])} />
+                    <span
+                      className={cn('h-2.5 w-2.5 rounded-full', WORKLOAD_SWATCH_CLASS[level])}
+                    />
                     {WORKLOAD_LEVEL_LABELS[level]}
                   </span>
                 ))}
