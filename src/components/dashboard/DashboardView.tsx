@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
+import { CardActionLink, CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { SectionIcon } from '@/components/ui/SectionIcon';
@@ -160,19 +161,13 @@ export function DashboardView() {
                   {currentTerm && <p className="text-xs text-muted-foreground">{currentTerm}</p>}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/courses"
-                  className="text-xs font-semibold text-primary hover:underline"
-                >
-                  View all courses →
-                </Link>
-                <button
-                  onClick={() => setAddCourseOpen(true)}
-                  className="text-xs font-semibold text-primary hover:underline"
-                >
-                  + Add Course
-                </button>
+              <div className="flex items-center gap-2">
+                <CardActionLink href="/courses" withChevron>
+                  View all
+                </CardActionLink>
+                <CardActionButton variant="solid" withPlus onClick={() => setAddCourseOpen(true)}>
+                  Add Course
+                </CardActionButton>
               </div>
             </div>
 
@@ -228,16 +223,13 @@ export function DashboardView() {
                 <SectionIcon icon="tasks" />
                 <h2 className="text-base font-semibold text-foreground">Upcoming Tasks</h2>
               </div>
-              <div className="flex items-center gap-3">
-                <Link href="/tasks" className="text-xs font-semibold text-primary hover:underline">
-                  View all tasks →
-                </Link>
-                <button
-                  onClick={() => setAddTaskOpen(true)}
-                  className="text-xs font-semibold text-primary hover:underline"
-                >
-                  + Add Task
-                </button>
+              <div className="flex items-center gap-2">
+                <CardActionLink href="/tasks" withChevron>
+                  View all
+                </CardActionLink>
+                <CardActionButton variant="solid" withPlus onClick={() => setAddTaskOpen(true)}>
+                  Add Task
+                </CardActionButton>
               </div>
             </div>
             {upcomingTasks.length === 0 ? (
@@ -264,6 +256,7 @@ export function DashboardView() {
                     <TaskRow
                       key={item.id}
                       title={item.title}
+                      href={'/tasks/' + item.id}
                       type={item.type}
                       courseCode={course ? course.code : 'General'}
                       courseColor={course?.color}
@@ -290,9 +283,9 @@ export function DashboardView() {
             <SectionIcon icon="forecast" />
             <h2 className="text-base font-semibold text-foreground">7-Day Load</h2>
           </div>
-          <Link href="/planner" className="text-xs font-semibold text-primary hover:underline">
-            Open planner →
-          </Link>
+          <CardActionLink href="/planner" withChevron>
+            Open planner
+          </CardActionLink>
         </div>
         <div className="grid grid-cols-7 gap-2">
           {plan.weekLoad.map(({ key, day, hours, level }) => {
@@ -329,9 +322,9 @@ export function DashboardView() {
             <SectionIcon icon="planner" />
             <h2 className="text-base font-semibold text-foreground">Planner Preview</h2>
           </div>
-          <Link href="/planner" className="text-xs font-semibold text-primary hover:underline">
-            Open planner →
-          </Link>
+          <CardActionLink href="/planner" withChevron>
+            Open planner
+          </CardActionLink>
         </div>
         {plannerPreview.length === 0 ? (
           <EmptyState
@@ -358,6 +351,7 @@ export function DashboardView() {
                 <TaskRow
                   key={item.id}
                   title={item.title}
+                  href={'/tasks/' + item.id}
                   type={item.type}
                   courseCode={course ? course.code : 'General'}
                   courseColor={course?.color}
@@ -390,8 +384,19 @@ export function DashboardView() {
       </Card>
 
       <Link href="/calendar" className="block">
-        <Card hoverable className="rounded-2xl p-4 text-center">
-          <span className="text-sm font-semibold text-primary">View full calendar →</span>
+        <Card hoverable className="flex items-center justify-center rounded-2xl p-4">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]">
+            View full calendar
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
         </Card>
       </Link>
 

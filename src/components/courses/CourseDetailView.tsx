@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { BackLink } from '@/components/ui/BackLink';
 import { Card } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { TaskRow } from '@/components/ui/TaskRow';
@@ -59,9 +60,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         <p className="text-sm text-muted-foreground">
           This course doesn&apos;t exist or has been removed.
         </p>
-        <Link href="/dashboard" className="text-sm font-semibold text-primary hover:underline">
-          ← Back to dashboard
-        </Link>
+        <BackLink href="/dashboard">Back to dashboard</BackLink>
       </div>
     );
   }
@@ -155,9 +154,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <Link href="/dashboard" className="text-sm font-semibold text-primary hover:underline">
-        ← Back to dashboard
-      </Link>
+      <BackLink href="/dashboard">Back to dashboard</BackLink>
 
       <Card className="overflow-hidden rounded-2xl p-0">
         <div className={cn('h-2 w-full', course.color || 'bg-primary')} />
@@ -210,26 +207,27 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   href={rmpUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-auto text-xs font-semibold text-primary hover:underline"
+                  className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
                 >
-                  Rate My Professor →
+                  Rate My Professor
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
                 </a>
               )}
             </div>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-border pt-4">
-            <button
-              onClick={() => setEditCourseOpen(true)}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Edit
-            </button>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <CardActionButton onClick={() => setEditCourseOpen(true)}>Edit</CardActionButton>
             {items.length > 0 && (
-              <button
-                onClick={handleExportICS}
-                className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-              >
+              <CardActionButton onClick={handleExportICS}>
                 <svg
                   className="h-3.5 w-3.5"
                   fill="none"
@@ -244,7 +242,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   />
                 </svg>
                 Export .ics
-              </button>
+              </CardActionButton>
             )}
             <div className="ml-auto">
               {confirmingDeleteCourse ? (
@@ -252,13 +250,13 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   <span className="text-muted-foreground">Delete course and its tasks?</span>
                   <button
                     onClick={handleDeleteCourse}
-                    className="font-semibold text-destructive hover:underline"
+                    className="rounded-full bg-destructive/10 px-3 py-1.5 font-semibold text-destructive transition-colors hover:bg-destructive/20"
                   >
                     Confirm
                   </button>
                   <button
                     onClick={() => setConfirmingDeleteCourse(false)}
-                    className="text-muted-foreground hover:underline"
+                    className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent"
                   >
                     Cancel
                   </button>
@@ -266,7 +264,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
               ) : (
                 <button
                   onClick={() => setConfirmingDeleteCourse(true)}
-                  className="text-xs font-semibold text-destructive hover:underline"
+                  className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                 >
                   Delete
                 </button>
@@ -285,12 +283,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       <Card className="rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-foreground">Tasks</h2>
-          <button
-            onClick={() => setAddTaskOpen(true)}
-            className="text-xs font-semibold text-primary hover:underline"
-          >
-            + Add Task
-          </button>
+          <CardActionButton variant="solid" withPlus onClick={() => setAddTaskOpen(true)}>
+            Add Task
+          </CardActionButton>
         </div>
 
         {items.length === 0 ? (
@@ -322,6 +317,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 <TaskRow
                   key={item.id}
                   title={item.title}
+                  href={'/tasks/' + item.id}
                   type={item.type}
                   courseColor={course.color}
                   completed={item.completed}
@@ -339,7 +335,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                       </span>
                       <button
                         onClick={() => setEditingItem(item)}
-                        className="text-xs font-semibold text-primary hover:underline"
+                        className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                       >
                         Edit
                       </button>
