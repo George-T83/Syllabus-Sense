@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { TaskRow } from '@/components/ui/TaskRow';
-import { useAppState } from '@/context/AppStateContext';
+import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { createScheduleItem, updateScheduleItem } from '@/lib/firestore/scheduleItems';
@@ -22,29 +22,6 @@ import type { ScheduleItem } from '@/types/schedule';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const forecastDayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
-
-/**
- * Infers the "current" term as whichever term the most courses belong to.
- * There's no explicit term-switcher yet (that's #101) - this is a reasonable
- * interim default that degrades gracefully to "show everything" once a user
- * has courses spanning multiple terms without a clear majority.
- */
-function inferCurrentTerm(courses: { term?: string }[]): string | null {
-  const counts = new Map<string, number>();
-  for (const course of courses) {
-    if (!course.term) continue;
-    counts.set(course.term, (counts.get(course.term) ?? 0) + 1);
-  }
-  let best: string | null = null;
-  let bestCount = 0;
-  for (const [term, count] of Array.from(counts)) {
-    if (count > bestCount) {
-      best = term;
-      bestCount = count;
-    }
-  }
-  return best;
-}
 
 function getGreeting(hour: number): string {
   if (hour < 5) return 'Working late';
@@ -66,7 +43,10 @@ export function DashboardView() {
     ? Math.round((completedTasksCount / scheduleItems.length) * 100)
     : 0;
 
-  const currentTerm = useMemo(() => inferCurrentTerm(courses), [courses]);
+  const currentTerm = useMemo(
+    () => resolveActiveTerm(state.selectedTerm, courses),
+    [state.selectedTerm, courses],
+  );
   const semesterCourses = currentTerm ? courses.filter((c) => c.term === currentTerm) : courses;
 
   const courseLoad = semesterCourses.map((course) => {

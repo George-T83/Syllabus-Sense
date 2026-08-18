@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { WeekView } from '@/components/calendar/WeekView';
-import { useAppState } from '@/context/AppStateContext';
+import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import {
@@ -99,6 +99,20 @@ export function MonthCalendar() {
   const courseOf = (item: ScheduleItem) => state.courses.find((c) => c.id === item.courseId);
   const courseColor = (item: ScheduleItem) => courseOf(item)?.color || 'bg-primary';
 
+  // #101: recurring class meetings are inherently term-bound (a Fall 2026
+  // MWF pattern shouldn't keep rendering forever into Spring 2027), so they
+  // get scoped to the active term. Due-date items deliberately do NOT get
+  // this treatment - a concrete deadline is real regardless of which term is
+  // "selected" right now, so hiding it here could cause a missed assignment.
+  const activeTerm = useMemo(
+    () => resolveActiveTerm(state.selectedTerm, state.courses),
+    [state.selectedTerm, state.courses],
+  );
+  const termScopedCourses = useMemo(
+    () => (activeTerm ? state.courses.filter((c) => c.term === activeTerm) : state.courses),
+    [state.courses, activeTerm],
+  );
+
   const toggleCourseVisibility = (courseId: string) => {
     setHiddenCourseIds((prev) => {
       const next = new Set(prev);
@@ -117,7 +131,9 @@ export function MonthCalendar() {
 
   const visibleMeetings = (day: Date): MeetingOccurrence[] => {
     if (!showClasses) return [];
-    return getMeetingsForDay(state.courses, day).filter((m) => !hiddenCourseIds.has(m.course.id));
+    return getMeetingsForDay(termScopedCourses, day).filter(
+      (m) => !hiddenCourseIds.has(m.course.id),
+    );
   };
 
   // Monthly stats: pending load and the single busiest day, computed only
