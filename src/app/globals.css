@@ -101,13 +101,16 @@
 
   /* Used on the fixed Navbar, which sits above scrolling page content -
      content with a strong, saturated color (e.g. Profile's cover-banner
-     gradient) can pass directly underneath it. A 12px blur over 75%
-     opacity isn't enough to fully smooth a high-contrast edge like that, so
-     it showed through as a visible smeared patch rather than reading as
-     glass. Raised opacity (barely any content shows through at all now)
-     and blur radius fixes it globally, not just for that one page. */
+     gradient) can pass directly underneath it. 94% opacity alone already
+     fully smooths any high-contrast edge scrolling underneath (barely 6%
+     of content shows through), so no backdrop-filter blur is needed - and
+     dropping it avoids a real Chromium bug: a `position: fixed` element
+     with `backdrop-filter` flush against the viewport edge can't sample
+     pixels "above" the viewport, leaving a visible unblurred seam at the
+     very top few pixels once anything else on the page darkens (e.g. a
+     modal's dim overlay stacked above it). Reproduced and confirmed gone
+     without blur. */
   .glass {
-    backdrop-filter: blur(20px);
     background-color: rgba(255, 255, 255, 0.94);
     border: 1px solid rgba(0, 0, 0, 0.08);
     @apply shadow-glass;

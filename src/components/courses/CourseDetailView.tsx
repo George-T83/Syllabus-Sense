@@ -153,83 +153,148 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   };
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <BackLink href="/dashboard">Back to dashboard</BackLink>
+    <>
+      <div className="max-w-3xl space-y-6">
+        <BackLink href="/dashboard">Back to dashboard</BackLink>
 
-      <Card className="overflow-hidden rounded-2xl p-0">
-        <div className={cn('h-2 w-full', course.color || 'bg-primary')} />
-        <div className="p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <span
-                className={cn(
-                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white',
-                  course.color || 'bg-primary',
-                )}
-              >
-                {course.code.slice(0, 1)}
-              </span>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">
-                  {course.code} · {course.title}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {[course.instructor, course.term].filter(Boolean).join(' · ') || 'No details yet'}
-                </p>
-              </div>
-            </div>
-            {items.length > 0 && (
-              <ProgressRing percent={progressPct} size={56} strokeWidth={6}>
-                <span className="text-xs font-bold text-foreground">{progressPct}%</span>
-              </ProgressRing>
-            )}
-          </div>
-
-          {(course.meetingTimes?.length || course.modality || rmpUrl) && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-              {course.modality && (
-                <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium capitalize text-muted-foreground">
-                  {course.modality}
-                </span>
-              )}
-              {course.meetingTimes?.map((m, i) => (
+        <Card className="overflow-hidden rounded-2xl p-0">
+          <div className={cn('h-2 w-full', course.color || 'bg-primary')} />
+          <div className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
                 <span
-                  key={i}
-                  className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                  className={cn(
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white',
+                    course.color || 'bg-primary',
+                  )}
                 >
-                  {WEEKDAY_ABBR[m.dayOfWeek]} {formatTimeLabel(m.startTime)}–
-                  {formatTimeLabel(m.endTime)}
-                  {m.location ? ` · ${m.location}` : ''}
+                  {course.code.slice(0, 1)}
                 </span>
-              ))}
-              {rmpUrl && (
-                <a
-                  href={rmpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
-                >
-                  Rate My Professor
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">
+                    {course.code} · {course.title}
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {[course.instructor, course.term].filter(Boolean).join(' · ') ||
+                      'No details yet'}
+                  </p>
+                </div>
+              </div>
+              {items.length > 0 && (
+                <ProgressRing percent={progressPct} size={56} strokeWidth={6}>
+                  <span className="text-xs font-bold text-foreground">{progressPct}%</span>
+                </ProgressRing>
+              )}
+            </div>
+
+            {(course.meetingTimes?.length || course.modality || rmpUrl) && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                {course.modality && (
+                  <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium capitalize text-muted-foreground">
+                    {course.modality}
+                  </span>
+                )}
+                {course.meetingTimes?.map((m, i) => (
+                  <span
+                    key={i}
+                    className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                  >
+                    {WEEKDAY_ABBR[m.dayOfWeek]} {formatTimeLabel(m.startTime)}–
+                    {formatTimeLabel(m.endTime)}
+                    {m.location ? ` · ${m.location}` : ''}
+                  </span>
+                ))}
+                {rmpUrl && (
+                  <a
+                    href={rmpUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                  >
+                    Rate My Professor
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                )}
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+              <CardActionButton onClick={() => setEditCourseOpen(true)}>Edit</CardActionButton>
+              {items.length > 0 && (
+                <CardActionButton onClick={handleExportICS}>
                   <svg
                     className="h-3.5 w-3.5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth={2.5}
+                    strokeWidth={2}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
+                    />
                   </svg>
-                </a>
+                  Export .ics
+                </CardActionButton>
               )}
+              <div className="ml-auto">
+                {confirmingDeleteCourse ? (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">Delete course and its tasks?</span>
+                    <button
+                      onClick={handleDeleteCourse}
+                      className="rounded-full bg-destructive/10 px-3 py-1.5 font-semibold text-destructive transition-colors hover:bg-destructive/20"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDeleteCourse(false)}
+                      className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmingDeleteCourse(true)}
+                    className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </div>
-          )}
+          </div>
+        </Card>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-            <CardActionButton onClick={() => setEditCourseOpen(true)}>Edit</CardActionButton>
-            {items.length > 0 && (
-              <CardActionButton onClick={handleExportICS}>
+        <Card className="rounded-2xl p-6 space-y-4">
+          <h2 className="text-base font-semibold text-foreground">Syllabus</h2>
+          <SyllabusList userId={user?.uid} courseId={course.id} />
+          <SyllabusUploader userId={user?.uid ?? ''} courseId={course.id} />
+        </Card>
+
+        <Card className="rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-foreground">Tasks</h2>
+            <CardActionButton variant="solid" withPlus onClick={() => setAddTaskOpen(true)}>
+              Add Task
+            </CardActionButton>
+          </div>
+
+          {items.length === 0 ? (
+            <EmptyState
+              icon={
                 <svg
-                  className="h-3.5 w-3.5"
+                  className="h-5 w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -238,138 +303,76 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                Export .ics
-              </CardActionButton>
-            )}
-            <div className="ml-auto">
-              {confirmingDeleteCourse ? (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">Delete course and its tasks?</span>
-                  <button
-                    onClick={handleDeleteCourse}
-                    className="rounded-full bg-destructive/10 px-3 py-1.5 font-semibold text-destructive transition-colors hover:bg-destructive/20"
-                  >
-                    Confirm
-                  </button>
-                  <button
-                    onClick={() => setConfirmingDeleteCourse(false)}
-                    className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmingDeleteCourse(true)}
-                  className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="rounded-2xl p-6 space-y-4">
-        <h2 className="text-base font-semibold text-foreground">Syllabus</h2>
-        <SyllabusList userId={user?.uid} courseId={course.id} />
-        <SyllabusUploader userId={user?.uid ?? ''} courseId={course.id} />
-      </Card>
-
-      <Card className="rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-foreground">Tasks</h2>
-          <CardActionButton variant="solid" withPlus onClick={() => setAddTaskOpen(true)}>
-            Add Task
-          </CardActionButton>
-        </div>
-
-        {items.length === 0 ? (
-          <EmptyState
-            icon={
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            }
-            title="No tasks for this course yet"
-            description="Add one, or upload a syllabus above to extract tasks automatically."
-            action={{ label: '+ Add Task', onClick: () => setAddTaskOpen(true) }}
-          />
-        ) : (
-          <div className="divide-y divide-border">
-            {items.map((item) => {
-              const overdue = !item.completed && new Date(item.dueDate) < new Date();
-              return (
-                <TaskRow
-                  key={item.id}
-                  title={item.title}
-                  href={'/tasks/' + item.id}
-                  type={item.type}
-                  courseColor={course.color}
-                  completed={item.completed}
-                  priority={item.priority}
-                  onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
-                  trailing={
-                    <>
-                      {overdue && (
-                        <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                          Overdue
+              }
+              title="No tasks for this course yet"
+              description="Add one, or upload a syllabus above to extract tasks automatically."
+              action={{ label: '+ Add Task', onClick: () => setAddTaskOpen(true) }}
+            />
+          ) : (
+            <div className="divide-y divide-border">
+              {items.map((item) => {
+                const overdue = !item.completed && new Date(item.dueDate) < new Date();
+                return (
+                  <TaskRow
+                    key={item.id}
+                    title={item.title}
+                    href={'/tasks/' + item.id}
+                    type={item.type}
+                    courseColor={course.color}
+                    completed={item.completed}
+                    priority={item.priority}
+                    onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+                    trailing={
+                      <>
+                        {overdue && (
+                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                            Overdue
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          Due {dueDateFormatter.format(new Date(item.dueDate))}
                         </span>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        Due {dueDateFormatter.format(new Date(item.dueDate))}
-                      </span>
-                      <button
-                        onClick={() => setEditingItem(item)}
-                        className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                      >
-                        Edit
-                      </button>
-                      {confirmingDeleteItemId === item.id ? (
-                        <div className="flex items-center gap-2 text-xs">
-                          <button
-                            onClick={() => handleDeleteTask(item)}
-                            className="font-semibold text-destructive hover:underline"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={() => setConfirmingDeleteItemId(null)}
-                            className="text-muted-foreground hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
                         <button
-                          onClick={() => setConfirmingDeleteItemId(item.id)}
-                          className="text-xs font-semibold text-destructive hover:underline"
+                          onClick={() => setEditingItem(item)}
+                          className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                         >
-                          Delete
+                          Edit
                         </button>
-                      )}
-                    </>
-                  }
-                />
-              );
-            })}
-          </div>
-        )}
-      </Card>
+                        {confirmingDeleteItemId === item.id ? (
+                          <div className="flex items-center gap-2 text-xs">
+                            <button
+                              onClick={() => handleDeleteTask(item)}
+                              className="font-semibold text-destructive hover:underline"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => setConfirmingDeleteItemId(null)}
+                              className="text-muted-foreground hover:underline"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmingDeleteItemId(item.id)}
+                            className="text-xs font-semibold text-destructive hover:underline"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </>
+                    }
+                  />
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
 
       <CourseFormModal
         open={editCourseOpen}
@@ -390,6 +393,6 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         courses={[course]}
         initialItem={editingItem ?? undefined}
       />
-    </div>
+    </>
   );
 }
