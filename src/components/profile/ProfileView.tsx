@@ -3,6 +3,8 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
+import { SectionIcon } from '@/components/ui/SectionIcon';
+import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -13,6 +15,7 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 
 export function ProfileView() {
   const { user, error, updateDisplayName, signOut, clearError } = useAuth();
+  const { state } = useAppState();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.displayName ?? '');
@@ -24,6 +27,9 @@ export function ProfileView() {
   const joined = user.metadata.creationTime
     ? dateFormatter.format(new Date(user.metadata.creationTime))
     : 'Unknown';
+
+  const pendingCount = state.scheduleItems.filter((i) => !i.completed).length;
+  const completedCount = state.scheduleItems.length - pendingCount;
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -45,9 +51,9 @@ export function ProfileView() {
         <p className="text-sm text-muted-foreground mt-1">Your account details.</p>
       </div>
 
-      <Card className="rounded-2xl p-6">
+      <Card accent className="rounded-2xl p-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="h-14 w-14 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xl font-bold shrink-0">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-xl font-bold text-white">
             {initial}
           </div>
           {editing ? (
@@ -104,23 +110,45 @@ export function ProfileView() {
           </div>
         )}
 
-        <div className="flex justify-between text-sm border-t border-border pt-4">
+        <div className="grid grid-cols-3 gap-3 border-t border-border pt-4 text-center">
+          <div>
+            <div className="text-lg font-bold text-primary">{state.courses.length}</div>
+            <div className="text-[10px] text-muted-foreground">Courses</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-load-medium">{pendingCount}</div>
+            <div className="text-[10px] text-muted-foreground">Pending</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-load-low">{completedCount}</div>
+            <div className="text-[10px] text-muted-foreground">Done</div>
+          </div>
+        </div>
+
+        <div className="flex justify-between text-sm border-t border-border mt-4 pt-4">
           <span className="text-muted-foreground">Member since</span>
           <span className="text-foreground">{joined}</span>
         </div>
       </Card>
 
       <Card className="rounded-2xl p-6">
-        <h2 className="text-base font-semibold text-foreground">Preferences & Notifications</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Study habits and notification settings.
-        </p>
+        <div className="flex items-center gap-3">
+          <SectionIcon icon="settings" />
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              Preferences &amp; Notifications
+            </h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Study habits and notification settings.
+            </p>
+          </div>
+        </div>
         <p className="text-sm text-muted-foreground mt-3">Coming soon.</p>
       </Card>
 
       <button
         onClick={handleSignOut}
-        className="text-sm font-semibold text-destructive hover:underline"
+        className="w-full rounded-lg border border-destructive/30 bg-destructive/10 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/20"
       >
         Sign out
       </button>
