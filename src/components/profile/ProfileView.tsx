@@ -73,32 +73,36 @@ export function ProfileView() {
       <Card className="overflow-hidden rounded-2xl p-0">
         <div className="h-24 bg-gradient-brand" />
         <div className="px-6 pb-6">
-          <div className="-mt-10 flex flex-wrap items-end justify-between gap-4">
-            <div className="flex items-end gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-2xl font-bold text-white shadow-lg ring-4 ring-card">
-                {initial}
-              </div>
-              {!editing && (
-                <div className="pb-1">
-                  <div className="text-lg font-semibold text-foreground">
-                    {user.displayName || 'No display name set'}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{user.email}</div>
-                </div>
-              )}
+          {/* Only the avatar straddles the banner seam (by design - it has
+              its own ring-4 ring-card border so it reads fine against
+              either side). The name/email/Edit row sits entirely below the
+              banner, fully on the card's solid background, so text is never
+              split across the gradient and white halves. */}
+          <div className="-mt-10 flex items-end justify-between">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-2xl font-bold text-white shadow-lg ring-4 ring-card">
+              {initial}
             </div>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="pb-1 text-xs font-semibold text-primary hover:underline"
+                className="text-xs font-semibold text-primary hover:underline"
               >
                 Edit
               </button>
             )}
           </div>
 
+          {!editing && (
+            <div className="mt-3">
+              <div className="text-lg font-semibold text-foreground">
+                {user.displayName || 'No display name set'}
+              </div>
+              <div className="text-sm text-muted-foreground">{user.email}</div>
+            </div>
+          )}
+
           {editing && (
-            <form onSubmit={handleSave} className="mt-4 flex items-center gap-2">
+            <form onSubmit={handleSave} className="mt-3 flex items-center gap-2">
               <input
                 autoFocus
                 value={name}
