@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { AssignmentType, Priority } from '@/types/schedule';
 
@@ -32,6 +33,9 @@ export interface TaskRowProps {
   onToggleComplete?: () => void;
   /** Right-aligned custom content: due labels, badges, edit/delete links. */
   trailing?: ReactNode;
+  /** When present, the row navigates to this URL on click (e.g. a task
+   * detail page), while the checkbox stays independently clickable. */
+  href?: string;
 }
 
 export function TaskRow({
@@ -43,19 +47,22 @@ export function TaskRow({
   priority = 'medium',
   onToggleComplete,
   trailing,
+  href,
 }: TaskRowProps) {
-  return (
-    <div
-      className={cn(
-        'flex items-center gap-3 py-2.5 pl-3 border-l-2 first:pt-0 last:pb-0',
-        PRIORITY_BORDER_CLASS[priority],
-      )}
-    >
+  const rowClass = cn(
+    'flex items-center gap-3 py-2.5 pl-3 border-l-2 first:pt-0 last:pb-0',
+    PRIORITY_BORDER_CLASS[priority],
+    href && 'rounded-r-lg transition-colors hover:bg-accent',
+  );
+
+  const content = (
+    <>
       {onToggleComplete && (
         <input
           type="checkbox"
           checked={completed}
           onChange={onToggleComplete}
+          onClick={(e) => e.stopPropagation()}
           className="h-4 w-4 rounded border-border accent-primary shrink-0"
           aria-label={`Mark ${title} complete`}
         />
@@ -87,7 +94,21 @@ export function TaskRow({
         </div>
         {courseCode && <div className="text-xs text-muted-foreground">{courseCode}</div>}
       </div>
-      {trailing && <div className="flex items-center gap-2 shrink-0">{trailing}</div>}
-    </div>
+      {trailing && (
+        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {trailing}
+        </div>
+      )}
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={rowClass}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className={rowClass}>{content}</div>;
 }
