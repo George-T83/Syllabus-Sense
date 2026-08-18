@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
@@ -12,6 +12,8 @@ import {
   WORKLOAD_LEVEL_LABELS,
   WORKLOAD_CHIP_CLASS,
   WORKLOAD_TEXT_CLASS,
+  toDateOnly,
+  formatDateISO,
 } from '@/lib/workload';
 import {
   computeSmartPlan,
@@ -23,6 +25,11 @@ import type { Course, ScheduleItem } from '@/types/schedule';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const dayLabelFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
+const dayDetailFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+});
 
 export function SmartPlanner() {
   const { state, dispatch } = useAppState();
@@ -38,6 +45,28 @@ export function SmartPlanner() {
   const totalPlanned = plan.startToday.length + plan.startThisWeek.length + plan.startLater.length;
   const todayLoad = plan.weekLoad[0];
   const todayLevel = getWorkloadLevel(todayLoad.hours);
+
+  // Keyed the same way calculateDailyLoad keys plan.weekLoad (UTC-midnight
+  // ISO date), so a forecast day's key always finds the items actually due
+  // that day - reusing the workload engine's own date normalization instead
+  // of the calendar module's local-time one avoids an off-by-one across
+  // timezones.
+  const itemsByDueDate = useMemo(() => {
+    const map = new Map<string, ScheduleItem[]>();
+    for (const item of scheduleItems) {
+      const key = formatDateISO(toDateOnly(item.dueDate));
+      const existing = map.get(key);
+      if (existing) existing.push(item);
+      else map.set(key, [item]);
+    }
+    return map;
+  }, [scheduleItems]);
+
+  const [selectedForecastKey, setSelectedForecastKey] = useState<string | null>(null);
+  const selectedForecastDay = plan.weekLoad.find((d) => d.key === selectedForecastKey);
+  const selectedDayItems = selectedForecastKey
+    ? (itemsByDueDate.get(selectedForecastKey) ?? [])
+    : [];
 
   const handleToggleComplete = async (item: ScheduleItem) => {
     if (!user) return;
@@ -112,12 +141,17 @@ export function SmartPlanner() {
             // stays visually neutral instead of borrowing the lowest tier's
             // color.
             const hasLoad = hours > 0;
+            const isSelected = selectedForecastKey === key;
             return (
-              <div
+              <button
                 key={key}
+                onClick={() => setSelectedForecastKey((prev) => (prev === key ? null : key))}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-xl border p-2.5',
+                  'flex flex-col items-center gap-1 rounded-xl border p-2.5 text-left transition-all',
                   hasLoad ? WORKLOAD_CHIP_CLASS[level] : 'border-border bg-accent/40',
+                  isSelected
+                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-card'
+                    : 'hover:-translate-y-0.5',
                 )}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -132,10 +166,36 @@ export function SmartPlanner() {
                 >
                   {hasLoad ? `${hours.toFixed(1)}h` : 'Free'}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
+
+        {selectedForecastDay && (
+          <div className="mt-5 border-t border-border pt-5">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">
+              {dayDetailFormatter.format(selectedForecastDay.day)}
+            </h3>
+            {selectedDayItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nothing due this day.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {selectedDayItems.map((item) => (
+                  <TaskRow
+                    key={item.id}
+                    title={item.title}
+                    type={item.type}
+                    courseCode={courses.find((c) => c.id === item.courseId)?.code ?? 'General'}
+                    courseColor={courses.find((c) => c.id === item.courseId)?.color}
+                    completed={item.completed}
+                    priority={item.priority}
+                    onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {totalPlanned === 0 ? null : (
