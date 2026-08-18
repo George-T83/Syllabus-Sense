@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
+import { SectionIcon } from '@/components/ui/SectionIcon';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
@@ -43,32 +44,6 @@ function inferCurrentTerm(courses: { term?: string }[]): string | null {
     }
   }
   return best;
-}
-
-const SECTION_ICON_PATHS = {
-  courseLoad:
-    'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
-  tasks:
-    'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-  forecast:
-    'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0V5a2 2 0 012-2h2a2 2 0 012 2',
-  planner: 'M13 10V3L4 14h7v7l9-11h-7z',
-} as const;
-
-function SectionIcon({ path }: { path: keyof typeof SECTION_ICON_PATHS }) {
-  return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d={SECTION_ICON_PATHS[path]} />
-      </svg>
-    </span>
-  );
 }
 
 function getGreeting(hour: number): string {
@@ -199,7 +174,7 @@ export function DashboardView() {
           <Card className="rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                <SectionIcon path="courseLoad" />
+                <SectionIcon icon="courseLoad" />
                 <div>
                   <h2 className="text-base font-semibold text-foreground">Course Load</h2>
                   {currentTerm && <p className="text-xs text-muted-foreground">{currentTerm}</p>}
@@ -270,7 +245,7 @@ export function DashboardView() {
           <Card className="rounded-2xl p-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <SectionIcon path="tasks" />
+                <SectionIcon icon="tasks" />
                 <h2 className="text-base font-semibold text-foreground">Upcoming Tasks</h2>
               </div>
               <div className="flex items-center gap-3">
@@ -332,7 +307,7 @@ export function DashboardView() {
       <Card className="rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <SectionIcon path="forecast" />
+            <SectionIcon icon="forecast" />
             <h2 className="text-base font-semibold text-foreground">7-Day Load</h2>
           </div>
           <Link href="/planner" className="text-xs font-semibold text-primary hover:underline">
@@ -371,7 +346,7 @@ export function DashboardView() {
       <Card className="rounded-2xl p-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <SectionIcon path="planner" />
+            <SectionIcon icon="planner" />
             <h2 className="text-base font-semibold text-foreground">Planner Preview</h2>
           </div>
           <Link href="/planner" className="text-xs font-semibold text-primary hover:underline">
