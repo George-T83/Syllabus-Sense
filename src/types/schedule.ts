@@ -1,4 +1,23 @@
 /**
+ * How a course's class sessions are held.
+ */
+export type CourseModality = 'in-person' | 'online' | 'hybrid';
+
+/**
+ * A single recurring weekly class meeting (#118). `dayOfWeek` is 0=Sunday
+ * through 6=Saturday, matching `Date.getDay()` / the calendar grid's own
+ * Sunday-first week so no conversion is needed when rendering.
+ */
+export interface MeetingTime {
+  dayOfWeek: number;
+  /** 24-hour "HH:mm", e.g. "09:00" */
+  startTime: string;
+  /** 24-hour "HH:mm", e.g. "10:15" */
+  endTime: string;
+  location?: string;
+}
+
+/**
  * Represents a student's course.
  */
 export interface Course {
@@ -18,6 +37,10 @@ export interface Course {
   notes?: string;
   /** Whether this course was entered manually or created from AI syllabus extraction. Defaults to 'manual' when absent. */
   source?: DataSource;
+  /** How class sessions are held */
+  modality?: CourseModality;
+  /** Recurring weekly meeting times, e.g. "MWF 9:00-10:15" */
+  meetingTimes?: MeetingTime[];
 }
 
 /**
