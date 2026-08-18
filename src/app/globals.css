@@ -99,14 +99,21 @@
     color: transparent;
   }
 
+  /* Used on the fixed Navbar, which sits above scrolling page content -
+     content with a strong, saturated color (e.g. Profile's cover-banner
+     gradient) can pass directly underneath it. A 12px blur over 75%
+     opacity isn't enough to fully smooth a high-contrast edge like that, so
+     it showed through as a visible smeared patch rather than reading as
+     glass. Raised opacity (barely any content shows through at all now)
+     and blur radius fixes it globally, not just for that one page. */
   .glass {
-    backdrop-filter: blur(12px);
-    background-color: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    background-color: rgba(255, 255, 255, 0.94);
     border: 1px solid rgba(0, 0, 0, 0.08);
     @apply shadow-glass;
   }
   .dark .glass {
-    background-color: rgba(18, 18, 24, 0.75);
+    background-color: rgba(18, 18, 24, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
 }
