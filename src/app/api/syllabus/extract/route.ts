@@ -14,6 +14,20 @@ export const maxDuration = 120;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
+/**
+ * Detected from magic bytes, not the client-declared MIME type (spoofable)
+ * or file extension. Both prefixes are stable regardless of what follows -
+ * base64 encodes in fixed 3-byte groups, so a known byte run at the start
+ * of a file always produces the same leading base64 characters.
+ * PDF: "%PDF-" (0x25 0x50 0x44 0x46 0x2D). DOCX: a .docx is a zip archive,
+ * so it starts with the zip local-file-header signature (0x50 0x4B 0x03 0x04).
+ */
+function detectFileKind(fileBase64: string): 'pdf' | 'docx' | null {
+  if (fileBase64.startsWith('JVBERi0')) return 'pdf';
+  if (fileBase64.startsWith('UEsDB')) return 'docx';
+  return null;
+}
+
 async function requireUser(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -47,10 +61,14 @@ export async function POST(req: NextRequest) {
   if (fileBase64.length > MAX_FILE_BYTES * 1.4) {
     return NextResponse.json({ error: 'File is too large (max 10MB).' }, { status: 400 });
   }
-  // The client declares application/pdf, but that's a spoofable browser MIME
-  // type - check the real magic bytes server-side before spending an API call.
-  if (!fileBase64.startsWith('JVBERi0')) {
-    return NextResponse.json({ error: 'That file is not a valid PDF.' }, { status: 400 });
+  // The client declares a MIME type, but that's spoofable - check the real
+  // magic bytes server-side before spending an API call.
+  const fileKind = detectFileKind(fileBase64);
+  if (!fileKind) {
+    return NextResponse.json(
+      { error: 'That file is not a valid PDF or Word (.docx) document.' },
+      { status: 400 },
+    );
   }
 
   const rateLimit = await checkAndIncrementExtractionCount(user.uid);
@@ -59,6 +77,27 @@ export async function POST(req: NextRequest) {
       { error: "You've hit today's syllabus upload limit. Try again tomorrow." },
       { status: 429 },
     );
+  }
+
+  // Claude has native PDF understanding, but not .docx - a .docx is
+  // extracted to plain text server-side first and sent as a text block
+  // instead of a document block.
+  let docxText: string | null = null;
+  if (fileKind === 'docx') {
+    try {
+      const mammoth = await import('mammoth');
+      const buffer = Buffer.from(fileBase64, 'base64');
+      const result = await mammoth.extractRawText({ buffer });
+      docxText = result.value.trim();
+    } catch {
+      return NextResponse.json(
+        { error: "Couldn't read that Word document. Try re-saving it and uploading again." },
+        { status: 400 },
+      );
+    }
+    if (!docxText) {
+      return NextResponse.json({ error: 'That document appears to be empty.' }, { status: 400 });
+    }
   }
 
   let anthropic;
@@ -73,6 +112,30 @@ export async function POST(req: NextRequest) {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  const documentContent: Anthropic.MessageParam['content'] =
+    fileKind === 'pdf'
+      ? [
+          {
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: fileBase64 },
+            ...(fileName ? { title: fileName } : {}),
+          },
+          {
+            type: 'text',
+            text: 'Extract this syllabus into the record_syllabus_extraction tool.',
+          },
+        ]
+      : [
+          {
+            type: 'text',
+            text: `Syllabus document${fileName ? ` (${fileName})` : ''}, extracted from a Word file:\n\n${docxText}`,
+          },
+          {
+            type: 'text',
+            text: 'Extract this syllabus into the record_syllabus_extraction tool.',
+          },
+        ];
+
   let message;
   try {
     message = await anthropic.messages.create({
@@ -81,22 +144,7 @@ export async function POST(req: NextRequest) {
       system: `${SYLLABUS_EXTRACTION_SYSTEM_PROMPT}\n\nToday's date is ${today} - use it only to disambiguate a term/year if the syllabus itself doesn't state one clearly.`,
       tools: [SYLLABUS_EXTRACTION_TOOL],
       tool_choice: { type: 'tool', name: SYLLABUS_EXTRACTION_TOOL.name },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: fileBase64 },
-              ...(fileName ? { title: fileName } : {}),
-            },
-            {
-              type: 'text',
-              text: 'Extract this syllabus into the record_syllabus_extraction tool.',
-            },
-          ],
-        },
-      ],
+      messages: [{ role: 'user', content: documentContent }],
     });
   } catch (err) {
     return NextResponse.json(

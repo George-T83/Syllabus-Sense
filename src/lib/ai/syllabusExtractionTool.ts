@@ -123,7 +123,7 @@ export const SYLLABUS_EXTRACTION_TOOL: Anthropic.Tool = {
   },
 };
 
-export const SYLLABUS_EXTRACTION_SYSTEM_PROMPT = `You are an expert academic planner reading a college syllabus PDF to help a student build their calendar. Call the record_syllabus_extraction tool exactly once with everything you find. Follow these rules, learned from studying real university syllabi:
+export const SYLLABUS_EXTRACTION_SYSTEM_PROMPT = `You are an expert academic planner reading a college syllabus (provided as a PDF or as plain text extracted from a Word document) to help a student build their calendar. Call the record_syllabus_extraction tool exactly once with everything you find. Follow these rules, learned from studying real university syllabi:
 
 1. Ignore boilerplate entirely: FERPA, ADA/accommodations, academic honesty, grade-dispute-window, and military-obligation statements are never calendar-worthy. Do not extract items from them.
 2. Distinguish the actual class/lecture/rehearsal meeting schedule from office hours or tutoring slots - only the former belongs in meetingTimes. Many syllabi (especially asynchronous online courses) have no meeting time at all - that's fine, leave meetingTimes empty rather than inventing one.
