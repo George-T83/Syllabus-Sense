@@ -6,11 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import {
-  updateUserPreferences,
-  useUserPreferences,
-  type UserPreferences,
-} from '@/lib/firestore/preferences';
+import { useUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
 import { cn } from '@/lib/utils';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -44,25 +40,9 @@ export function ProfileView() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.displayName ?? '');
   const [saving, setSaving] = useState(false);
-  const [preferences, setPreferences] = useUserPreferences(user?.uid);
-  const [savingPrefKey, setSavingPrefKey] = useState<keyof UserPreferences | null>(null);
+  const [preferences] = useUserPreferences(user?.uid);
 
   if (!user) return null;
-
-  const handleTogglePreference = async (key: keyof UserPreferences) => {
-    if (!preferences) return;
-    const previous = preferences;
-    const next = { ...preferences, [key]: !preferences[key] };
-    setPreferences(next);
-    setSavingPrefKey(key);
-    try {
-      await updateUserPreferences(user.uid, next);
-    } catch {
-      setPreferences(previous);
-    } finally {
-      setSavingPrefKey(null);
-    }
-  };
 
   const initial = (user.displayName || user.email || '?').charAt(0).toUpperCase();
   const joined = user.metadata.creationTime
@@ -200,21 +180,22 @@ export function ProfileView() {
           {PREFERENCE_ROWS.map((row) => (
             <div key={row.key} className="flex items-center justify-between gap-4 py-3.5">
               <div>
-                <div className="text-sm font-medium text-foreground">{row.label}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{row.label}</span>
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Coming soon
+                  </span>
+                </div>
                 <div className="text-xs text-muted-foreground">{row.description}</div>
               </div>
-              <Toggle
-                checked={preferences ? preferences[row.key] : false}
-                disabled={!preferences || savingPrefKey === row.key}
-                onClick={() => handleTogglePreference(row.key)}
-              />
+              <Toggle checked={preferences ? preferences[row.key] : false} />
             </div>
           ))}
         </div>
 
         <p className="mt-4 border-t border-border pt-4 text-xs text-muted-foreground">
-          Saved to your account. We don&apos;t send these notifications yet - flipping a switch here
-          saves your preference for when we do.
+          Notifications aren&apos;t sent yet, so these are off for everyone. Your preference is
+          still saved for when they launch.
         </p>
       </Card>
 
@@ -228,24 +209,16 @@ export function ProfileView() {
   );
 }
 
-function Toggle({
-  checked,
-  onClick,
-  disabled,
-}: {
-  checked: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
+function Toggle({ checked }: { checked: boolean }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
-      onClick={onClick}
-      disabled={disabled}
+      aria-disabled="true"
+      disabled
       className={cn(
-        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50',
+        'relative inline-flex h-6 w-11 shrink-0 cursor-not-allowed items-center rounded-full opacity-50 transition-colors',
         checked ? 'bg-primary' : 'bg-muted',
       )}
     >
