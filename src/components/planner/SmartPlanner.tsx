@@ -118,12 +118,13 @@ export function SmartPlanner() {
           />
         ) : (
           <div className="divide-y divide-border">
-            {plan.startToday.map(({ item, overloaded }) => (
+            {plan.startToday.map(({ item, overloaded, overdue }) => (
               <PlannedTaskRow
                 key={item.id}
                 item={item}
                 course={courses.find((c) => c.id === item.courseId)}
                 overloaded={overloaded}
+                overdue={overdue}
                 onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
               />
             ))}
@@ -223,11 +224,13 @@ function PlannedTaskRow({
   item,
   course,
   overloaded,
+  overdue,
   onToggleComplete,
 }: {
   item: PlannedItem['item'];
   course: Course | undefined;
   overloaded: boolean;
+  overdue: boolean;
   onToggleComplete?: () => void;
 }) {
   return (
@@ -242,10 +245,16 @@ function PlannedTaskRow({
       onToggleComplete={onToggleComplete}
       trailing={
         <>
-          {overloaded && (
-            <span className="rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
-              Overloaded
+          {overdue ? (
+            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+              Overdue
             </span>
+          ) : (
+            overloaded && (
+              <span className="rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
+                Overloaded
+              </span>
+            )
           )}
           <span className="text-xs text-muted-foreground">
             Due {dueDateFormatter.format(new Date(item.dueDate))}
@@ -273,12 +282,13 @@ function PlanSection({
     <Card className="rounded-2xl p-6">
       <h2 className="mb-3 text-sm font-semibold text-foreground">{title}</h2>
       <div className="divide-y divide-border">
-        {items.map(({ item, overloaded }) => (
+        {items.map(({ item, overloaded, overdue }) => (
           <PlannedTaskRow
             key={item.id}
             item={item}
             course={courses.find((c) => c.id === item.courseId)}
             overloaded={overloaded}
+            overdue={overdue}
             onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}
           />
         ))}

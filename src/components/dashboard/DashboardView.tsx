@@ -259,7 +259,7 @@ export function DashboardView() {
                   <SectionIcon icon="tasks" />
                   <h2 className="text-base font-semibold text-foreground">Upcoming Tasks</h2>
                   {overdueCount > 0 && (
-                    <span className="rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
                       {overdueCount} overdue
                     </span>
                   )}
@@ -293,6 +293,7 @@ export function DashboardView() {
                 <div className="divide-y divide-border">
                   {upcomingTasks.map((item) => {
                     const course = courses.find((c) => c.id === item.courseId);
+                    const overdue = !item.completed && new Date(item.dueDate).getTime() < now;
                     return (
                       <TaskRow
                         key={item.id}
@@ -305,9 +306,16 @@ export function DashboardView() {
                         priority={item.priority}
                         onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                         trailing={
-                          <span className="text-xs text-muted-foreground">
-                            Due {dueDateFormatter.format(new Date(item.dueDate))}
-                          </span>
+                          <>
+                            {overdue && (
+                              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                                Overdue
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              Due {dueDateFormatter.format(new Date(item.dueDate))}
+                            </span>
+                          </>
                         }
                       />
                     );
