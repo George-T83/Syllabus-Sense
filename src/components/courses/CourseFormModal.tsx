@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import {
   Card,
   CardHeader,
@@ -13,15 +13,10 @@ import { courseFormSchema, type CourseFormValues } from '@/lib/validation/course
 import type { Course, CourseModality, MeetingTime } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useAppState } from '@/context/AppStateContext';
+import { COURSE_COLOR_PRESETS, pickNextCourseColor } from '@/lib/courseColors';
 
-const COURSE_COLORS = [
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-purple-500',
-  'bg-red-500',
-  'bg-orange-500',
-  'bg-teal-500',
-];
+const isCustomColor = (color: string) => color.startsWith('#');
 
 const MODALITY_OPTIONS: { value: CourseModality; label: string }[] = [
   { value: 'in-person', label: 'In-person' },
@@ -59,16 +54,24 @@ const emptyValues: CourseFormValues = {
   title: '',
   instructor: '',
   term: '',
-  color: COURSE_COLORS[0],
+  color: COURSE_COLOR_PRESETS[0].value,
   modality: undefined,
   meetingTimes: [],
 };
 
 export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: CourseFormModalProps) {
+  const { state } = useAppState();
   const [values, setValues] = useState<CourseFormValues>(emptyValues);
   const [errors, setErrors] = useState<Partial<Record<keyof CourseFormValues, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Latest courses without being a dependency below - the effect should only
+  // recompute a fresh course's default color when the modal actually opens,
+  // not every time Firestore syncs a change while it's sitting open with a
+  // half-filled form.
+  const coursesRef = useRef(state.courses);
+  coursesRef.current = state.courses;
 
   useEffect(() => {
     if (!open) return;
@@ -79,11 +82,14 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
             title: initialCourse.title,
             instructor: initialCourse.instructor ?? '',
             term: initialCourse.term ?? '',
-            color: initialCourse.color ?? COURSE_COLORS[0],
+            color: initialCourse.color ?? COURSE_COLOR_PRESETS[0].value,
             modality: initialCourse.modality,
             meetingTimes: initialCourse.meetingTimes ?? [],
           }
-        : emptyValues,
+        : // A fresh course defaults to whichever preset is least represented
+          // among the user's existing courses, so a student with 8+ courses
+          // doesn't land on the same blue every time.
+          { ...emptyValues, color: pickNextCourseColor(coursesRef.current) },
     );
     setErrors({});
     setSubmitError(null);
@@ -219,22 +225,54 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
 
               <div className="space-y-1.5">
                 <span className="text-sm font-medium text-foreground">Color</span>
-                <div className="flex gap-2">
-                  {COURSE_COLORS.map((color) => (
+                <div className="flex flex-wrap gap-2">
+                  {COURSE_COLOR_PRESETS.map((preset) => (
                     <button
-                      key={color}
+                      key={preset.value}
                       type="button"
-                      aria-label={color}
-                      onClick={() => setValues((s) => ({ ...s, color }))}
+                      aria-label={preset.value}
+                      onClick={() => setValues((s) => ({ ...s, color: preset.value }))}
                       className={cn(
                         'h-7 w-7 rounded-full transition-transform',
-                        color,
-                        values.color === color
+                        preset.value,
+                        values.color === preset.value
                           ? 'ring-2 ring-offset-2 ring-primary ring-offset-card scale-110'
                           : 'hover:scale-110',
                       )}
                     />
                   ))}
+                  <label
+                    aria-label="Custom color"
+                    title="Custom color"
+                    className={cn(
+                      'relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-transform hover:scale-110',
+                      isCustomColor(values.color) &&
+                        'border-solid ring-2 ring-offset-2 ring-primary ring-offset-card scale-110',
+                    )}
+                    style={
+                      isCustomColor(values.color)
+                        ? { backgroundColor: values.color, borderStyle: 'solid' }
+                        : undefined
+                    }
+                  >
+                    {!isCustomColor(values.color) && (
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                    )}
+                    <input
+                      type="color"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      value={isCustomColor(values.color) ? values.color : '#7c3aed'}
+                      onChange={(e) => setValues((s) => ({ ...s, color: e.target.value }))}
+                    />
+                  </label>
                 </div>
               </div>
 

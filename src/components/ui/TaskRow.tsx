@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { courseSwatch } from '@/lib/courseColors';
 import type { AssignmentType, Priority } from '@/types/schedule';
 
 const TYPE_ICON_PATH: Record<AssignmentType, string> = {
@@ -70,8 +71,9 @@ export function TaskRow({
       <span
         className={cn(
           'h-7 w-7 rounded-lg flex items-center justify-center shrink-0 text-white',
-          courseColor || 'bg-primary',
+          courseSwatch(courseColor).className,
         )}
+        style={courseSwatch(courseColor).style}
       >
         <svg
           className="h-3.5 w-3.5"
