@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import AppLoadingScreen from '@/components/layout/AppLoadingScreen';
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -13,9 +14,5 @@ export default function Home() {
     router.replace(user ? '/dashboard' : '/login');
   }, [user, loading, router]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-sm text-muted-foreground">Loading...</div>
-    </div>
-  );
+  return <AppLoadingScreen />;
 }
