@@ -12,6 +12,7 @@ import {
 import { courseFormSchema, type CourseFormValues } from '@/lib/validation/course';
 import type { Course, CourseModality, MeetingTime } from '@/types/schedule';
 import { cn } from '@/lib/utils';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 const COURSE_COLORS = [
   'bg-blue-500',
@@ -88,6 +89,8 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
     setSubmitError(null);
   }, [open, initialCourse]);
 
+  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+
   if (!open) return null;
 
   const updateField = (key: keyof CourseFormValues, value: string) => {
@@ -154,7 +157,12 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
       aria-labelledby="course-form-title"
       onClick={onClose}
     >
-      <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="w-full max-w-md outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Card>
           <CardHeader>
             <CardTitle id="course-form-title">
