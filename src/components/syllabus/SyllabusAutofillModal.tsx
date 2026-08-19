@@ -377,22 +377,26 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   <h3 className="text-sm font-semibold text-foreground">Course</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <TextField
+                      id="autofill-course-code"
                       label="Code"
                       value={course.code}
                       onChange={(v) => setCourse((c) => c && { ...c, code: v })}
                     />
                     <TextField
+                      id="autofill-course-term"
                       label="Term"
                       value={course.term}
                       onChange={(v) => setCourse((c) => c && { ...c, term: v })}
                     />
                   </div>
                   <TextField
+                    id="autofill-course-title"
                     label="Title"
                     value={course.title}
                     onChange={(v) => setCourse((c) => c && { ...c, title: v })}
                   />
                   <TextField
+                    id="autofill-course-instructor"
                     label="Instructor"
                     value={course.instructor}
                     onChange={(v) => setCourse((c) => c && { ...c, instructor: v })}
@@ -677,18 +681,23 @@ async function saveSyllabusPdf(userId: string, courseId: string, file: File) {
 }
 
 function TextField({
+  id,
   label,
   value,
   onChange,
 }: {
+  id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-foreground">{label}</label>
+      <label htmlFor={id} className="text-xs font-medium text-foreground">
+        {label}
+      </label>
       <input
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
