@@ -14,6 +14,7 @@ import { validateSyllabusFile } from '@/lib/validation/syllabusFile';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { courseFormSchema } from '@/lib/validation/course';
 import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -104,8 +105,6 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const [items, setItems] = useState<DraftItem[]>([]);
   const [unresolved, setUnresolved] = useState<string[]>([]);
 
-  if (!open) return null;
-
   const reset = () => {
     setStep('upload');
     setFile(null);
@@ -119,6 +118,14 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     reset();
     onClose();
   };
+
+  // Escape shouldn't interrupt an in-flight extraction or save.
+  const dialogRef = useModalA11y<HTMLDivElement>(
+    open && step !== 'extracting' && step !== 'saving',
+    handleClose,
+  );
+
+  if (!open) return null;
 
   const handleFile = async (selected: File) => {
     const result = validateSyllabusFile(selected);
@@ -307,7 +314,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       onClick={step === 'upload' ? handleClose : undefined}
     >
       <div
-        className="max-h-full w-full max-w-2xl overflow-y-auto"
+        ref={dialogRef}
+        tabIndex={-1}
+        className="max-h-full w-full max-w-2xl overflow-y-auto outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <Card>

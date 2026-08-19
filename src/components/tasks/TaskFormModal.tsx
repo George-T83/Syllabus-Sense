@@ -12,6 +12,7 @@ import {
 import { scheduleItemFormSchema, type ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { Course, ScheduleItem, AssignmentType, Priority } from '@/types/schedule';
 import { cn } from '@/lib/utils';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 const TYPE_OPTIONS: { value: AssignmentType; label: string }[] = [
   { value: 'assignment', label: 'Assignment' },
@@ -79,6 +80,8 @@ export function TaskFormModal({
     setSubmitError(null);
   }, [open, initialItem, courses]);
 
+  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+
   if (!open) return null;
 
   const updateField = <K extends keyof ScheduleItemFormValues>(
@@ -122,7 +125,12 @@ export function TaskFormModal({
       aria-labelledby="task-form-title"
       onClick={onClose}
     >
-      <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="w-full max-w-md outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Card>
           <CardHeader>
             <CardTitle id="task-form-title">{initialItem ? 'Edit Task' : 'Add Task'}</CardTitle>

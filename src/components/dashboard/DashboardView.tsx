@@ -14,6 +14,7 @@ import { createCourse } from '@/lib/firestore/courses';
 import { createScheduleItem, updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
+import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS } from '@/lib/workload';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ export function DashboardView() {
   const { user } = useAuth();
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [autofillOpen, setAutofillOpen] = useState(false);
 
   const { courses, scheduleItems } = state;
   const pendingTasks = scheduleItems.filter((item) => !item.completed);
@@ -43,6 +45,8 @@ export function DashboardView() {
   const termProgressPct = scheduleItems.length
     ? Math.round((completedTasksCount / scheduleItems.length) * 100)
     : 0;
+  const now = useMemo(() => Date.now(), []);
+  const overdueCount = pendingTasks.filter((item) => new Date(item.dueDate).getTime() < now).length;
 
   const currentTerm = useMemo(
     () => resolveActiveTerm(state.selectedTerm, courses),
@@ -126,6 +130,37 @@ export function DashboardView() {
           <p className="mt-1.5 text-sm text-muted-foreground">
             {currentTerm || courses[0]?.term || 'No courses yet'}
           </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-brand p-6 text-white shadow-card">
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold">Got a syllabus? Let Claude set it up.</h2>
+              <p className="mt-1 text-sm text-white/80">
+                Upload the PDF and get a course plus every assignment drafted for you to review.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAutofillOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition-transform hover:scale-[1.02]"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Autofill from Syllabus
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-[15rem_1fr]">
@@ -223,6 +258,11 @@ export function DashboardView() {
                 <div className="flex items-center gap-3">
                   <SectionIcon icon="tasks" />
                   <h2 className="text-base font-semibold text-foreground">Upcoming Tasks</h2>
+                  {overdueCount > 0 && (
+                    <span className="rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
+                      {overdueCount} overdue
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <CardActionLink href="/tasks" withChevron>
@@ -413,6 +453,7 @@ export function DashboardView() {
         onSubmit={handleAddTask}
         courses={courses}
       />
+      <SyllabusAutofillModal open={autofillOpen} onClose={() => setAutofillOpen(false)} />
     </>
   );
 }
