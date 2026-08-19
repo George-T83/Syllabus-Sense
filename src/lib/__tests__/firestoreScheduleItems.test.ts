@@ -64,6 +64,37 @@ describe('Firestore schedule items service', () => {
     expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'UPDATE_SCHEDULE_ITEM', payload: item });
   });
 
+  it('serializes overlapping updates to the same item instead of racing', async () => {
+    // Simulates rapid double-clicking a checkbox: two updates fire before
+    // either Firestore write resolves. Without per-item serialization, both
+    // setDoc calls go out in parallel and whichever resolves last on the
+    // wire wins regardless of click order - this asserts the second write
+    // doesn't even start until the first one has settled.
+    let resolveFirstWrite: () => void = () => {};
+    const firstWrite = new Promise<void>((resolve) => {
+      resolveFirstWrite = resolve;
+    });
+    setDocMock.mockImplementationOnce(() => firstWrite);
+    setDocMock.mockImplementationOnce(() => Promise.resolve());
+
+    const dispatch = vi.fn();
+    const toggledOn: ScheduleItem = { ...item, completed: true };
+    const toggledOff: ScheduleItem = { ...item, completed: false };
+
+    const firstUpdate = updateScheduleItem('u1', item, toggledOn, dispatch);
+    const secondUpdate = updateScheduleItem('u1', toggledOn, toggledOff, dispatch);
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(setDocMock).toHaveBeenCalledTimes(1);
+
+    resolveFirstWrite();
+    await firstUpdate;
+    await secondUpdate;
+
+    expect(setDocMock).toHaveBeenCalledTimes(2);
+  });
+
   it('deleteScheduleItem rolls back by re-adding the item on failure', async () => {
     deleteDocMock.mockRejectedValueOnce(new Error('denied'));
     const dispatch = vi.fn();

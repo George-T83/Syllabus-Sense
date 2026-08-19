@@ -63,7 +63,12 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 3.7% 18%;
+    /* 18% lightness measured as "enough" contrast against a 3.9% background
+       on paper, but read as functionally invisible in practice - low-lightness
+       colors don't separate perceptually the way the same numeric gap does
+       higher up the scale. Raised until card/row boundaries are actually
+       legible instead of relying entirely on shadow. */
+    --border: 240 6% 26%;
 
     --load-low: 142 71% 45%;
     --load-medium: 38 92% 50%;
