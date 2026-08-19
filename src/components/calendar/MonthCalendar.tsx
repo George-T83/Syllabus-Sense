@@ -30,10 +30,12 @@ import {
   WORKLOAD_LEVEL_LABELS,
   WORKLOAD_CHIP_CLASS,
   WORKLOAD_SWATCH_CLASS,
+  WORKLOAD_TEXT_CLASS,
   WORKLOAD_TINT_CLASS,
 } from '@/lib/workload';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
+import { courseChipTint, courseSwatch } from '@/lib/courseColors';
 import type { Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -49,6 +51,80 @@ const agendaDayLabelFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
 });
 const weekLabelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
+/** Semantic icons for the calendar key (course chips / workload / markers),
+ * replacing plain dots and squares so each row communicates what it means
+ * at a glance instead of relying purely on color. Small enough to stay
+ * inline rather than routing through the shared ICON_PATHS single-path
+ * convention - graduation cap and workload bars both need multiple shapes. */
+function GraduationCapIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 10L12 5 2 10l10 5 10-5z" />
+      <path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5" />
+    </svg>
+  );
+}
+
+function FlagIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 3v18M4 4h11l-2 4 2 4H4" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
+/** Three ascending bars whose fill opacity encodes the workload level, so
+ * severity reads even without relying on the color alone - low fills only
+ * the first bar, critical fills all three at full strength. */
+function WorkloadGaugeIcon({ level, className }: { level: WorkloadLevel; className?: string }) {
+  const fill = {
+    low: [1, 0.2, 0.2],
+    medium: [1, 1, 0.2],
+    high: [1, 1, 0.55],
+    critical: [1, 1, 1],
+  }[level];
+
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <rect x="3" y="16" width="4" height="5" rx="1" opacity={fill[0]} />
+      <rect x="10" y="11" width="4" height="10" rx="1" opacity={fill[1]} />
+      <rect x="17" y="7" width="4" height="14" rx="1" opacity={fill[2]} />
+    </svg>
+  );
+}
 
 function formatWeekRangeLabel(weekDays: Date[]): string {
   const start = weekDays[0];
@@ -282,6 +358,8 @@ export function MonthCalendar() {
           <div className="flex flex-wrap items-center gap-1.5 mb-3">
             {state.courses.map((course) => {
               const hidden = hiddenCourseIds.has(course.id);
+              const tint = courseChipTint(course.color);
+              const swatch = courseSwatch(course.color);
               return (
                 <button
                   key={course.id}
@@ -290,10 +368,14 @@ export function MonthCalendar() {
                     'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                     hidden
                       ? 'border-border text-muted-foreground opacity-50'
-                      : 'border-border text-foreground hover:bg-accent',
+                      : cn(tint.className, 'hover:brightness-95'),
                   )}
+                  style={hidden ? undefined : tint.style}
                 >
-                  <span className={cn('h-2 w-2 rounded-full', course.color || 'bg-primary')} />
+                  <span
+                    className={cn('h-2 w-2 rounded-full', swatch.className)}
+                    style={swatch.style}
+                  />
                   {course.code}
                 </button>
               );
@@ -302,23 +384,25 @@ export function MonthCalendar() {
             <button
               onClick={() => setShowClasses((v) => !v)}
               className={cn(
-                'rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                 showClasses
                   ? 'border-border text-foreground hover:bg-accent'
                   : 'border-border text-muted-foreground opacity-50',
               )}
             >
+              <GraduationCapIcon className="h-3 w-3" />
               Classes
             </button>
             <button
               onClick={() => setShowCompleted((v) => !v)}
               className={cn(
-                'rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                 showCompleted
                   ? 'border-border text-foreground hover:bg-accent'
                   : 'border-border text-muted-foreground opacity-50',
               )}
             >
+              <CheckIcon className="h-3 w-3" />
               Completed
             </button>
           </div>
@@ -404,8 +488,9 @@ export function MonthCalendar() {
                             key={`${m.course.id}-${i}`}
                             className={cn(
                               'h-1.5 w-1.5 rounded-[2px]',
-                              m.course.color || 'bg-primary',
+                              courseSwatch(m.course.color).className,
                             )}
+                            style={courseSwatch(m.course.color).style}
                             title={`${m.course.code} · ${formatTimeLabel(m.meeting.startTime)}`}
                           />
                         ))}
@@ -446,13 +531,12 @@ export function MonthCalendar() {
                   <span
                     key={level}
                     className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-foreground',
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
                       WORKLOAD_CHIP_CLASS[level],
+                      WORKLOAD_TEXT_CLASS[level],
                     )}
                   >
-                    <span
-                      className={cn('h-2.5 w-2.5 rounded-full', WORKLOAD_SWATCH_CLASS[level])}
-                    />
+                    <WorkloadGaugeIcon level={level} className="h-3 w-3" />
                     {WORKLOAD_LEVEL_LABELS[level]}
                   </span>
                 ))}
@@ -460,11 +544,11 @@ export function MonthCalendar() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="w-20 shrink-0 text-xs font-semibold text-foreground">Markers</span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-primary" />
+                  <GraduationCapIcon className="h-3 w-3 shrink-0" />
                   Class session
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground">
-                  <span className="h-2.5 w-4 shrink-0 rounded bg-primary" />
+                  <FlagIcon className="h-3 w-3 shrink-0" />
                   Due item
                 </span>
               </div>
@@ -510,8 +594,9 @@ export function MonthCalendar() {
                         <span
                           className={cn(
                             'h-2 w-2 shrink-0 rounded-[2px]',
-                            m.course.color || 'bg-primary',
+                            courseSwatch(m.course.color).className,
                           )}
+                          style={courseSwatch(m.course.color).style}
                         />
                         <span className="text-muted-foreground">
                           {formatTimeLabel(m.meeting.startTime)}
@@ -664,7 +749,11 @@ function DayDetailCard({
                 {meetings.map((m, i) => (
                   <div key={`${m.course.id}-${i}`} className="flex items-center gap-3 py-2">
                     <span
-                      className={cn('h-7 w-7 shrink-0 rounded-lg', m.course.color || 'bg-primary')}
+                      className={cn(
+                        'h-7 w-7 shrink-0 rounded-lg',
+                        courseSwatch(m.course.color).className,
+                      )}
+                      style={courseSwatch(m.course.color).style}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-foreground truncate">
