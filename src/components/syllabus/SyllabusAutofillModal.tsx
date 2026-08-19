@@ -11,8 +11,9 @@ import {
   CardFooter,
 } from '@/components/ui/Card';
 import { validateSyllabusFile } from '@/lib/validation/syllabusFile';
-import { createCourse } from '@/lib/firestore/courses';
-import { createScheduleItem } from '@/lib/firestore/scheduleItems';
+import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
+import { courseFormSchema } from '@/lib/validation/course';
+import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -213,6 +214,34 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
   const handleConfirm = async () => {
     if (!course || !user) return;
+
+    // The review screen lets the user freely edit whatever Claude extracted,
+    // so re-validate here with the same schemas the manual course/task forms
+    // use - a hand-typed 500-character title shouldn't reach Firestore just
+    // because it arrived via the autofiller instead of the regular form.
+    const courseCheck = courseFormSchema.safeParse(course);
+    if (!courseCheck.success) {
+      setError(courseCheck.error.issues[0]?.message ?? 'Check the course details above.');
+      return;
+    }
+    for (const it of items) {
+      if (!it.include || !it.dueDate) continue;
+      const itemCheck = scheduleItemFormSchema.safeParse({
+        title: it.title,
+        type: it.type,
+        courseId: 'pending',
+        dueDate: it.dueDate,
+        priority: it.highStakes ? 'high' : 'medium',
+        notes: it.notes ?? undefined,
+      });
+      if (!itemCheck.success) {
+        setError(
+          `"${it.title || 'Untitled item'}": ${itemCheck.error.issues[0]?.message ?? 'Check this item.'}`,
+        );
+        return;
+      }
+    }
+
     setStep('saving');
     setError(null);
     try {
@@ -230,32 +259,27 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         ...(course.skipDates.length ? { skipDates: course.skipDates } : {}),
         ...(course.notes ? { notes: course.notes } : {}),
       };
-      await createCourse(user.uid, newCourse, dispatch);
-
       const included = items.filter((it) => it.include && it.dueDate);
-      for (const it of included) {
-        const scheduleItem: ScheduleItem = {
-          id: crypto.randomUUID(),
-          courseId: newCourse.id,
-          title: it.title,
-          type: it.type,
-          dueDate: new Date(`${it.dueDate}T23:59:00`).toISOString(),
-          completed: false,
-          priority: it.highStakes ? 'high' : 'medium',
-          source: 'ai',
-          ...(it.dateConfidence === 'approximate'
-            ? { dateConfidence: 'approximate' as const }
-            : {}),
-          ...(it.highStakes ? { highStakes: true } : {}),
-          ...(it.gradeWeight != null ? { gradeWeight: it.gradeWeight } : {}),
-          ...(it.gradeCategory ? { gradeCategory: it.gradeCategory } : {}),
-          ...(it.notes ? { notes: it.notes } : {}),
-        };
-        // Sequential, not parallel: keeps optimistic dispatch order stable
-        // and avoids hammering Firestore with a burst of concurrent writes
-        // for syllabi with 20+ items.
-        await createScheduleItem(user.uid, scheduleItem, dispatch);
-      }
+      const scheduleItems: ScheduleItem[] = included.map((it) => ({
+        id: crypto.randomUUID(),
+        courseId: newCourse.id,
+        title: it.title,
+        type: it.type,
+        dueDate: new Date(`${it.dueDate}T23:59:00`).toISOString(),
+        completed: false,
+        priority: it.highStakes ? 'high' : 'medium',
+        source: 'ai',
+        ...(it.dateConfidence === 'approximate' ? { dateConfidence: 'approximate' as const } : {}),
+        ...(it.highStakes ? { highStakes: true } : {}),
+        ...(it.gradeWeight != null ? { gradeWeight: it.gradeWeight } : {}),
+        ...(it.gradeCategory ? { gradeCategory: it.gradeCategory } : {}),
+        ...(it.notes ? { notes: it.notes } : {}),
+      }));
+
+      // Single atomic batch: the course and all its schedule items land
+      // together or not at all, instead of the course succeeding while a
+      // mid-loop failure leaves some assignments missing.
+      await createCourseWithScheduleItems(user.uid, newCourse, scheduleItems, dispatch);
 
       if (file) {
         try {
