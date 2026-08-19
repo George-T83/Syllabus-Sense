@@ -17,6 +17,7 @@ import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
+import { COURSE_COLOR_PRESETS, pickNextCourseColor } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import type {
   ExtractedMeetingTime,
@@ -30,15 +31,6 @@ import type {
   MeetingTime,
   ScheduleItem,
 } from '@/types/schedule';
-
-const COURSE_COLORS = [
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-purple-500',
-  'bg-red-500',
-  'bg-orange-500',
-  'bg-teal-500',
-];
 
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -80,7 +72,7 @@ export interface SyllabusAutofillModalProps {
 }
 
 export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalProps) {
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const router = useRouter();
 
@@ -155,7 +147,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         title: result.course.title,
         instructor: result.course.instructor ?? '',
         term: result.course.term ?? '',
-        color: COURSE_COLORS[0],
+        // Auto-assigned to whichever preset is least represented among the
+        // user's existing courses, so extracted courses don't all default
+        // to the same blue - the user can still change it on the review
+        // screen before confirming.
+        color: pickNextCourseColor(state.courses),
         modality: result.course.modality ?? undefined,
         meetingTimes: result.course.meetingTimes.map((m: ExtractedMeetingTime) => ({
           dayOfWeek: m.dayOfWeek,
@@ -401,22 +397,54 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     value={course.instructor}
                     onChange={(v) => setCourse((c) => c && { ...c, instructor: v })}
                   />
-                  <div className="flex gap-2">
-                    {COURSE_COLORS.map((color) => (
+                  <div className="flex flex-wrap gap-2">
+                    {COURSE_COLOR_PRESETS.map((preset) => (
                       <button
-                        key={color}
+                        key={preset.value}
                         type="button"
-                        aria-label={color}
-                        onClick={() => setCourse((c) => c && { ...c, color })}
+                        aria-label={preset.value}
+                        onClick={() => setCourse((c) => c && { ...c, color: preset.value })}
                         className={cn(
                           'h-6 w-6 rounded-full transition-transform',
-                          color,
-                          course.color === color
+                          preset.value,
+                          course.color === preset.value
                             ? 'ring-2 ring-offset-2 ring-primary ring-offset-card scale-110'
                             : 'hover:scale-110',
                         )}
                       />
                     ))}
+                    <label
+                      aria-label="Custom color"
+                      title="Custom color"
+                      className={cn(
+                        'relative flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-transform hover:scale-110',
+                        course.color.startsWith('#') &&
+                          'border-solid ring-2 ring-offset-2 ring-primary ring-offset-card scale-110',
+                      )}
+                      style={
+                        course.color.startsWith('#')
+                          ? { backgroundColor: course.color, borderStyle: 'solid' }
+                          : undefined
+                      }
+                    >
+                      {!course.color.startsWith('#') && (
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                      )}
+                      <input
+                        type="color"
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        value={course.color.startsWith('#') ? course.color : '#7c3aed'}
+                        onChange={(e) => setCourse((c) => c && { ...c, color: e.target.value })}
+                      />
+                    </label>
                   </div>
                 </section>
 

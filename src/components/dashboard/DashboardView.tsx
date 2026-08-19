@@ -17,6 +17,7 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS } from '@/lib/workload';
+import { courseSwatch } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
@@ -244,8 +245,11 @@ export function DashboardView() {
                       </div>
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${course.color || 'bg-primary'}`}
-                          style={{ width: `${pct}%` }}
+                          className={cn(
+                            'h-full rounded-full',
+                            courseSwatch(course.color).className,
+                          )}
+                          style={{ width: `${pct}%`, ...courseSwatch(course.color).style }}
                         />
                       </div>
                     </div>

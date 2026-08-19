@@ -2,11 +2,16 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
+import { AppStateProvider } from '@/context/AppStateContext';
 import type { Course } from '@/types/schedule';
+
+function renderModal(ui: React.ReactElement) {
+  return render(<AppStateProvider initialState={{ courses: [] }}>{ui}</AppStateProvider>);
+}
 
 describe('CourseFormModal', () => {
   it('renders nothing when closed', () => {
-    const { container } = render(
+    const { container } = renderModal(
       <CourseFormModal open={false} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
     expect(container.firstChild).toBeNull();
@@ -14,7 +19,7 @@ describe('CourseFormModal', () => {
 
   it('blocks submit and shows errors when required fields are empty', async () => {
     const onSubmit = vi.fn();
-    render(<CourseFormModal open onClose={vi.fn()} onSubmit={onSubmit} />);
+    renderModal(<CourseFormModal open onClose={vi.fn()} onSubmit={onSubmit} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Course' }));
 
@@ -25,7 +30,7 @@ describe('CourseFormModal', () => {
 
   it('clears a field error as soon as the user retypes it (regression: errors used to stick)', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
-    render(<CourseFormModal open onClose={vi.fn()} onSubmit={onSubmit} />);
+    renderModal(<CourseFormModal open onClose={vi.fn()} onSubmit={onSubmit} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Course' }));
     expect(await screen.findByText('Course code is required')).toBeDefined();
@@ -37,7 +42,7 @@ describe('CourseFormModal', () => {
   it('submits parsed values and closes on success', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const onClose = vi.fn();
-    render(<CourseFormModal open onClose={onClose} onSubmit={onSubmit} />);
+    renderModal(<CourseFormModal open onClose={onClose} onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText('Course Code'), { target: { value: 'CSCI 213' } });
     fireEvent.change(screen.getByLabelText('Course Title'), {
@@ -56,7 +61,7 @@ describe('CourseFormModal', () => {
   it('shows a submit error and stays open when onSubmit rejects', async () => {
     const onSubmit = vi.fn().mockRejectedValue(new Error('Firestore is not configured.'));
     const onClose = vi.fn();
-    render(<CourseFormModal open onClose={onClose} onSubmit={onSubmit} />);
+    renderModal(<CourseFormModal open onClose={onClose} onSubmit={onSubmit} />);
 
     fireEvent.change(screen.getByLabelText('Course Code'), { target: { value: 'CSCI 213' } });
     fireEvent.change(screen.getByLabelText('Course Title'), { target: { value: 'Intro' } });
@@ -73,7 +78,9 @@ describe('CourseFormModal', () => {
       title: 'Linear Algebra',
       color: 'bg-green-500',
     };
-    render(<CourseFormModal open onClose={vi.fn()} onSubmit={vi.fn()} initialCourse={course} />);
+    renderModal(
+      <CourseFormModal open onClose={vi.fn()} onSubmit={vi.fn()} initialCourse={course} />,
+    );
 
     expect((screen.getByLabelText('Course Code') as HTMLInputElement).value).toBe('MATH 301');
     expect((screen.getByLabelText('Course Title') as HTMLInputElement).value).toBe(

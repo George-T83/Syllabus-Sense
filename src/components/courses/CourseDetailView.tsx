@@ -23,6 +23,7 @@ import { SyllabusList } from '@/components/syllabus/SyllabusList';
 import { formatTimeLabel } from '@/lib/calendar/meetings';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateRateMyProfessorUrl } from '@/lib/export/rateMyProfessor';
+import { courseSwatch } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
@@ -158,15 +159,19 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         <BackLink href="/dashboard">Back to dashboard</BackLink>
 
         <Card className="overflow-hidden rounded-2xl p-0">
-          <div className={cn('h-2 w-full', course.color || 'bg-primary')} />
+          <div
+            className={cn('h-2 w-full', courseSwatch(course.color).className)}
+            style={courseSwatch(course.color).style}
+          />
           <div className="p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
                 <span
                   className={cn(
                     'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white',
-                    course.color || 'bg-primary',
+                    courseSwatch(course.color).className,
                   )}
+                  style={courseSwatch(course.color).style}
                 >
                   {course.code.slice(0, 1)}
                 </span>

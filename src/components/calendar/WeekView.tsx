@@ -9,6 +9,7 @@ import {
 } from '@/lib/calendar/meetings';
 import { cn } from '@/lib/utils';
 import { getWorkloadLevel } from '@/lib/workload';
+import { courseSwatch } from '@/lib/courseColors';
 import type { Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
 
 // Full 24-hour day, like Google Calendar/Outlook - a hardcoded 7am-9pm window
@@ -154,14 +155,15 @@ export function WeekView({
                     if (end <= start) return null;
                     const top = (start - START_HOUR) * HOUR_HEIGHT;
                     const height = Math.max((end - start) * HOUR_HEIGHT, 20);
+                    const swatch = courseSwatch(m.course.color);
                     return (
                       <div
                         key={`${m.course.id}-${i}`}
                         className={cn(
                           'absolute left-0.5 right-0.5 overflow-hidden rounded-md px-1 py-0.5 text-[10px] font-medium text-white shadow-sm',
-                          m.course.color || 'bg-primary',
+                          swatch.className,
                         )}
-                        style={{ top, height }}
+                        style={{ top, height, ...swatch.style }}
                         title={`${m.course.code} · ${formatTimeLabel(m.meeting.startTime)}–${formatTimeLabel(m.meeting.endTime)}`}
                       >
                         <div className="truncate font-semibold">{m.course.code}</div>

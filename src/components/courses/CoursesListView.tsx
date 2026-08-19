@@ -11,6 +11,7 @@ import { createCourse } from '@/lib/firestore/courses';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import type { CourseFormValues } from '@/lib/validation/course';
+import { courseSwatch } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 
 type SortMode = 'code' | 'title' | 'term';
@@ -193,14 +194,18 @@ export function CoursesListView() {
               return (
                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
                   <Card hoverable className="flex h-full flex-col overflow-hidden rounded-2xl p-0">
-                    <div className={cn('h-1.5 w-full', course.color || 'bg-primary')} />
+                    <div
+                      className={cn('h-1.5 w-full', courseSwatch(course.color).className)}
+                      style={courseSwatch(course.color).style}
+                    />
                     <div className="flex flex-1 flex-col p-5">
                       <div className="mb-2 flex items-center gap-3">
                         <span
                           className={cn(
                             'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white',
-                            course.color || 'bg-primary',
+                            courseSwatch(course.color).className,
                           )}
+                          style={courseSwatch(course.color).style}
                         >
                           {course.code.slice(0, 1)}
                         </span>
@@ -241,8 +246,11 @@ export function CoursesListView() {
                         {items.length > 0 && (
                           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                             <div
-                              className={cn('h-full rounded-full', course.color || 'bg-primary')}
-                              style={{ width: `${pct}%` }}
+                              className={cn(
+                                'h-full rounded-full',
+                                courseSwatch(course.color).className,
+                              )}
+                              style={{ width: `${pct}%`, ...courseSwatch(course.color).style }}
                             />
                           </div>
                         )}
