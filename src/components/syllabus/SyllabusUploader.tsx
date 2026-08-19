@@ -62,13 +62,13 @@ export function SyllabusUploader({ userId, courseId, onUploaded }: SyllabusUploa
           )}
         >
           <span className="text-sm font-medium text-foreground">
-            Drop a syllabus PDF here, or click to browse
+            Drop a syllabus PDF or Word doc here, or click to browse
           </span>
-          <span className="text-xs text-muted-foreground">PDF only, up to 10MB</span>
+          <span className="text-xs text-muted-foreground">PDF or .docx, up to 10MB</span>
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];

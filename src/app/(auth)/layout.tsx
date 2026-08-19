@@ -5,7 +5,7 @@ const PILLARS: { icon: IconKey; title: string; description: string }[] = [
   {
     icon: 'syllabus',
     title: 'Syllabus, uploaded once',
-    description: 'Keep every syllabus PDF attached to its course, always within reach.',
+    description: 'Keep every syllabus file attached to its course, always within reach.',
   },
   {
     icon: 'planner',

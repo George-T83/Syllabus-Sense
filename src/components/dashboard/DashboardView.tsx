@@ -137,7 +137,8 @@ export function DashboardView() {
             <div>
               <h2 className="text-lg font-bold">Got a syllabus? Let Claude set it up.</h2>
               <p className="mt-1 text-sm text-white/80">
-                Upload the PDF and get a course plus every assignment drafted for you to review.
+                Upload the PDF or Word doc and get a course plus every assignment drafted for you to
+                review.
               </p>
             </div>
             <button
