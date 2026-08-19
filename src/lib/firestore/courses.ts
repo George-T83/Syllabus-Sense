@@ -27,6 +27,36 @@ export async function createCourse(
   }
 }
 
+/**
+ * Creates a course together with a batch of schedule items in a single
+ * atomic Firestore write - used by the syllabus autofiller, where a course
+ * with 20+ extracted assignments should never partially land (e.g. the
+ * course saved but half the assignments missing because of a mid-loop
+ * network failure).
+ */
+export async function createCourseWithScheduleItems(
+  userId: string,
+  course: Course,
+  scheduleItems: ScheduleItem[],
+  dispatch: React.Dispatch<AppAction>,
+): Promise<void> {
+  dispatch({ type: 'ADD_COURSE', payload: course });
+  scheduleItems.forEach((item) => dispatch({ type: 'ADD_SCHEDULE_ITEM', payload: item }));
+  try {
+    const database = requireDb();
+    const batch = writeBatch(database);
+    batch.set(doc(database, 'users', userId, 'courses', course.id), course);
+    scheduleItems.forEach((item) => {
+      batch.set(doc(database, 'users', userId, 'scheduleItems', item.id), item);
+    });
+    await batch.commit();
+  } catch (err) {
+    dispatch({ type: 'REMOVE_COURSE', payload: course.id });
+    scheduleItems.forEach((item) => dispatch({ type: 'REMOVE_SCHEDULE_ITEM', payload: item.id }));
+    throw err;
+  }
+}
+
 export async function updateCourse(
   userId: string,
   previousCourse: Course,

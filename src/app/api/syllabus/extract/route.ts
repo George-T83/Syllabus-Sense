@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
+import { checkAndIncrementExtractionCount } from '@/lib/ai/extractionRateLimit';
 import {
   SYLLABUS_EXTRACTION_SYSTEM_PROMPT,
   SYLLABUS_EXTRACTION_TOOL,
@@ -45,6 +46,19 @@ export async function POST(req: NextRequest) {
   // Rough size check on the base64 payload (base64 is ~4/3 the byte size).
   if (fileBase64.length > MAX_FILE_BYTES * 1.4) {
     return NextResponse.json({ error: 'File is too large (max 10MB).' }, { status: 400 });
+  }
+  // The client declares application/pdf, but that's a spoofable browser MIME
+  // type - check the real magic bytes server-side before spending an API call.
+  if (!fileBase64.startsWith('JVBERi0')) {
+    return NextResponse.json({ error: 'That file is not a valid PDF.' }, { status: 400 });
+  }
+
+  const rateLimit = await checkAndIncrementExtractionCount(user.uid);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "You've hit today's syllabus upload limit. Try again tomorrow." },
+      { status: 429 },
+    );
   }
 
   let anthropic;

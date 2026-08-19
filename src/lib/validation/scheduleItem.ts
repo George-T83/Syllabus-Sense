@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const scheduleItemFormSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required').max(150, 'Keep it under 150 characters'),
+  title: z.string().trim().min(1, 'Title is required').max(200, 'Keep it under 200 characters'),
   type: z.enum(['assignment', 'exam', 'quiz', 'project', 'reading', 'other']),
   courseId: z.string().min(1, 'Select a course'),
   dueDate: z.string().min(1, 'Due date is required'),
