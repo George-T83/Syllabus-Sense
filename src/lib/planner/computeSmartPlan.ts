@@ -6,6 +6,11 @@ export interface PlannedItem {
   item: ScheduleItem;
   startDate: string;
   overloaded: boolean;
+  /** Already past its due date - distinct from `overloaded` (doesn't fit the
+   * week's capacity). A late item and a merely-full week require different
+   * reactions from the student, so they're tracked separately rather than
+   * both surfacing as the same badge. */
+  overdue: boolean;
 }
 
 export interface DayLoad {
@@ -56,7 +61,12 @@ export function computeSmartPlan(scheduleItems: ScheduleItem[], referenceDate: D
     const others = pendingItems.filter((i) => i.id !== item.id);
     const existingLoad = calculateDailyLoad(others, referenceDate);
     const rec = recommendStudyStartDate(item, referenceDate, existingLoad);
-    return { item, startDate: rec.startDate, overloaded: rec.overloaded };
+    // Matches the exact `!completed && dueDate < now` check used on Tasks/
+    // Course/Task-detail (real current moment, not the UTC-midnight
+    // `referenceDate` used for workload bucketing) so "overdue" means the
+    // same thing everywhere in the app.
+    const overdue = !item.completed && new Date(item.dueDate) < new Date();
+    return { item, startDate: rec.startDate, overloaded: rec.overloaded, overdue };
   });
   plannedItems.sort((a, b) => a.startDate.localeCompare(b.startDate));
 

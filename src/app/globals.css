@@ -86,6 +86,26 @@
 }
 
 @layer utilities {
+  /* Standard indeterminate-progress sweep (position + width both animate,
+     not just a translate) - used by AppLoadingScreen since the actual
+     auth-resolution wait time isn't determinable up front. Percentages are
+     relative to the track, not the bar itself, so the sweep stays smooth
+     and symmetric instead of snapping between off-left and off-right. */
+  @keyframes loading-bar {
+    0% {
+      left: -40%;
+      width: 40%;
+    }
+    50% {
+      left: 30%;
+      width: 45%;
+    }
+    100% {
+      left: 100%;
+      width: 40%;
+    }
+  }
+
   /* Matches the Logo mark's own gradient (Logo.tsx) so brand color isn't
      confined to the icon - hero panels, progress rings, and CTAs can pick up
      the same identity. */
