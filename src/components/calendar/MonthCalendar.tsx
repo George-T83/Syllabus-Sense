@@ -36,6 +36,7 @@ import {
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import type { Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -126,6 +127,22 @@ function WorkloadGaugeIcon({ level, className }: { level: WorkloadLevel; classNa
   );
 }
 
+function FilterIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 6h16M7 12h10M10 18h4" />
+    </svg>
+  );
+}
+
 function formatWeekRangeLabel(weekDays: Date[]): string {
   const start = weekDays[0];
   const end = weekDays[weekDays.length - 1];
@@ -152,6 +169,11 @@ export function MonthCalendar() {
   const [hiddenCourseIds, setHiddenCourseIds] = useState<Set<string>>(new Set());
   const [showCompleted, setShowCompleted] = useState(true);
   const [showClasses, setShowClasses] = useState(true);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const filterSheetRef = useModalA11y<HTMLDivElement>(filterSheetOpen, () =>
+    setFilterSheetOpen(false),
+  );
+  const activeFilterCount = hiddenCourseIds.size + (showClasses ? 0 : 1) + (showCompleted ? 0 : 1);
 
   const today = useMemo(() => startOfDay(new Date()), []);
   const itemsByDay = useMemo(() => groupItemsByDay(state.scheduleItems), [state.scheduleItems]);
@@ -354,56 +376,162 @@ export function MonthCalendar() {
         </div>
 
         {state.courses.length > 0 && (
-          <div className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-            {state.courses.map((course) => {
-              const hidden = hiddenCourseIds.has(course.id);
-              const tint = courseChipTint(course.color);
-              const swatch = courseSwatch(course.color);
-              return (
+          <>
+            {/* Desktop / tablet: bold inline chip row (Direction B) */}
+            <div className="mb-3 hidden flex-wrap items-center gap-2 sm:flex">
+              {state.courses.map((course) => {
+                const hidden = hiddenCourseIds.has(course.id);
+                const tint = courseChipTint(course.color);
+                const swatch = courseSwatch(course.color);
+                return (
+                  <button
+                    key={course.id}
+                    onClick={() => toggleCourseVisibility(course.id)}
+                    className={cn(
+                      'flex min-h-[2.25rem] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors',
+                      hidden
+                        ? 'border-border text-muted-foreground opacity-50'
+                        : cn(tint.className, 'border-transparent hover:brightness-95'),
+                    )}
+                    style={hidden ? undefined : tint.style}
+                  >
+                    <span
+                      className={cn('h-2.5 w-2.5 rounded-full', swatch.className)}
+                      style={swatch.style}
+                    />
+                    {course.code}
+                  </button>
+                );
+              })}
+              <span className="mx-1 h-5 w-px shrink-0 bg-border" />
+              <button
+                onClick={() => setShowClasses((v) => !v)}
+                className={cn(
+                  'flex min-h-[2.25rem] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors',
+                  showClasses
+                    ? 'border-border text-foreground hover:bg-accent'
+                    : 'border-border text-muted-foreground opacity-50',
+                )}
+              >
+                <GraduationCapIcon className="h-3.5 w-3.5" />
+                Classes
+              </button>
+              <button
+                onClick={() => setShowCompleted((v) => !v)}
+                className={cn(
+                  'flex min-h-[2.25rem] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors',
+                  showCompleted
+                    ? 'border-border text-foreground hover:bg-accent'
+                    : 'border-border text-muted-foreground opacity-50',
+                )}
+              >
+                <CheckIcon className="h-3.5 w-3.5" />
+                Completed
+              </button>
+            </div>
+
+            {/* Mobile: single "Filters" trigger opening a bottom sheet (Direction B) */}
+            <div className="mb-3 sm:hidden">
+              <button
+                onClick={() => setFilterSheetOpen(true)}
+                className="flex min-h-[2.75rem] w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
+              >
+                <FilterIcon className="h-4 w-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/25 px-1.5 text-xs font-bold">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </>
+        )}
+
+        {filterSheetOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:hidden">
+            <div
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setFilterSheetOpen(false)}
+            />
+            <div
+              ref={filterSheetRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Filters"
+              className="relative z-10 flex max-h-[80vh] w-full flex-col rounded-t-2xl border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+            >
+              <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-border" />
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-base font-bold text-foreground">Filters</h2>
                 <button
-                  key={course.id}
-                  onClick={() => toggleCourseVisibility(course.id)}
-                  className={cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                    hidden
-                      ? 'border-border text-muted-foreground opacity-50'
-                      : cn(tint.className, 'hover:brightness-95'),
-                  )}
-                  style={hidden ? undefined : tint.style}
+                  onClick={() => setFilterSheetOpen(false)}
+                  className="rounded-lg px-3 py-1.5 text-sm font-semibold text-primary hover:bg-accent"
                 >
-                  <span
-                    className={cn('h-2 w-2 rounded-full', swatch.className)}
-                    style={swatch.style}
-                  />
-                  {course.code}
+                  Done
                 </button>
-              );
-            })}
-            <span className="mx-1 h-4 w-px shrink-0 bg-border" />
-            <button
-              onClick={() => setShowClasses((v) => !v)}
-              className={cn(
-                'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                showClasses
-                  ? 'border-border text-foreground hover:bg-accent'
-                  : 'border-border text-muted-foreground opacity-50',
-              )}
-            >
-              <GraduationCapIcon className="h-3 w-3" />
-              Classes
-            </button>
-            <button
-              onClick={() => setShowCompleted((v) => !v)}
-              className={cn(
-                'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                showCompleted
-                  ? 'border-border text-foreground hover:bg-accent'
-                  : 'border-border text-muted-foreground opacity-50',
-              )}
-            >
-              <CheckIcon className="h-3 w-3" />
-              Completed
-            </button>
+              </div>
+              <div className="overflow-y-auto">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Courses
+                </p>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {state.courses.map((course) => {
+                    const hidden = hiddenCourseIds.has(course.id);
+                    const tint = courseChipTint(course.color);
+                    const swatch = courseSwatch(course.color);
+                    return (
+                      <button
+                        key={course.id}
+                        onClick={() => toggleCourseVisibility(course.id)}
+                        className={cn(
+                          'flex min-h-[2.75rem] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors',
+                          hidden
+                            ? 'border-border text-muted-foreground opacity-50'
+                            : cn(tint.className, 'border-transparent'),
+                        )}
+                        style={hidden ? undefined : tint.style}
+                      >
+                        <span
+                          className={cn('h-2.5 w-2.5 rounded-full', swatch.className)}
+                          style={swatch.style}
+                        />
+                        {course.code}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Show
+                </p>
+                <div className="mb-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setShowClasses((v) => !v)}
+                    className={cn(
+                      'flex min-h-[2.75rem] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors',
+                      showClasses
+                        ? 'border-border text-foreground hover:bg-accent'
+                        : 'border-border text-muted-foreground opacity-50',
+                    )}
+                  >
+                    <GraduationCapIcon className="h-4 w-4" />
+                    Classes
+                  </button>
+                  <button
+                    onClick={() => setShowCompleted((v) => !v)}
+                    className={cn(
+                      'flex min-h-[2.75rem] shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors',
+                      showCompleted
+                        ? 'border-border text-foreground hover:bg-accent'
+                        : 'border-border text-muted-foreground opacity-50',
+                    )}
+                  >
+                    <CheckIcon className="h-4 w-4" />
+                    Completed
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
