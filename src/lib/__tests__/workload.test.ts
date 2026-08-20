@@ -9,6 +9,8 @@ import {
   calculateDailyLoad,
   getWorkloadLevel,
   recommendStudyStartDate,
+  toDateOnly,
+  formatDateISO,
   WORKLOAD_LEVEL_THRESHOLDS,
 } from '@/lib/workload';
 
@@ -291,5 +293,39 @@ describe('cross-cutting integration', () => {
     const level = getWorkloadLevel(dailyLoad.get(REFERENCE_DATE) ?? 0);
     expect(typeof level).toBe('string');
     expect(['low', 'medium', 'high', 'critical']).toContain(level);
+  });
+});
+
+describe('toDateOnly - real ScheduleItem.dueDate values (regression)', () => {
+  // The app never stores a bare 'YYYY-MM-DD' - a due date picked as "Aug 21"
+  // is saved via `new Date('2026-08-21T23:59:00').toISOString()`, i.e. 23:59
+  // in whatever timezone the browser that created it was running in,
+  // converted to a UTC instant. Reading that instant's calendar day back out
+  // with *UTC* getters (the old bug) rolls it into the next day for any
+  // negative-UTC-offset user - a Friday due date's load/heat would land on
+  // Saturday. This asserts the real construction path round-trips to the
+  // same day as the literal date, regardless of what timezone the test
+  // itself runs in.
+  const realDueDateFor = (dateOnly: string) => new Date(`${dateOnly}T23:59:00`).toISOString();
+
+  it('recovers the same calendar day from a full ISO instant as from the bare date string', () => {
+    const literal = toDateOnly('2026-08-21');
+    const asStoredByTheApp = toDateOnly(realDueDateFor('2026-08-21'));
+    expect(formatDateISO(asStoredByTheApp)).toBe(formatDateISO(literal));
+    expect(formatDateISO(asStoredByTheApp)).toBe('2026-08-21');
+  });
+
+  it('buckets a Friday-due item under Friday, not Saturday, in calculateDailyLoad', () => {
+    const item = makeItem({ dueDate: realDueDateFor('2026-08-21'), estimatedHours: 3 });
+    // referenceDate ("today") also goes through the app's real construction
+    // path here, not a bare string, to match how MonthCalendar/SmartPlanner
+    // actually call this.
+    const today = toDateOnly(realDueDateFor('2026-08-16'));
+    const dailyLoad = calculateDailyLoad([item], today);
+    expect(dailyLoad.has('2026-08-22')).toBe(false);
+    // The item is due today+5, inside the default 7-day distribution window,
+    // so its hours are spread across several days ending on the due date -
+    // the due date itself must be one of them, under the correct key.
+    expect(dailyLoad.get('2026-08-21')).toBeGreaterThan(0);
   });
 });
