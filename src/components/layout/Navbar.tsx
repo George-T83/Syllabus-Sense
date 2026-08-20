@@ -26,8 +26,8 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-20 glass border-b border-border/40 bg-card/80 flex items-center justify-between px-6">
-      <div className="flex items-center gap-4">
+    <header className="fixed top-0 left-0 right-0 z-50 h-20 glass border-b border-border/40 bg-card/80 flex items-center justify-between px-3 sm:px-6">
+      <div className="flex items-center gap-2 sm:gap-4">
         {/* Mobile Hamburger Button */}
         <button
           onClick={toggle}
@@ -50,12 +50,12 @@ export default function Navbar() {
           href="/"
           className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
         >
-          <Logo className="h-14 w-14 shrink-0" />
-          Syllabus Sense
+          <Logo className="h-9 w-9 shrink-0 sm:h-14 sm:w-14" />
+          <span className="hidden sm:inline">Syllabus Sense</span>
         </Link>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {mounted && user && <TermSwitcher />}
         {mounted && user && (
           <Link
