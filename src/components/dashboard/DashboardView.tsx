@@ -41,19 +41,32 @@ export function DashboardView() {
   const [autofillOpen, setAutofillOpen] = useState(false);
 
   const { courses, scheduleItems } = state;
-  const pendingTasks = scheduleItems.filter((item) => !item.completed);
-  const completedTasksCount = scheduleItems.length - pendingTasks.length;
-  const termProgressPct = scheduleItems.length
-    ? Math.round((completedTasksCount / scheduleItems.length) * 100)
-    : 0;
-  const now = useMemo(() => Date.now(), []);
-  const overdueCount = pendingTasks.filter((item) => new Date(item.dueDate).getTime() < now).length;
 
   const currentTerm = useMemo(
     () => resolveActiveTerm(state.selectedTerm, courses),
     [state.selectedTerm, courses],
   );
   const semesterCourses = currentTerm ? courses.filter((c) => c.term === currentTerm) : courses;
+  // All the stats below need to respect the selected term too, not just the
+  // Course Load card - previously they always used the full, unfiltered
+  // scheduleItems, so switching the term dropdown left the progress ring,
+  // pending/done counts, and Upcoming Tasks showing every term's data at once.
+  const semesterCourseIds = useMemo(
+    () => new Set(semesterCourses.map((c) => c.id)),
+    [semesterCourses],
+  );
+  const termScheduleItems = useMemo(
+    () => scheduleItems.filter((item) => semesterCourseIds.has(item.courseId)),
+    [scheduleItems, semesterCourseIds],
+  );
+
+  const pendingTasks = termScheduleItems.filter((item) => !item.completed);
+  const completedTasksCount = termScheduleItems.length - pendingTasks.length;
+  const termProgressPct = termScheduleItems.length
+    ? Math.round((completedTasksCount / termScheduleItems.length) * 100)
+    : 0;
+  const now = useMemo(() => Date.now(), []);
+  const overdueCount = pendingTasks.filter((item) => new Date(item.dueDate).getTime() < now).length;
 
   const courseLoad = semesterCourses.map((course) => {
     const items = scheduleItems.filter((item) => item.courseId === course.id);
@@ -69,8 +82,8 @@ export function DashboardView() {
 
   const referenceDate = useMemo(() => getLocalReferenceDate(), []);
   const plan = useMemo(
-    () => computeSmartPlan(scheduleItems, referenceDate),
-    [scheduleItems, referenceDate],
+    () => computeSmartPlan(termScheduleItems, referenceDate),
+    [termScheduleItems, referenceDate],
   );
   const plannerPreview = [...plan.startToday, ...plan.startThisWeek].slice(0, 4);
 
