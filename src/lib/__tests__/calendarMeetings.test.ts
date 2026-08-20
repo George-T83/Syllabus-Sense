@@ -47,6 +47,35 @@ describe('getMeetingsForDay', () => {
   });
 });
 
+describe('getMeetingsForDay term bounding', () => {
+  const springCourse: Course = {
+    id: 'c4',
+    code: 'ECE 211',
+    title: 'Circuit Analysis 1',
+    color: 'bg-blue-500',
+    term: 'Spring 2026',
+    meetingTimes: [{ dayOfWeek: 1, startTime: '09:00', endTime: '09:50' }],
+  };
+
+  it('renders a Spring course meeting within its own term months', () => {
+    const marchMonday = new Date(2026, 2, 2); // Mar 2, 2026 is a Monday
+    expect(getMeetingsForDay([springCourse], marchMonday).map((m) => m.course.id)).toEqual(['c4']);
+  });
+
+  it('does not render a Spring course meeting the following August', () => {
+    const augustMonday = new Date(2026, 7, 3); // Aug 3, 2026 is a Monday
+    expect(getMeetingsForDay([springCourse], augustMonday)).toEqual([]);
+  });
+
+  it('still renders every week for a course with no term set', () => {
+    const untouchedCourse: Course = { ...springCourse, id: 'c5', term: undefined };
+    const augustMonday = new Date(2026, 7, 3);
+    expect(getMeetingsForDay([untouchedCourse], augustMonday).map((m) => m.course.id)).toEqual([
+      'c5',
+    ]);
+  });
+});
+
 describe('formatTimeLabel', () => {
   it('formats morning times', () => {
     expect(formatTimeLabel('09:00')).toBe('9:00 AM');
