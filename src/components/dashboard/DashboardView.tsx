@@ -331,7 +331,7 @@ export function DashboardView() {
           </div>
         </div>
 
-        <Card className="rounded-2xl p-6">
+        <Card className="rounded-2xl p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <SectionIcon icon="forecast" />
@@ -341,24 +341,26 @@ export function DashboardView() {
               Open planner
             </CardActionLink>
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {plan.weekLoad.map(({ key, day, hours, level }) => {
               const hasLoad = hours > 0;
               return (
                 <div
                   key={key}
                   className={cn(
-                    'flex flex-col items-center gap-1 rounded-xl border p-2.5',
+                    'flex flex-col items-center gap-0.5 rounded-lg border p-1 sm:gap-1 sm:rounded-xl sm:p-2.5',
                     hasLoad ? WORKLOAD_CHIP_CLASS[level] : 'border-border bg-accent/40',
                   )}
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[10px]">
                     {forecastDayFormatter.format(day)}
                   </span>
-                  <span className="text-lg font-bold text-foreground">{day.getDate()}</span>
+                  <span className="text-sm font-bold text-foreground sm:text-lg">
+                    {day.getDate()}
+                  </span>
                   <span
                     className={cn(
-                      'text-[10px] font-semibold',
+                      'text-[8px] font-semibold sm:text-[10px]',
                       hasLoad ? WORKLOAD_TEXT_CLASS[level] : 'text-muted-foreground',
                     )}
                   >

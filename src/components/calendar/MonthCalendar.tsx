@@ -173,7 +173,6 @@ export function MonthCalendar() {
   );
 
   const courseOf = (item: ScheduleItem) => state.courses.find((c) => c.id === item.courseId);
-  const courseColor = (item: ScheduleItem) => courseOf(item)?.color || 'bg-primary';
 
   // #101: recurring class meetings are inherently term-bound (a Fall 2026
   // MWF pattern shouldn't keep rendering forever into Spring 2027), so they
@@ -289,17 +288,17 @@ export function MonthCalendar() {
 
   return (
     <div className="space-y-4">
-      <Card className="rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
+      <Card className="rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h2 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
             {viewMode === 'month' && monthLabelFormatter.format(viewMonth)}
             {viewMode === 'week' && formatWeekRangeLabel(weekDays)}
             {viewMode === 'agenda' && 'Next 30 days'}
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={handleExportICS}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-2.5"
               title="Download visible items as a .ics file"
             >
               <svg
@@ -315,7 +314,7 @@ export function MonthCalendar() {
                   d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
                 />
               </svg>
-              Export
+              <span className="hidden sm:inline">Export</span>
             </button>
             <div className="flex items-center rounded-lg border border-border p-0.5 text-xs font-medium">
               {(['month', 'week', 'agenda'] as const).map((mode) => (
@@ -355,7 +354,7 @@ export function MonthCalendar() {
         </div>
 
         {state.courses.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+          <div className="-mx-1 mb-3 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             {state.courses.map((course) => {
               const hidden = hiddenCourseIds.has(course.id);
               const tint = courseChipTint(course.color);
@@ -365,7 +364,7 @@ export function MonthCalendar() {
                   key={course.id}
                   onClick={() => toggleCourseVisibility(course.id)}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                    'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                     hidden
                       ? 'border-border text-muted-foreground opacity-50'
                       : cn(tint.className, 'hover:brightness-95'),
@@ -380,11 +379,11 @@ export function MonthCalendar() {
                 </button>
               );
             })}
-            <span className="mx-1 h-4 w-px bg-border" />
+            <span className="mx-1 h-4 w-px shrink-0 bg-border" />
             <button
               onClick={() => setShowClasses((v) => !v)}
               className={cn(
-                'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                 showClasses
                   ? 'border-border text-foreground hover:bg-accent'
                   : 'border-border text-muted-foreground opacity-50',
@@ -396,7 +395,7 @@ export function MonthCalendar() {
             <button
               onClick={() => setShowCompleted((v) => !v)}
               className={cn(
-                'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                 showCompleted
                   ? 'border-border text-foreground hover:bg-accent'
                   : 'border-border text-muted-foreground opacity-50',
@@ -436,18 +435,19 @@ export function MonthCalendar() {
 
         {viewMode === 'month' && (
           <>
-            <div className="grid grid-cols-7 gap-1 mb-1">
+            <div className="grid grid-cols-7 gap-0.5 mb-1 sm:gap-1">
               {WEEKDAY_LABELS.map((label) => (
                 <div
                   key={label}
                   className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground py-1"
                 >
-                  {label}
+                  <span className="sm:hidden">{label.slice(0, 1)}</span>
+                  <span className="hidden sm:inline">{label}</span>
                 </div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1" onKeyDown={handleGridKeyDown}>
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1" onKeyDown={handleGridKeyDown}>
               {grid.map((day) => {
                 const dayItems = visibleDayItems(day);
                 const dayMeetings = visibleMeetings(day);
@@ -464,7 +464,7 @@ export function MonthCalendar() {
                     key={day.toISOString()}
                     onClick={() => selectDay(day)}
                     className={cn(
-                      'min-h-[6.5rem] rounded-xl p-1.5 flex flex-col items-start gap-1 text-left transition-colors',
+                      'min-h-[4rem] rounded-lg p-1 flex flex-col items-start gap-0.5 text-left transition-colors sm:min-h-[6.5rem] sm:rounded-xl sm:p-1.5 sm:gap-1',
                       inCurrentMonth ? 'hover:bg-accent' : 'opacity-40 hover:bg-accent/50',
                       isSelected && 'ring-2 ring-primary',
                       !isSelected && inCurrentMonth && WORKLOAD_TINT_CLASS[heatLevel],
@@ -472,7 +472,7 @@ export function MonthCalendar() {
                   >
                     <span
                       className={cn(
-                        'flex h-6 w-6 items-center justify-center rounded-full text-xs',
+                        'flex h-5 w-5 items-center justify-center rounded-full text-[10px] sm:h-6 sm:w-6 sm:text-xs',
                         isToday
                           ? 'bg-gradient-brand font-bold text-white shadow-card'
                           : 'text-foreground',
@@ -503,9 +503,10 @@ export function MonthCalendar() {
                           key={item.id}
                           className={cn(
                             'block w-full truncate rounded px-1 py-0.5 text-[9px] font-medium leading-tight text-white',
-                            courseColor(item),
+                            courseSwatch(courseOf(item)?.color).className,
                             item.completed && 'opacity-40 line-through',
                           )}
+                          style={courseSwatch(courseOf(item)?.color).style}
                           title={item.title}
                         >
                           {item.title}
