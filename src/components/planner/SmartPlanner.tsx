@@ -78,7 +78,7 @@ export function SmartPlanner() {
       {/* Hero: today's load is the single most useful glanceable fact on this
           page, so it gets a large number instead of being buried in the
           7-day strip alongside every other day. */}
-      <Card accent className="rounded-2xl p-6">
+      <Card accent className="rounded-2xl p-4 sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Today&apos;s Load
@@ -94,10 +94,12 @@ export function SmartPlanner() {
           </span>
         </div>
         <div className="mb-5 flex items-end gap-2">
-          <span className="text-5xl font-bold tracking-tight text-foreground">
+          <span className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             {todayLoad.hours.toFixed(1)}
           </span>
-          <span className="pb-1.5 text-lg font-medium text-muted-foreground">effective hours</span>
+          <span className="pb-1.5 text-base font-medium text-muted-foreground sm:text-lg">
+            effective hours
+          </span>
         </div>
 
         {plan.startToday.length === 0 ? (
@@ -132,9 +134,9 @@ export function SmartPlanner() {
         )}
       </Card>
 
-      <Card className="rounded-2xl p-6">
+      <Card className="rounded-2xl p-4 sm:p-6">
         <h2 className="mb-4 text-base font-semibold text-foreground">7-Day Forecast</h2>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {plan.weekLoad.map(({ key, day, hours, level }) => {
             // A day with zero hours isn't a "Low" workload day - it's a day
             // with no data. Coloring it green would misread as "you're fine
@@ -148,20 +150,22 @@ export function SmartPlanner() {
                 key={key}
                 onClick={() => setSelectedForecastKey((prev) => (prev === key ? null : key))}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-xl border p-2.5 text-left transition-all',
+                  'flex flex-col items-center gap-0.5 rounded-lg border p-1 text-left transition-all sm:gap-1 sm:rounded-xl sm:p-2.5',
                   hasLoad ? WORKLOAD_CHIP_CLASS[level] : 'border-border bg-accent/40',
                   isSelected
                     ? 'ring-2 ring-primary ring-offset-2 ring-offset-card'
                     : 'hover:-translate-y-0.5',
                 )}
               >
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[10px]">
                   {dayLabelFormatter.format(day)}
                 </span>
-                <span className="text-lg font-bold text-foreground">{day.getDate()}</span>
+                <span className="text-sm font-bold text-foreground sm:text-lg">
+                  {day.getDate()}
+                </span>
                 <span
                   className={cn(
-                    'text-[10px] font-semibold',
+                    'text-[8px] font-semibold sm:text-[10px]',
                     hasLoad ? WORKLOAD_TEXT_CLASS[level] : 'text-muted-foreground',
                   )}
                 >
