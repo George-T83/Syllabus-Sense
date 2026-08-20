@@ -103,6 +103,18 @@ export function getCourseChipTintClass(color: string | undefined): string {
   return courseChipTint(color).className || DEFAULT_CHIP_TINT;
 }
 
+/** A faint full-surface background wash (course cards, list rows) - subtler
+ * than `courseChipTint` (no border, no text-color override, low alpha) so it
+ * layers under normal-contrast foreground text instead of competing with it.
+ * Always inline (rather than a static Tailwind class) since it needs to
+ * resolve a hex value for presets too, not just custom colors. */
+export function courseWash(color: string | undefined, alphaHex = '12'): CSSProperties {
+  const hex = isCustomColor(color)
+    ? color
+    : (COURSE_COLOR_PRESETS.find((p) => p.value === color)?.hex ?? '#7c3aed');
+  return { backgroundColor: `${hex}${alphaHex}` };
+}
+
 /**
  * Picks the color least represented among a user's existing courses (ties
  * broken by preset order), so a freshly autofilled or manually added course

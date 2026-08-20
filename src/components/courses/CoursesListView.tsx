@@ -11,7 +11,7 @@ import { createCourse } from '@/lib/firestore/courses';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import type { CourseFormValues } from '@/lib/validation/course';
-import { courseSwatch } from '@/lib/courseColors';
+import { courseSwatch, courseWash } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 
 type SortMode = 'code' | 'title' | 'term';
@@ -195,14 +195,14 @@ export function CoursesListView() {
                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
                   <Card hoverable className="flex h-full flex-col overflow-hidden rounded-2xl p-0">
                     <div
-                      className={cn('h-1.5 w-full', courseSwatch(course.color).className)}
+                      className={cn('h-2 w-full', courseSwatch(course.color).className)}
                       style={courseSwatch(course.color).style}
                     />
-                    <div className="flex flex-1 flex-col p-5">
+                    <div className="flex flex-1 flex-col p-5" style={courseWash(course.color)}>
                       <div className="mb-2 flex items-center gap-3">
                         <span
                           className={cn(
-                            'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white',
+                            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white shadow-sm',
                             courseSwatch(course.color).className,
                           )}
                           style={courseSwatch(course.color).style}

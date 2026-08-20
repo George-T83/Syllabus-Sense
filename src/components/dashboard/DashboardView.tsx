@@ -17,7 +17,7 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS } from '@/lib/workload';
-import { courseSwatch } from '@/lib/courseColors';
+import { courseChipTint, courseSwatch } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
@@ -231,29 +231,35 @@ export function DashboardView() {
                   action={{ label: '+ Add Course', onClick: () => setAddCourseOpen(true) }}
                 />
               ) : (
-                <div className="space-y-5">
-                  {courseLoad.map(({ course, pct }) => (
-                    <div key={course.id}>
-                      <div className="flex justify-between text-xs mb-1.5">
-                        <Link
-                          href={`/courses/${course.id}`}
-                          className="font-medium text-foreground hover:text-primary hover:underline"
-                        >
-                          {course.code} · {course.title}
-                        </Link>
-                        <span className="text-muted-foreground">{pct}%</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className={cn(
-                            'h-full rounded-full',
-                            courseSwatch(course.color).className,
-                          )}
-                          style={{ width: `${pct}%`, ...courseSwatch(course.color).style }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                <div className="space-y-2">
+                  {courseLoad.map(({ course, pct }) => {
+                    const tint = courseChipTint(course.color);
+                    const swatch = courseSwatch(course.color);
+                    return (
+                      <Link
+                        key={course.id}
+                        href={`/courses/${course.id}`}
+                        className={cn(
+                          'block rounded-xl border p-3 transition-colors hover:brightness-95',
+                          tint.className,
+                        )}
+                        style={tint.style}
+                      >
+                        <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
+                          <span className="truncate font-semibold">
+                            {course.code} · {course.title}
+                          </span>
+                          <span className="shrink-0 font-semibold">{pct}%</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+                          <div
+                            className={cn('h-full rounded-full', swatch.className)}
+                            style={{ width: `${pct}%`, ...swatch.style }}
+                          />
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </Card>
