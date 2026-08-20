@@ -1,4 +1,5 @@
 import type { Course, MeetingTime } from '@/types/schedule';
+import { isWithinEstimatedTerm } from '@/lib/calendar/termDates';
 
 export interface MeetingOccurrence {
   course: Course;
@@ -11,15 +12,17 @@ export interface MeetingOccurrence {
  * Date.getDay()-compatible (0=Sunday), so no conversion is needed against
  * the calendar grid, which is also Sunday-first.
  *
- * There's no term-boundary data yet (courses only carry a free-text `term`
- * label, not start/end dates - that's #101), so a meeting matches every week
- * regardless of which month is being viewed. Acceptable for now; #101 will
- * narrow this once term boundaries exist.
+ * There's no real term-boundary data yet (courses only carry a free-text
+ * `term` label, not start/end dates - that's #101), so this bounds the
+ * recurrence to `estimateTermRange`'s parse of that label instead of
+ * matching every week forever - without it, a Spring course's MWF pattern
+ * kept rendering on every month of the calendar, including next August.
  */
 export function getMeetingsForDay(courses: Course[], day: Date): MeetingOccurrence[] {
   const dayOfWeek = day.getDay();
   const occurrences: MeetingOccurrence[] = [];
   for (const course of courses) {
+    if (!isWithinEstimatedTerm(course.term, day)) continue;
     for (const meeting of course.meetingTimes ?? []) {
       if (meeting.dayOfWeek === dayOfWeek) {
         occurrences.push({ course, meeting });
