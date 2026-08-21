@@ -136,6 +136,22 @@ export function courseBorderColor(color: string | undefined): CSSProperties {
  * doesn't default to the same blue every other course starts as. Custom
  * hex colors count toward "used" but never get reassigned automatically.
  */
+/** Prefers a subject-matched color suggested by the syllabus extractor
+ * (see `suggestedColor` in types/extraction.ts), but falls back to
+ * `pickNextCourseColor`'s least-used-preset logic when the suggestion is
+ * missing, not a recognized preset, or would collide with a color an
+ * existing course already uses - two courses in the same subject
+ * shouldn't render identically just because they share a convention. */
+export function pickSuggestedCourseColor(
+  existingCourses: Pick<Course, 'color'>[],
+  suggested: string | null | undefined,
+): string {
+  const isValidPreset = !!suggested && COURSE_COLOR_PRESETS.some((p) => p.value === suggested);
+  const alreadyUsed = isValidPreset && existingCourses.some((c) => c.color === suggested);
+  if (isValidPreset && !alreadyUsed) return suggested;
+  return pickNextCourseColor(existingCourses);
+}
+
 export function pickNextCourseColor(existingCourses: Pick<Course, 'color'>[]): string {
   const counts = new Map(COURSE_COLOR_PRESETS.map((p) => [p.value, 0]));
   for (const course of existingCourses) {

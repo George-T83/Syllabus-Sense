@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
+
+const courseColorValues = COURSE_COLOR_PRESETS.map((p) => p.value) as [string, ...string[]];
 
 /**
  * Schema for what Claude extracts from a syllabus PDF (Epic 6). Shared
@@ -67,6 +70,18 @@ export const extractedCourseSchema = z.object({
    * structurally: footnotes on meeting times, "no comprehensive final",
    * grading-dispute windows, etc. */
   notes: z.string().max(1000).nullable().optional(),
+  /** A course-color preset (one of COURSE_COLOR_PRESETS) that Claude judges
+   * to fit the subject's common academic color convention, e.g. green for
+   * a natural science, red/blue for math - a nicer starting point than
+   * round-robin assignment. Still just a suggestion: the review screen
+   * lets the user override it, and it's ignored if it collides with a
+   * color an existing course already uses. */
+  suggestedColor: z.enum(courseColorValues).nullable().optional(),
+  /** A clean, human-readable file name (no extension) for the uploaded
+   * syllabus, built from the actual course code/term rather than whatever
+   * the source file happened to be named, e.g. "ECON 201 - Fall 2026
+   * Syllabus" instead of "scan0042.pdf". */
+  suggestedFileName: z.string().min(1).max(80).nullable().optional(),
 });
 
 export const syllabusExtractionSchema = z.object({
