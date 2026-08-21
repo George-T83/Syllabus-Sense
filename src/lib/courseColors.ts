@@ -130,6 +130,21 @@ export function courseBorderColor(color: string | undefined): CSSProperties {
   return { borderLeftColor: resolveCourseHex(color) };
 }
 
+/** Narrows to the courses that share `term`, since a color/icon only needs
+ * to stay distinct from what's already on screen together - a course from
+ * a past semester colliding with this term's palette isn't a real clash.
+ * An unknown/missing term falls back to comparing against everything
+ * (the safer default when we can't tell terms apart); a known term with no
+ * matches yet - the first course added to it - correctly compares against
+ * nothing rather than borrowing an unrelated term's usage. */
+export function scopeToTerm<T extends { term?: string }>(
+  courses: T[],
+  term: string | null | undefined,
+): T[] {
+  if (!term) return courses;
+  return courses.filter((c) => c.term === term);
+}
+
 /**
  * Picks the color least represented among a user's existing courses (ties
  * broken by preset order), so a freshly autofilled or manually added course
@@ -139,17 +154,20 @@ export function courseBorderColor(color: string | undefined): CSSProperties {
 /** Prefers a subject-matched color suggested by the syllabus extractor
  * (see `suggestedColor` in types/extraction.ts), but falls back to
  * `pickNextCourseColor`'s least-used-preset logic when the suggestion is
- * missing, not a recognized preset, or would collide with a color an
- * existing course already uses - two courses in the same subject
- * shouldn't render identically just because they share a convention. */
+ * missing, not a recognized preset, or would collide with a color another
+ * course in the same term already uses - two courses running the same
+ * semester shouldn't render identically just because they share a subject
+ * convention. */
 export function pickSuggestedCourseColor(
-  existingCourses: Pick<Course, 'color'>[],
+  existingCourses: Pick<Course, 'color' | 'term'>[],
+  term: string | null | undefined,
   suggested: string | null | undefined,
 ): string {
+  const pool = scopeToTerm(existingCourses, term);
   const isValidPreset = !!suggested && COURSE_COLOR_PRESETS.some((p) => p.value === suggested);
-  const alreadyUsed = isValidPreset && existingCourses.some((c) => c.color === suggested);
+  const alreadyUsed = isValidPreset && pool.some((c) => c.color === suggested);
   if (isValidPreset && !alreadyUsed) return suggested;
-  return pickNextCourseColor(existingCourses);
+  return pickNextCourseColor(pool);
 }
 
 export function pickNextCourseColor(existingCourses: Pick<Course, 'color'>[]): string {

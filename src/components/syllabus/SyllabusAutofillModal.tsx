@@ -151,12 +151,20 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         instructor: result.course.instructor ?? '',
         term: result.course.term ?? '',
         // Claude's subject-matched suggestion when it made one and it isn't
-        // already taken by another of the user's courses; otherwise falls
+        // already taken by another of this term's courses; otherwise falls
         // back to whichever preset is least represented so extracted
         // courses don't all default to the same blue. Either way, the user
         // can still change it on the review screen before confirming.
-        color: pickSuggestedCourseColor(state.courses, result.course.suggestedColor),
-        icon: pickSuggestedCourseIcon(result.course.suggestedIcon),
+        color: pickSuggestedCourseColor(
+          state.courses,
+          result.course.term,
+          result.course.suggestedColor,
+        ),
+        icon: pickSuggestedCourseIcon(
+          state.courses,
+          result.course.term,
+          result.course.suggestedIcon,
+        ),
         modality: result.course.modality ?? undefined,
         meetingTimes: result.course.meetingTimes.map((m: ExtractedMeetingTime) => ({
           dayOfWeek: m.dayOfWeek,
@@ -176,7 +184,14 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         })),
       );
       setUnresolved(result.unresolved);
-      setFileName(result.course.suggestedFileName ?? '');
+      setFileName(
+        dedupeSuggestedFileName(
+          state.courses,
+          result.course.term,
+          result.course.code,
+          result.course.suggestedFileName,
+        ),
+      );
       setStep('review');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Extraction failed. Please try again.');
@@ -932,6 +947,22 @@ function StepIndicator({ step }: { step: Step }) {
       ))}
     </ol>
   );
+}
+
+/** Suffixes Claude's suggested file name with a small disambiguator when
+ * another course this term already shares this course's code (e.g. two
+ * sections of the same class) - not a guarantee against every possible
+ * collision, just enough that the common case doesn't quietly produce two
+ * identically-named syllabus files. The user can still edit it either way. */
+function dedupeSuggestedFileName(
+  existingCourses: Pick<Course, 'code' | 'term'>[],
+  term: string | null | undefined,
+  code: string | undefined,
+  suggested: string | null | undefined,
+): string {
+  if (!suggested || !code) return suggested ?? '';
+  const collisions = existingCourses.filter((c) => c.term === term && c.code === code).length;
+  return collisions > 0 ? `${suggested} (${collisions + 1})` : suggested;
 }
 
 function extensionOf(name: string | undefined): string {
