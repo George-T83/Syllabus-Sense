@@ -17,8 +17,8 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 /** Sample tasks with no relation to the signed-in student's real courses -
- * used only to render a live Card vs. Touch comparison below, so the
- * choice can be judged by seeing it, not by reading a description. */
+ * used only to render a live Comfortable vs. Touch comparison below, so
+ * the choice can be judged by seeing it, not by reading a description. */
 const PREVIEW_TASKS = [
   {
     title: 'Problem Set 4',
@@ -47,7 +47,7 @@ const ROW_VARIANT_OPTIONS: {
 }[] = [
   {
     value: 'card',
-    label: 'Card',
+    label: 'Comfortable',
     description: 'A tinted background per task and a bit more room - easiest to scan on a laptop.',
   },
   {
