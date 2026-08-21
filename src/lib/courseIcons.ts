@@ -1,3 +1,6 @@
+import type { Course } from '@/types/schedule';
+import { scopeToTerm } from '@/lib/courseColors';
+
 /**
  * A course's icon, separate from its color - color says "which course at a
  * glance across a list," icon says "what kind of subject this is" even
@@ -39,10 +42,45 @@ export function resolveCourseIcon(icon: string | undefined): string {
   return icon && ICON_VALUES.includes(icon) ? icon : DEFAULT_COURSE_ICON;
 }
 
-/** Mirrors pickSuggestedCourseColor's shape, but simpler: unlike color,
- * two same-subject courses sharing an icon is fine (color still tells them
- * apart), so an invalid or missing suggestion just falls back to the
- * default rather than needing a least-used rotation. */
-export function pickSuggestedCourseIcon(suggested: string | null | undefined): string {
-  return suggested && ICON_VALUES.includes(suggested) ? suggested : DEFAULT_COURSE_ICON;
+/** Prefers the syllabus extractor's subject-matched icon suggestion, same
+ * as `pickSuggestedCourseColor`, but the avoidance here is a soft nicety
+ * rather than a hard rule: two same-subject courses sharing an icon is
+ * genuinely fine (color still tells them apart), so this only steers away
+ * from a suggestion that's already in use by another course *this term*
+ * when a less-used icon is readily available - never at the cost of
+ * falling back past the default. */
+export function pickSuggestedCourseIcon(
+  existingCourses: Pick<Course, 'icon' | 'term'>[],
+  term: string | null | undefined,
+  suggested: string | null | undefined,
+): string {
+  const isValid = !!suggested && ICON_VALUES.includes(suggested);
+  if (!isValid) return DEFAULT_COURSE_ICON;
+  const pool = scopeToTerm(existingCourses, term);
+  const alreadyUsed = pool.some((c) => c.icon === suggested);
+  if (!alreadyUsed) return suggested;
+  return pickLeastUsedIcon(pool) ?? suggested;
+}
+
+/** Least-represented preset among `existingCourses`, ties broken by preset
+ * order - only called once a suggested icon is already taken this term, so
+ * a genuine tie (e.g. every preset equally used) just keeps the original
+ * suggestion rather than reshuffling for no benefit. */
+function pickLeastUsedIcon(existingCourses: Pick<Course, 'icon'>[]): string | null {
+  const counts = new Map(ICON_VALUES.map((v) => [v, 0]));
+  for (const course of existingCourses) {
+    if (course.icon && counts.has(course.icon)) {
+      counts.set(course.icon, (counts.get(course.icon) ?? 0) + 1);
+    }
+  }
+  let best: string | null = null;
+  let bestCount = Infinity;
+  for (const value of ICON_VALUES) {
+    const count = counts.get(value) ?? 0;
+    if (count < bestCount) {
+      best = value;
+      bestCount = count;
+    }
+  }
+  return bestCount === 0 ? best : null;
 }
