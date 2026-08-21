@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { courseBorderColor, courseSwatch, courseWash } from '@/lib/courseColors';
+import { clampProgress, getTaskStatus } from '@/lib/taskStatus';
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import type { AssignmentType, Priority } from '@/types/schedule';
 
 const TYPE_ICON_PATH: Record<AssignmentType, string> = {
@@ -30,6 +32,11 @@ export interface TaskRowProps {
   courseCode?: string;
   courseColor?: string;
   completed?: boolean;
+  /** Self-reported completion progress, 0-100. Undefined/0 with `completed`
+   * false renders as not-started (no visual change from before this
+   * existed); a value above 0 shows a small in-progress indicator. See
+   * lib/taskStatus.ts. */
+  progress?: number;
   priority?: Priority;
   onToggleComplete?: () => void;
   /** Right-aligned custom content: due labels, badges, edit/delete links. */
@@ -52,6 +59,7 @@ export function TaskRow({
   courseCode,
   courseColor,
   completed = false,
+  progress,
   priority = 'medium',
   onToggleComplete,
   trailing,
@@ -66,6 +74,7 @@ export function TaskRow({
         courseCode={courseCode}
         courseColor={courseColor}
         completed={completed}
+        progress={progress}
         priority={priority}
         onToggleComplete={onToggleComplete}
         trailing={trailing}
@@ -82,12 +91,16 @@ export function TaskRow({
         courseCode={courseCode}
         courseColor={courseColor}
         completed={completed}
+        progress={progress}
         onToggleComplete={onToggleComplete}
         trailing={trailing}
         href={href}
       />
     );
   }
+  const status = getTaskStatus({ completed, progress });
+  const progressPct = clampProgress(progress ?? 0);
+
   // A bold, course-colored left edge is the row's primary "which class is
   // this" signal (Direction B), replacing the old small course-colored icon
   // badge - the type icon below is now plain/muted instead, so it doesn't
@@ -139,6 +152,14 @@ export function TaskRow({
           </div>
         </div>
         {courseCode && <div className="text-xs text-muted-foreground">{courseCode}</div>}
+        {status === 'in_progress' && (
+          <div className="mt-1 flex items-center gap-1.5">
+            <ProgressBar percent={progressPct} className="max-w-20" />
+            <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
+              {Math.round(progressPct)}%
+            </span>
+          </div>
+        )}
       </div>
       {trailing && (
         <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -173,12 +194,18 @@ function CardRow({
   courseCode,
   courseColor,
   completed,
+  progress,
   priority,
   onToggleComplete,
   trailing,
   href,
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed' | 'priority'>> &
-  Pick<TaskRowProps, 'courseCode' | 'courseColor' | 'onToggleComplete' | 'trailing' | 'href'>) {
+  Pick<
+    TaskRowProps,
+    'courseCode' | 'courseColor' | 'progress' | 'onToggleComplete' | 'trailing' | 'href'
+  >) {
+  const status = getTaskStatus({ completed, progress });
+  const progressPct = clampProgress(progress ?? 0);
   const rowClass = cn(
     'flex items-start gap-3 rounded-xl border border-border/60 p-3',
     href && 'transition-colors hover:border-border',
@@ -215,6 +242,14 @@ function CardRow({
           </div>
         </div>
         <div className="mt-1 text-xs text-muted-foreground">{metaLine(courseCode, type)}</div>
+        {status === 'in_progress' && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <ProgressBar percent={progressPct} className="max-w-32" />
+            <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+              {Math.round(progressPct)}%
+            </span>
+          </div>
+        )}
       </div>
       {trailing && (
         <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -247,11 +282,17 @@ function TouchRow({
   courseCode,
   courseColor,
   completed,
+  progress,
   onToggleComplete,
   trailing,
   href,
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed'>> &
-  Pick<TaskRowProps, 'courseCode' | 'courseColor' | 'onToggleComplete' | 'trailing' | 'href'>) {
+  Pick<
+    TaskRowProps,
+    'courseCode' | 'courseColor' | 'progress' | 'onToggleComplete' | 'trailing' | 'href'
+  >) {
+  const status = getTaskStatus({ completed, progress });
+  const progressPct = clampProgress(progress ?? 0);
   const outerClass = cn(
     'flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-accent/30',
     href && 'transition-colors hover:bg-accent/50',
@@ -303,6 +344,14 @@ function TouchRow({
             {title}
           </div>
           <div className="mt-0.5 text-xs text-muted-foreground">{metaLine(courseCode, type)}</div>
+          {status === 'in_progress' && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <ProgressBar percent={progressPct} className="max-w-32" />
+              <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+                {Math.round(progressPct)}%
+              </span>
+            </div>
+          )}
         </div>
         {trailing && (
           <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>

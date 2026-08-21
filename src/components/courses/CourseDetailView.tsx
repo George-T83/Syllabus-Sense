@@ -125,6 +125,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         priority: values.priority,
         ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
         ...(values.notes ? { notes: values.notes } : {}),
+        ...(values.progress ? { progress: Number(values.progress) } : {}),
       },
       dispatch,
     );
@@ -331,6 +332,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     type={item.type}
                     courseColor={course.color}
                     completed={item.completed}
+                    progress={item.progress}
                     priority={item.priority}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                     trailing={
