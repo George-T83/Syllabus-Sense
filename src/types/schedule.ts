@@ -1,3 +1,5 @@
+import type { CourseAiSummary } from '@/types/courseSummary';
+
 /**
  * How a course's class sessions are held.
  */
@@ -49,6 +51,10 @@ export interface Course {
    * Only suppresses `meetingTimes` occurrences; never affects `ScheduleItem`
    * due dates, since a real deadline shouldn't disappear on a break. */
   skipDates?: string[];
+  /** AI-generated plain-English summary + "important notes" from the most
+   * recently summarized syllabus upload. Cached here rather than
+   * regenerated on every view - see src/app/api/syllabus/summarize. */
+  aiSummary?: CourseAiSummary;
 }
 
 /**
