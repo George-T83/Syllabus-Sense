@@ -11,6 +11,7 @@ import {
   AppState,
 } from '@/context/AppStateContext';
 import { Course, ScheduleItem } from '@/types/schedule';
+import { DEFAULT_PREFERENCES } from '@/lib/firestore/preferences';
 
 // Helper component that consumes useAppState
 function TestConsumer() {
@@ -156,6 +157,16 @@ describe('AppStateContext Reducer & Selectors', () => {
     expect(state.selectedTerm).toBe('all');
   });
 
+  it('defaults preferences and applies SET_PREFERENCES', () => {
+    expect(initialAppState.preferences).toEqual(DEFAULT_PREFERENCES);
+
+    const next = { ...DEFAULT_PREFERENCES, taskRowVariant: 'touch' as const };
+    const state = appStateReducer(initialAppState, { type: 'SET_PREFERENCES', payload: next });
+    expect(state.preferences.taskRowVariant).toBe('touch');
+    // Untouched fields carry through the whole-object replace.
+    expect(state.preferences.dailyDigest).toBe(DEFAULT_PREFERENCES.dailyDigest);
+  });
+
   it('handles SET_COURSES and SET_SCHEDULE_ITEMS', () => {
     let state = appStateReducer(initialAppState, { type: 'SET_COURSES', payload: [mockCourse] });
     expect(state.courses).toHaveLength(1);
@@ -171,6 +182,7 @@ describe('AppStateContext Reducer & Selectors', () => {
       scheduleItems: [mockItem],
       selectedCourseId: 'c1',
       selectedTerm: null,
+      preferences: DEFAULT_PREFERENCES,
       initialized: true,
     };
 

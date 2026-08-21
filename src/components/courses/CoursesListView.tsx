@@ -79,6 +79,7 @@ export function CoursesListView() {
         code: values.code,
         title: values.title,
         color: values.color,
+        icon: values.icon,
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
         ...(values.modality ? { modality: values.modality } : {}),

@@ -77,6 +77,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         code: values.code,
         title: values.title,
         color: values.color,
+        icon: values.icon,
         meetingTimes: values.meetingTimes ?? [],
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
@@ -321,16 +322,18 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
               action={{ label: '+ Add Task', onClick: () => setAddTaskOpen(true) }}
             />
           ) : (
-            <div className="divide-y divide-border">
+            <div className="flex flex-col gap-2">
               {items.map((item) => {
                 const overdue = !item.completed && new Date(item.dueDate) < new Date();
                 return (
                   <TaskRow
                     key={item.id}
+                    variant={state.preferences.taskRowVariant}
                     title={item.title}
                     href={'/tasks/' + item.id}
                     type={item.type}
                     courseColor={course.color}
+                    courseIcon={course.icon}
                     completed={item.completed}
                     progress={item.progress}
                     priority={item.priority}

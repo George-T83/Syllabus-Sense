@@ -4,9 +4,10 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { SectionIcon } from '@/components/ui/SectionIcon';
+import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import { useUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
+import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
 import { cn } from '@/lib/utils';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -15,7 +16,52 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
 });
 
-const PREFERENCE_ROWS: { key: keyof UserPreferences; label: string; description: string }[] = [
+/** Sample tasks with no relation to the signed-in student's real courses -
+ * used only to render a live Card vs. Touch comparison below, so the
+ * choice can be judged by seeing it, not by reading a description. */
+const PREVIEW_TASKS = [
+  {
+    title: 'Problem Set 4',
+    type: 'assignment' as const,
+    courseCode: 'MATH 201',
+    courseColor: 'bg-blue-500',
+    courseIcon: 'calculator',
+    completed: false,
+    priority: 'high' as const,
+  },
+  {
+    title: 'Lab Report: Titration',
+    type: 'project' as const,
+    courseCode: 'CHEM 110',
+    courseColor: 'bg-teal-500',
+    courseIcon: 'flask',
+    completed: false,
+    progress: 55,
+  },
+];
+
+const ROW_VARIANT_OPTIONS: {
+  value: UserPreferences['taskRowVariant'];
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'card',
+    label: 'Card',
+    description: 'A tinted background per task and a bit more room - easiest to scan on a laptop.',
+  },
+  {
+    value: 'touch',
+    label: 'Touch',
+    description: 'A top accent bar and a large circular checkbox - built for tapping on a phone.',
+  },
+];
+
+const PREFERENCE_ROWS: {
+  key: Exclude<keyof UserPreferences, 'taskRowVariant'>;
+  label: string;
+  description: string;
+}[] = [
   {
     key: 'dailyDigest',
     label: 'Daily digest email',
@@ -35,14 +81,32 @@ const PREFERENCE_ROWS: { key: keyof UserPreferences; label: string; description:
 
 export function ProfileView() {
   const { user, error, updateDisplayName, signOut, clearError } = useAuth();
-  const { state } = useAppState();
+  const { state, dispatch } = useAppState();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.displayName ?? '');
   const [saving, setSaving] = useState(false);
-  const [preferences] = useUserPreferences(user?.uid);
+  // Read from AppStateContext (kept live by useFirestoreSync's `users/{uid}`
+  // listener) rather than opening a second onSnapshot here - one realtime
+  // subscription per account, shared by every view that reads a preference.
+  const { preferences } = state;
 
   if (!user) return null;
+
+  const handleSelectRowVariant = async (variant: UserPreferences['taskRowVariant']) => {
+    const next = { ...preferences, taskRowVariant: variant };
+    // Optimistic: every TaskRow on screen (including the previews below)
+    // switches instantly. The write below persists it to the account and
+    // realtime-syncs it to any other open session; onSnapshot reconciles
+    // this optimistic value with the server's shortly after regardless.
+    dispatch({ type: 'SET_PREFERENCES', payload: next });
+    try {
+      await updateUserPreferences(user.uid, next);
+    } catch {
+      // Non-fatal: the realtime listener will correct the UI to whatever
+      // actually made it to Firestore if this particular write failed.
+    }
+  };
 
   const initial = (user.displayName || user.email || '?').charAt(0).toUpperCase();
   const joined = user.metadata.creationTime
@@ -165,6 +229,69 @@ export function ProfileView() {
 
       <Card className="rounded-2xl p-6">
         <div className="flex items-center gap-3">
+          <SectionIcon icon="tasks" />
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Task Row Style</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              How every task looks across Dashboard, Tasks, Planner, and Calendar - on this device
+              and every other one you sign into.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {ROW_VARIANT_OPTIONS.map((option) => {
+            const selected = preferences.taskRowVariant === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleSelectRowVariant(option.value)}
+                aria-pressed={selected}
+                className={cn(
+                  'rounded-2xl border-2 p-3.5 text-left transition-colors',
+                  selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent/60',
+                )}
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">{option.label}</span>
+                  <span
+                    className={cn(
+                      'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2',
+                      selected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-transparent',
+                    )}
+                  >
+                    <svg
+                      className="h-3 w-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="pointer-events-none flex flex-col gap-2">
+                  {PREVIEW_TASKS.map((task) => (
+                    <TaskRow key={task.title} variant={option.value} {...task} />
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">{option.description}</p>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-4 border-t border-border pt-4 text-xs text-muted-foreground">
+          Applied instantly, saved to your account, and synced to any other device you&apos;re
+          signed into in real time - no page refresh needed on either end.
+        </p>
+      </Card>
+
+      <Card className="rounded-2xl p-6">
+        <div className="flex items-center gap-3">
           <SectionIcon icon="settings" />
           <div>
             <h2 className="text-base font-semibold text-foreground">
@@ -188,7 +315,7 @@ export function ProfileView() {
                 </div>
                 <div className="text-xs text-muted-foreground">{row.description}</div>
               </div>
-              <Toggle checked={preferences ? preferences[row.key] : false} />
+              <Toggle checked={preferences[row.key]} />
             </div>
           ))}
         </div>

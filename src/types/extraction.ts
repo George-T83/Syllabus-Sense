@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
+import { COURSE_ICON_PRESETS } from '@/lib/courseIcons';
 
 const courseColorValues = COURSE_COLOR_PRESETS.map((p) => p.value) as [string, ...string[]];
+const courseIconValues = COURSE_ICON_PRESETS.map((p) => p.value) as [string, ...string[]];
 
 /**
  * Schema for what Claude extracts from a syllabus PDF (Epic 6). Shared
@@ -82,6 +84,10 @@ export const extractedCourseSchema = z.object({
    * the source file happened to be named, e.g. "ECON 201 - Fall 2026
    * Syllabus" instead of "scan0042.pdf". */
   suggestedFileName: z.string().min(1).max(80).nullable().optional(),
+  /** One of COURSE_ICON_PRESETS (lib/courseIcons.ts) that Claude judges
+   * fits the subject, e.g. a flask for a lab science. Same "suggestion,
+   * not mandate" treatment as suggestedColor. */
+  suggestedIcon: z.enum(courseIconValues).nullable().optional(),
 });
 
 export const syllabusExtractionSchema = z.object({
