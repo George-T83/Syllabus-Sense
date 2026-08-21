@@ -8,11 +8,15 @@ import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem, deleteScheduleItem } from '@/lib/firestore/scheduleItems';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
+import { ProgressRing } from '@/components/ui/ProgressRing';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { ICON_PATHS } from '@/lib/icons';
+import { clampProgress, getTaskStatus, TASK_STATUS_LABEL } from '@/lib/taskStatus';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { AssignmentType } from '@/types/schedule';
 import { cn } from '@/lib/utils';
+
+const PROGRESS_PRESETS = [0, 25, 50, 75, 100];
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -66,6 +70,18 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
     await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
   };
 
+  const handleSetProgress = async (value: number) => {
+    if (!user) return;
+    await updateScheduleItem(user.uid, item, { ...item, progress: clampProgress(value) }, dispatch);
+  };
+
+  const status = getTaskStatus(item);
+  const progressPct = clampProgress(item.progress ?? 0);
+  const remainingHours =
+    item.estimatedHours != null
+      ? Math.round(item.estimatedHours * (1 - progressPct / 100) * 10) / 10
+      : null;
+
   const handleEditTask = async (values: ScheduleItemFormValues) => {
     if (!user) throw new Error('You must be signed in to edit a task.');
     await updateScheduleItem(
@@ -80,6 +96,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
         priority: values.priority,
         ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
         ...(values.notes ? { notes: values.notes } : {}),
+        ...(values.progress ? { progress: Number(values.progress) } : {}),
       },
       dispatch,
     );
@@ -169,6 +186,54 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
             </span>
           )}
         </div>
+
+        {!item.completed && (
+          <div className="border-t border-border pt-5">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Progress</span>
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                  status === 'in_progress'
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-accent text-muted-foreground',
+                )}
+              >
+                {TASK_STATUS_LABEL[status]}
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <ProgressRing percent={progressPct} size={56} strokeWidth={6}>
+                <span className="text-xs font-bold text-foreground">{progressPct}%</span>
+              </ProgressRing>
+              <div className="flex flex-1 flex-wrap gap-1.5">
+                {PROGRESS_PRESETS.map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => handleSetProgress(pct)}
+                    disabled={!user}
+                    className={cn(
+                      'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+                      progressPct === pct
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:bg-accent',
+                    )}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+            {remainingHours !== null && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                {status === 'in_progress'
+                  ? `~${remainingHours}h of estimated effort left - your workload forecast already counts only the remainder.`
+                  : `Estimated at ${item.estimatedHours}h. Log progress and your workload forecast will count only what's left.`}
+              </p>
+            )}
+          </div>
+        )}
 
         <dl className="grid grid-cols-2 gap-4 border-t border-border pt-5 text-sm">
           <div>

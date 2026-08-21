@@ -328,6 +328,7 @@ export function DashboardView() {
                         courseCode={course ? course.code : 'General'}
                         courseColor={course?.color}
                         completed={item.completed}
+                        progress={item.progress}
                         priority={item.priority}
                         onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                         trailing={
@@ -433,6 +434,7 @@ export function DashboardView() {
                     courseCode={course ? course.code : 'General'}
                     courseColor={course?.color}
                     completed={item.completed}
+                    progress={item.progress}
                     priority={item.priority}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                     trailing={

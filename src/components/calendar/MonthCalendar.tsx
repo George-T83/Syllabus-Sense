@@ -744,6 +744,7 @@ export function MonthCalendar() {
                           courseCode={course ? course.code : 'General'}
                           courseColor={course?.color}
                           completed={item.completed}
+                          progress={item.progress}
                           priority={item.priority}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                         />
@@ -923,14 +924,26 @@ function DayDetailCard({
                       courseCode={course ? course.code : 'General'}
                       courseColor={course?.color}
                       completed={item.completed}
+                      progress={item.progress}
                       priority={item.priority}
                       onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}
                       trailing={
                         <div className="flex items-center gap-1">
-                          <a
-                            href={generateGoogleCalendarUrl(item, course)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          {/* <button>, not <a href>: this trailing content
+                              renders inside the row's own <Link> (the row
+                              itself navigates to the task on click) - an
+                              <a> nested inside an <a> is invalid HTML and
+                              gets silently unnested by the browser's parser,
+                              breaking both links' click targets. */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              window.open(
+                                generateGoogleCalendarUrl(item, course),
+                                '_blank',
+                                'noopener,noreferrer',
+                              )
+                            }
                             title="Add to Google Calendar"
                             className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                           >
@@ -947,16 +960,21 @@ function DayDetailCard({
                                 d="M12 4v16m8-8H4"
                               />
                             </svg>
-                          </a>
-                          <a
-                            href={generateOutlookCalendarUrl(item, course)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              window.open(
+                                generateOutlookCalendarUrl(item, course),
+                                '_blank',
+                                'noopener,noreferrer',
+                              )
+                            }
                             title="Add to Outlook"
                             className="rounded-md p-1 text-[9px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground"
                           >
                             O
-                          </a>
+                          </button>
                         </div>
                       }
                     />

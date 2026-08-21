@@ -66,6 +66,28 @@ describe('#50 getBaseEffectiveHours', () => {
     const item = makeItem({ estimatedHours: 0 });
     expect(getBaseEffectiveHours(item)).toBe(0);
   });
+
+  it('scales hours down by progress, so a half-finished item counts as half', () => {
+    const item = makeItem({ type: 'assignment', estimatedHours: 10, progress: 50 });
+    expect(getBaseEffectiveHours(item)).toBeCloseTo(5 * ASSIGNMENT_TYPE_WEIGHT.assignment);
+  });
+
+  it('counts a finished-but-not-checked-off item as zero remaining hours', () => {
+    const item = makeItem({ estimatedHours: 10, progress: 100 });
+    expect(getBaseEffectiveHours(item)).toBe(0);
+  });
+
+  it('treats an unset progress the same as 0 (no change from before progress existed)', () => {
+    const item = makeItem({ estimatedHours: 8 });
+    expect(getBaseEffectiveHours(item)).toBeCloseTo(8 * ASSIGNMENT_TYPE_WEIGHT.assignment);
+  });
+
+  it('clamps an out-of-range progress value instead of producing negative or inflated hours', () => {
+    const over = makeItem({ estimatedHours: 10, progress: 150 });
+    const under = makeItem({ estimatedHours: 10, progress: -20 });
+    expect(getBaseEffectiveHours(over)).toBe(0);
+    expect(getBaseEffectiveHours(under)).toBeCloseTo(10 * ASSIGNMENT_TYPE_WEIGHT.assignment);
+  });
 });
 
 describe('#52 applyStressFactor', () => {
@@ -293,6 +315,22 @@ describe('cross-cutting integration', () => {
     const level = getWorkloadLevel(dailyLoad.get(REFERENCE_DATE) ?? 0);
     expect(typeof level).toBe('string');
     expect(['low', 'medium', 'high', 'critical']).toContain(level);
+  });
+
+  it('progress on one item lowers both calculateDailyLoad and recommendStudyStartDate consistently', () => {
+    // Same item, only progress differs - proves the reduction flows through
+    // getBaseEffectiveHours to every consumer, not just one of them.
+    const untouched = makeItem({ dueDate: REFERENCE_DATE, estimatedHours: 4, type: 'assignment' });
+    const halfDone = { ...untouched, progress: 50 };
+
+    const untouchedLoad = calculateDailyLoad([untouched], REFERENCE_DATE).get(REFERENCE_DATE) ?? 0;
+    const halfDoneLoad = calculateDailyLoad([halfDone], REFERENCE_DATE).get(REFERENCE_DATE) ?? 0;
+    expect(halfDoneLoad).toBeCloseTo(untouchedLoad / 2);
+
+    const untouchedRec = recommendStudyStartDate(untouched, REFERENCE_DATE);
+    const halfDoneRec = recommendStudyStartDate(halfDone, REFERENCE_DATE);
+    const sum = (alloc: Record<string, number>) => Object.values(alloc).reduce((a, b) => a + b, 0);
+    expect(sum(halfDoneRec.dailyAllocation)).toBeCloseTo(sum(untouchedRec.dailyAllocation) / 2);
   });
 });
 

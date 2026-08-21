@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem, deleteScheduleItem } from '@/lib/firestore/scheduleItems';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { courseSwatch } from '@/lib/courseColors';
+import { clampProgress } from '@/lib/taskStatus';
 import { cn } from '@/lib/utils';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { ScheduleItem, AssignmentType } from '@/types/schedule';
@@ -19,8 +20,8 @@ const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day:
 type StatusFilter = 'all' | 'pending' | 'completed';
 /** What organizes the list into sections. 'date' buckets by due-date
  * proximity (Overdue/Today/This Week/Later), 'course' buckets by class,
- * 'status' buckets by Overdue/Upcoming/Completed, 'flat' renders one
- * unsectioned list (today's original behavior). */
+ * 'status' buckets by Overdue/In Progress/Upcoming/Completed, 'flat' renders
+ * one unsectioned list (today's original behavior). */
 type GroupBy = 'date' | 'course' | 'status' | 'flat';
 /** Ordering applied within each group (and across the whole list when
  * groupBy is 'flat'). Exposed as its own control mainly so a course group
@@ -64,12 +65,15 @@ function dayDiff(dueDate: string, today: Date): number {
   return Math.round((dueMidnight.getTime() - todayMidnight.getTime()) / 86_400_000);
 }
 
-/** Overdue first, then everything still open, then completed - the same
- * three-way status split used for 'status' grouping, reused here so 'Then
- * by: Status' produces a consistent order whatever it's layered onto. */
+/** Overdue, then started-but-not-done, then not-yet-started, then completed
+ * - the same four-way status split used for 'status' grouping, reused here
+ * so 'Then by: Status' produces a consistent order whatever it's layered
+ * onto (e.g. a course group sorted by status surfaces overdue and
+ * in-progress work first, regardless of due date). */
 function statusRank(item: ScheduleItem, today: Date): number {
-  if (item.completed) return 2;
-  return isOverdue(item, today) ? 0 : 1;
+  if (item.completed) return 3;
+  if (isOverdue(item, today)) return 0;
+  return clampProgress(item.progress ?? 0) > 0 ? 1 : 2;
 }
 
 function compareWithin(sort: WithinSort, a: ScheduleItem, b: ScheduleItem, today: Date): number {
@@ -159,19 +163,26 @@ export function PlannerView() {
     }
 
     if (groupBy === 'status') {
-      const buckets: Record<'overdue' | 'upcoming' | 'completed', ScheduleItem[]> = {
+      const buckets: Record<'overdue' | 'inProgress' | 'upcoming' | 'completed', ScheduleItem[]> = {
         overdue: [],
+        inProgress: [],
         upcoming: [],
         completed: [],
       };
       for (const item of filteredItems) {
         if (item.completed) buckets.completed.push(item);
         else if (isOverdue(item, today)) buckets.overdue.push(item);
+        else if (clampProgress(item.progress ?? 0) > 0) buckets.inProgress.push(item);
         else buckets.upcoming.push(item);
       }
-      const order: { key: 'overdue' | 'upcoming' | 'completed'; label: string; dot: string }[] = [
+      const order: {
+        key: 'overdue' | 'inProgress' | 'upcoming' | 'completed';
+        label: string;
+        dot: string;
+      }[] = [
         { key: 'overdue', label: 'Overdue', dot: 'bg-destructive' },
-        { key: 'upcoming', label: 'Upcoming', dot: 'bg-primary' },
+        { key: 'inProgress', label: 'In Progress', dot: 'bg-primary' },
+        { key: 'upcoming', label: 'Upcoming', dot: 'bg-muted-foreground' },
         { key: 'completed', label: 'Completed', dot: 'bg-load-low' },
       ];
       return order
@@ -243,6 +254,7 @@ export function PlannerView() {
         priority: values.priority,
         ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
         ...(values.notes ? { notes: values.notes } : {}),
+        ...(values.progress ? { progress: Number(values.progress) } : {}),
       },
       dispatch,
     );
@@ -419,6 +431,7 @@ export function PlannerView() {
                             }
                             courseColor={course?.color}
                             completed={item.completed}
+                            progress={item.progress}
                             priority={item.priority}
                             onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                             trailing={

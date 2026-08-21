@@ -196,6 +196,7 @@ export function SmartPlanner() {
                     courseCode={courses.find((c) => c.id === item.courseId)?.code ?? 'General'}
                     courseColor={courses.find((c) => c.id === item.courseId)?.color}
                     completed={item.completed}
+                    progress={item.progress}
                     priority={item.priority}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                   />
@@ -250,6 +251,7 @@ function PlannedTaskRow({
       courseCode={course ? course.code : 'General'}
       courseColor={course?.color}
       completed={item.completed}
+      progress={item.progress}
       priority={item.priority}
       onToggleComplete={onToggleComplete}
       trailing={
