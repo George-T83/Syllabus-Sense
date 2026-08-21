@@ -30,11 +30,17 @@ describe('TaskRow', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('applies a distinct left-border class per priority', () => {
-    const { container: high } = render(<TaskRow title="High" priority="high" />);
-    const { container: low } = render(<TaskRow title="Low" priority="low" />);
-    expect((high.firstChild as HTMLElement).className).toContain('border-l-primary');
-    expect((low.firstChild as HTMLElement).className).toContain('border-l-transparent');
+  it('colors the left edge from the course color, not priority', () => {
+    const { container } = render(<TaskRow title="Colored edge" courseColor="bg-blue-500" />);
+    expect((container.firstChild as HTMLElement).style.borderLeftColor).toBe('rgb(59, 130, 246)');
+  });
+
+  it('shows a high-priority indicator only for incomplete high-priority tasks', () => {
+    render(<TaskRow title="High" priority="high" />);
+    expect(screen.getByLabelText('High priority')).toBeDefined();
+
+    const { container } = render(<TaskRow title="Low" priority="low" />);
+    expect(container.querySelector('[aria-label="High priority"]')).toBeNull();
   });
 
   it('renders trailing content when provided', () => {

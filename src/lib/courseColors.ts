@@ -103,16 +103,31 @@ export function getCourseChipTintClass(color: string | undefined): string {
   return courseChipTint(color).className || DEFAULT_CHIP_TINT;
 }
 
+/** Resolves any stored course color (a `bg-*` preset class or a custom hex
+ * string) down to a literal hex value - the common step behind both
+ * `courseWash` and `courseBorderColor`, since neither can express "this
+ * preset's color" as a static Tailwind class name (the class needed depends
+ * on runtime data, which Tailwind's static analysis can't see). */
+function resolveCourseHex(color: string | undefined): string {
+  return isCustomColor(color)
+    ? color
+    : (COURSE_COLOR_PRESETS.find((p) => p.value === color)?.hex ?? '#7c3aed');
+}
+
 /** A faint full-surface background wash (course cards, list rows) - subtler
  * than `courseChipTint` (no border, no text-color override, low alpha) so it
  * layers under normal-contrast foreground text instead of competing with it.
  * Always inline (rather than a static Tailwind class) since it needs to
  * resolve a hex value for presets too, not just custom colors. */
 export function courseWash(color: string | undefined, alphaHex = '12'): CSSProperties {
-  const hex = isCustomColor(color)
-    ? color
-    : (COURSE_COLOR_PRESETS.find((p) => p.value === color)?.hex ?? '#7c3aed');
-  return { backgroundColor: `${hex}${alphaHex}` };
+  return { backgroundColor: `${resolveCourseHex(color)}${alphaHex}` };
+}
+
+/** A solid course-colored left border (task/event rows) - same hex
+ * resolution as `courseWash`, full opacity, for a strong "which class is
+ * this" edge instead of a small icon badge. */
+export function courseBorderColor(color: string | undefined): CSSProperties {
+  return { borderLeftColor: resolveCourseHex(color) };
 }
 
 /**
