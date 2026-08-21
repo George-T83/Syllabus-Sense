@@ -46,6 +46,7 @@ function emptyValues(defaultCourseId: string): ScheduleItemFormValues {
     estimatedHours: '',
     priority: 'medium',
     notes: '',
+    progress: '',
   };
 }
 
@@ -73,6 +74,7 @@ export function TaskFormModal({
             estimatedHours: initialItem.estimatedHours?.toString() ?? '',
             priority: initialItem.priority ?? 'medium',
             notes: initialItem.notes ?? '',
+            progress: initialItem.progress?.toString() ?? '',
           }
         : emptyValues(courses[0]?.id ?? ''),
     );
@@ -239,6 +241,34 @@ export function TaskFormModal({
                       ))}
                     </div>
                   </div>
+
+                  {initialItem && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="progress" className="text-sm font-medium text-foreground">
+                        Progress
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="progress"
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={5}
+                          value={values.progress ?? ''}
+                          placeholder="0"
+                          onChange={(e) => updateField('progress', e.target.value)}
+                          className={cn(
+                            'w-24 rounded-lg border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+                            errors.progress ? 'border-destructive' : 'border-border',
+                          )}
+                        />
+                        <span className="text-sm text-muted-foreground">% complete</span>
+                      </div>
+                      {errors.progress && (
+                        <p className="text-xs text-destructive">{errors.progress}</p>
+                      )}
+                    </div>
+                  )}
 
                   <Field
                     id="notes"

@@ -11,6 +11,13 @@ export const scheduleItemFormSchema = z.object({
     .refine((v) => !v || (!Number.isNaN(Number(v)) && Number(v) >= 0), 'Enter a positive number'),
   priority: z.enum(['low', 'medium', 'high']),
   notes: z.string().max(500, 'Keep it under 500 characters').optional(),
+  progress: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || (!Number.isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 100),
+      'Enter 0-100',
+    ),
 });
 
 export type ScheduleItemFormValues = z.infer<typeof scheduleItemFormSchema>;

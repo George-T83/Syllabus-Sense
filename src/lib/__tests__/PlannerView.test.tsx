@@ -53,6 +53,7 @@ const scheduleItems: ScheduleItem[] = [
     dueDate: '2026-09-10T00:00:00.000Z',
     completed: false,
     priority: 'low',
+    progress: 30,
   },
   {
     id: 'i2',
@@ -139,6 +140,17 @@ describe('PlannerView', () => {
       .getAllByText(/^(Recursion HW|Finished Reading)$/)
       .map((el) => el.textContent);
     expect(csciTitles).toEqual(['Recursion HW', 'Finished Reading']);
+  });
+
+  it('groups by status into Overdue/In Progress/Upcoming/Completed', () => {
+    renderPlanner();
+    fireEvent.change(screen.getByDisplayValue('Group: Due Date'), { target: { value: 'status' } });
+    // Recursion HW has progress > 0 and isn't overdue, so it lands in
+    // "In Progress" rather than "Upcoming" - distinct from Midterm Exam,
+    // which has no progress logged.
+    expect(screen.getByRole('heading', { name: 'In Progress' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Upcoming' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Completed' })).toBeDefined();
   });
 
   it('shows an empty state when no tasks match the filters', () => {
