@@ -910,12 +910,13 @@ function DayDetailCard({
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Due
               </h4>
-              <div className="divide-y divide-border">
+              <div className="flex flex-col gap-2">
                 {items.map((item) => {
                   const course = courseOf(item);
                   return (
                     <TaskRow
                       key={item.id}
+                      variant="touch"
                       title={item.title}
                       href={`/tasks/${item.id}`}
                       type={item.type}
