@@ -33,6 +33,10 @@ export interface Course {
   instructor?: string;
   /** HEX or Tailwind class for color coding this course in UI elements */
   color?: string;
+  /** One of COURSE_ICON_PRESETS (lib/courseIcons.ts) - a subject glyph
+   * shown alongside color, e.g. a flask for a science course. Missing or
+   * unrecognized values resolve to the default via resolveCourseIcon(). */
+  icon?: string;
   /** The academic term, e.g., 'Fall 2026' */
   term?: string;
   /** Free-text notes about the course */

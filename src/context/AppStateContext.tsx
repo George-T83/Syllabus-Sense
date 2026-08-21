@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { Course, ScheduleItem } from '@/types/schedule';
+import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 
 export interface AppState {
   courses: Course[];
@@ -12,6 +13,12 @@ export interface AppState {
    * 'all' is an explicit user choice to see every term, distinct from "no
    * opinion yet". A specific term string filters to that term. */
   selectedTerm: string | null;
+  /** Account-level settings (lib/firestore/preferences.ts), kept live here
+   * by useFirestoreSync's `users/{uid}` listener - centralizing it means
+   * every view that renders a TaskRow reads the same realtime value
+   * instead of each opening its own Firestore listener. Defaults until the
+   * first snapshot arrives, so nothing needs to null-check this. */
+  preferences: UserPreferences;
   initialized: boolean;
 }
 
@@ -26,13 +33,15 @@ export type AppAction =
   | { type: 'REMOVE_SCHEDULE_ITEM'; payload: string }
   | { type: 'TOGGLE_SCHEDULE_ITEM_COMPLETED'; payload: string }
   | { type: 'SELECT_COURSE'; payload: string | null }
-  | { type: 'SELECT_TERM'; payload: string | null };
+  | { type: 'SELECT_TERM'; payload: string | null }
+  | { type: 'SET_PREFERENCES'; payload: UserPreferences };
 
 export const initialAppState: AppState = {
   courses: [],
   scheduleItems: [],
   selectedCourseId: null,
   selectedTerm: null,
+  preferences: DEFAULT_PREFERENCES,
   initialized: false,
 };
 
@@ -85,6 +94,8 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
       return { ...state, selectedCourseId: action.payload };
     case 'SELECT_TERM':
       return { ...state, selectedTerm: action.payload };
+    case 'SET_PREFERENCES':
+      return { ...state, preferences: action.payload };
     default:
       return state;
   }

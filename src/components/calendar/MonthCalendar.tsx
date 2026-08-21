@@ -738,11 +738,13 @@ export function MonthCalendar() {
                       return (
                         <TaskRow
                           key={item.id}
+                          variant={state.preferences.taskRowVariant}
                           title={item.title}
                           href={`/tasks/${item.id}`}
                           type={item.type}
                           courseCode={course ? course.code : 'General'}
                           courseColor={course?.color}
+                          courseIcon={course?.icon}
                           completed={item.completed}
                           progress={item.progress}
                           priority={item.priority}
@@ -842,6 +844,8 @@ function DayDetailCard({
   courseOf: (item: ScheduleItem) => Course | undefined;
   onToggleComplete?: (item: ScheduleItem) => void;
 }) {
+  const { state } = useAppState();
+
   return (
     <Card className="rounded-2xl p-6">
       <h3 className="text-base font-semibold text-foreground mb-3">
@@ -917,12 +921,13 @@ function DayDetailCard({
                   return (
                     <TaskRow
                       key={item.id}
-                      variant="touch"
+                      variant={state.preferences.taskRowVariant}
                       title={item.title}
                       href={`/tasks/${item.id}`}
                       type={item.type}
                       courseCode={course ? course.code : 'General'}
                       courseColor={course?.color}
+                      courseIcon={course?.icon}
                       completed={item.completed}
                       progress={item.progress}
                       priority={item.priority}

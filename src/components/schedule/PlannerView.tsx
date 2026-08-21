@@ -414,22 +414,20 @@ export function PlannerView() {
                         </span>
                       </div>
                     )}
-                    <div className="divide-y divide-border">
+                    <div className="flex flex-col gap-2">
                       {group.items.map((item) => {
                         const course = courses.find((c) => c.id === item.courseId);
                         const overdue = isOverdue(item, today);
                         return (
                           <TaskRow
                             key={item.id}
+                            variant={state.preferences.taskRowVariant}
                             title={item.title}
                             href={'/tasks/' + item.id}
                             type={item.type}
-                            courseCode={
-                              course
-                                ? `${course.code} · ${TYPE_LABELS[item.type]}`
-                                : TYPE_LABELS[item.type]
-                            }
+                            courseCode={course ? course.code : 'General'}
                             courseColor={course?.color}
+                            courseIcon={course?.icon}
                             completed={item.completed}
                             progress={item.progress}
                             priority={item.priority}

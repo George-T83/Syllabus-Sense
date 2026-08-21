@@ -101,6 +101,7 @@ export function DashboardView() {
         code: values.code,
         title: values.title,
         color: values.color,
+        icon: values.icon,
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
       },
@@ -321,12 +322,13 @@ export function DashboardView() {
                     return (
                       <TaskRow
                         key={item.id}
-                        variant="card"
+                        variant={state.preferences.taskRowVariant}
                         title={item.title}
                         href={'/tasks/' + item.id}
                         type={item.type}
                         courseCode={course ? course.code : 'General'}
                         courseColor={course?.color}
+                        courseIcon={course?.icon}
                         completed={item.completed}
                         progress={item.progress}
                         priority={item.priority}
@@ -427,12 +429,13 @@ export function DashboardView() {
                 return (
                   <TaskRow
                     key={item.id}
-                    variant="card"
+                    variant={state.preferences.taskRowVariant}
                     title={item.title}
                     href={'/tasks/' + item.id}
                     type={item.type}
                     courseCode={course ? course.code : 'General'}
                     courseColor={course?.color}
+                    courseIcon={course?.icon}
                     completed={item.completed}
                     progress={item.progress}
                     priority={item.priority}

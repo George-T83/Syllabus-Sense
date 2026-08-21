@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useAppState } from '@/context/AppStateContext';
 import { COURSE_COLOR_PRESETS, pickNextCourseColor } from '@/lib/courseColors';
+import { COURSE_ICON_PRESETS, DEFAULT_COURSE_ICON } from '@/lib/courseIcons';
+import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 
 const isCustomColor = (color: string) => color.startsWith('#');
 
@@ -55,6 +57,7 @@ const emptyValues: CourseFormValues = {
   instructor: '',
   term: '',
   color: COURSE_COLOR_PRESETS[0].value,
+  icon: DEFAULT_COURSE_ICON,
   modality: undefined,
   meetingTimes: [],
 };
@@ -83,6 +86,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
             instructor: initialCourse.instructor ?? '',
             term: initialCourse.term ?? '',
             color: initialCourse.color ?? COURSE_COLOR_PRESETS[0].value,
+            icon: initialCourse.icon ?? DEFAULT_COURSE_ICON,
             modality: initialCourse.modality,
             meetingTimes: initialCourse.meetingTimes ?? [],
           }
@@ -273,6 +277,29 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                       onChange={(e) => setValues((s) => ({ ...s, color: e.target.value }))}
                     />
                   </label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-sm font-medium text-foreground">Icon</span>
+                <div className="flex flex-wrap gap-2">
+                  {COURSE_ICON_PRESETS.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      title={preset.label}
+                      aria-label={preset.label}
+                      onClick={() => setValues((s) => ({ ...s, icon: preset.value }))}
+                      className={cn(
+                        'flex h-8 w-8 items-center justify-center rounded-full border text-muted-foreground transition-colors',
+                        values.icon === preset.value
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border hover:bg-accent',
+                      )}
+                    >
+                      <CourseIconGlyph icon={preset.value} className="h-4 w-4" />
+                    </button>
+                  ))}
                 </div>
               </div>
 

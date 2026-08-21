@@ -1,21 +1,11 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { courseBorderColor, courseSwatch, courseWash } from '@/lib/courseColors';
+import { courseChipTint, courseSwatch, courseWash } from '@/lib/courseColors';
 import { clampProgress, getTaskStatus } from '@/lib/taskStatus';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 import type { AssignmentType, Priority } from '@/types/schedule';
-
-const TYPE_ICON_PATH: Record<AssignmentType, string> = {
-  assignment:
-    'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-  exam: 'M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z',
-  quiz: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-  project: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
-  reading:
-    'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
-  other: 'M5 13l4 4L19 7',
-};
 
 const TYPE_LABEL: Record<AssignmentType, string> = {
   assignment: 'Assignment',
@@ -31,11 +21,14 @@ export interface TaskRowProps {
   type?: AssignmentType;
   courseCode?: string;
   courseColor?: string;
+  /** One of COURSE_ICON_PRESETS (lib/courseIcons.ts). Missing/unrecognized
+   * values resolve to the default glyph via CourseIconGlyph. */
+  courseIcon?: string;
   completed?: boolean;
   /** Self-reported completion progress, 0-100. Undefined/0 with `completed`
-   * false renders as not-started (no visual change from before this
-   * existed); a value above 0 shows a small in-progress indicator. See
-   * lib/taskStatus.ts. */
+   * false renders as not-started (no visual change - no progress UI shows
+   * at all until a task actually has some); a value above 0 shows a small
+   * in-progress indicator. See lib/taskStatus.ts. */
   progress?: number;
   priority?: Priority;
   onToggleComplete?: () => void;
@@ -44,13 +37,13 @@ export interface TaskRowProps {
   /** When present, the row navigates to this URL on click (e.g. a task
    * detail page), while the checkbox stays independently clickable. */
   href?: string;
-  /** Visual density. 'compact' (default) is the thin, left-bordered line
-   * built for long lists (Tasks, course detail). 'card' gives the row a
-   * course-tinted background and more breathing room, for short,
-   * high-attention lists (Dashboard, Planner's "Today"). 'touch' swaps the
-   * course-color surface for a top accent bar plus a larger circular
-   * checkbox, for touch-first contexts (a mobile calendar day view). */
-  variant?: 'compact' | 'card' | 'touch';
+  /** Visual density. 'card' (default, everywhere) gives every row a
+   * course-tinted background, a course-icon badge, and real breathing
+   * room. 'touch' swaps the course-color surface for a top accent bar plus
+   * a larger circular checkbox, for touch-first contexts (a mobile
+   * calendar day view). There is no denser "compact" variant - a uniform
+   * look across the app was chosen over squeezing more rows on screen. */
+  variant?: 'card' | 'touch';
 }
 
 export function TaskRow({
@@ -58,31 +51,15 @@ export function TaskRow({
   type = 'assignment',
   courseCode,
   courseColor,
+  courseIcon,
   completed = false,
   progress,
   priority = 'medium',
   onToggleComplete,
   trailing,
   href,
-  variant = 'compact',
+  variant = 'card',
 }: TaskRowProps) {
-  if (variant === 'card') {
-    return (
-      <CardRow
-        title={title}
-        type={type}
-        courseCode={courseCode}
-        courseColor={courseColor}
-        completed={completed}
-        progress={progress}
-        priority={priority}
-        onToggleComplete={onToggleComplete}
-        trailing={trailing}
-        href={href}
-      />
-    );
-  }
-
   if (variant === 'touch') {
     return (
       <TouchRow
@@ -90,6 +67,7 @@ export function TaskRow({
         type={type}
         courseCode={courseCode}
         courseColor={courseColor}
+        courseIcon={courseIcon}
         completed={completed}
         progress={progress}
         onToggleComplete={onToggleComplete}
@@ -98,89 +76,21 @@ export function TaskRow({
       />
     );
   }
-  const status = getTaskStatus({ completed, progress });
-  const progressPct = clampProgress(progress ?? 0);
-
-  // A bold, course-colored left edge is the row's primary "which class is
-  // this" signal (Direction B), replacing the old small course-colored icon
-  // badge - the type icon below is now plain/muted instead, so it doesn't
-  // compete with the edge for color attention.
-  const rowClass = cn(
-    'flex items-center gap-3 py-2.5 pl-3 border-l-4 first:pt-0 last:pb-0',
-    href && 'rounded-r-lg transition-colors hover:bg-accent',
-  );
-
-  const content = (
-    <>
-      {onToggleComplete && (
-        <input
-          type="checkbox"
-          checked={completed}
-          onChange={onToggleComplete}
-          onClick={(e) => e.stopPropagation()}
-          className="h-4 w-4 rounded border-border accent-primary shrink-0"
-          aria-label={`Mark ${title} complete`}
-        />
-      )}
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center text-muted-foreground">
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.75}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d={TYPE_ICON_PATH[type]} />
-        </svg>
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          {priority === 'high' && !completed && (
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-              title="High priority"
-              aria-label="High priority"
-            />
-          )}
-          <div
-            className={cn(
-              'text-sm font-medium truncate',
-              completed ? 'text-muted-foreground line-through' : 'text-foreground',
-            )}
-          >
-            {title}
-          </div>
-        </div>
-        {courseCode && <div className="text-xs text-muted-foreground">{courseCode}</div>}
-        {status === 'in_progress' && (
-          <div className="mt-1 flex items-center gap-1.5">
-            <ProgressBar percent={progressPct} className="max-w-20" />
-            <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
-              {Math.round(progressPct)}%
-            </span>
-          </div>
-        )}
-      </div>
-      {trailing && (
-        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-          {trailing}
-        </div>
-      )}
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className={rowClass} style={courseBorderColor(courseColor)}>
-        {content}
-      </Link>
-    );
-  }
 
   return (
-    <div className={rowClass} style={courseBorderColor(courseColor)}>
-      {content}
-    </div>
+    <CardRow
+      title={title}
+      type={type}
+      courseCode={courseCode}
+      courseColor={courseColor}
+      courseIcon={courseIcon}
+      completed={completed}
+      progress={progress}
+      priority={priority}
+      onToggleComplete={onToggleComplete}
+      trailing={trailing}
+      href={href}
+    />
   );
 }
 
@@ -188,11 +98,51 @@ function metaLine(courseCode: string | undefined, type: AssignmentType) {
   return courseCode ? `${courseCode} · ${TYPE_LABEL[type]}` : TYPE_LABEL[type];
 }
 
+/** Shared "in progress" strip: never renders for a task nobody has touched
+ * (status stays 'not_started', not a visible "0%") - only appears once
+ * progress is actually above 0, per the same not_started/in_progress/
+ * completed split used everywhere else (lib/taskStatus.ts). */
+function ProgressStrip({ percent, className }: { percent: number; className?: string }) {
+  return (
+    <div className={cn('mt-1.5 flex items-center gap-2', className)}>
+      <ProgressBar percent={percent} className="max-w-32" />
+      <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+        {Math.round(percent)}%
+      </span>
+    </div>
+  );
+}
+
+function CourseIconBadge({
+  courseColor,
+  courseIcon,
+  size = 7,
+}: {
+  courseColor: string | undefined;
+  courseIcon: string | undefined;
+  size?: 6 | 7;
+}) {
+  const chip = courseChipTint(courseColor);
+  return (
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full border',
+        size === 7 ? 'h-7 w-7' : 'h-6 w-6',
+        chip.className,
+      )}
+      style={chip.style}
+    >
+      <CourseIconGlyph icon={courseIcon} className={size === 7 ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
+    </span>
+  );
+}
+
 function CardRow({
   title,
   type,
   courseCode,
   courseColor,
+  courseIcon,
   completed,
   progress,
   priority,
@@ -202,7 +152,13 @@ function CardRow({
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed' | 'priority'>> &
   Pick<
     TaskRowProps,
-    'courseCode' | 'courseColor' | 'progress' | 'onToggleComplete' | 'trailing' | 'href'
+    | 'courseCode'
+    | 'courseColor'
+    | 'courseIcon'
+    | 'progress'
+    | 'onToggleComplete'
+    | 'trailing'
+    | 'href'
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
@@ -223,6 +179,7 @@ function CardRow({
           aria-label={`Mark ${title} complete`}
         />
       )}
+      <CourseIconBadge courseColor={courseColor} courseIcon={courseIcon} size={7} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {priority === 'high' && !completed && (
@@ -242,14 +199,7 @@ function CardRow({
           </div>
         </div>
         <div className="mt-1 text-xs text-muted-foreground">{metaLine(courseCode, type)}</div>
-        {status === 'in_progress' && (
-          <div className="mt-1.5 flex items-center gap-2">
-            <ProgressBar percent={progressPct} className="max-w-32" />
-            <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
-              {Math.round(progressPct)}%
-            </span>
-          </div>
-        )}
+        {status === 'in_progress' && <ProgressStrip percent={progressPct} />}
       </div>
       {trailing && (
         <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -281,6 +231,7 @@ function TouchRow({
   type,
   courseCode,
   courseColor,
+  courseIcon,
   completed,
   progress,
   onToggleComplete,
@@ -289,7 +240,13 @@ function TouchRow({
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed'>> &
   Pick<
     TaskRowProps,
-    'courseCode' | 'courseColor' | 'progress' | 'onToggleComplete' | 'trailing' | 'href'
+    | 'courseCode'
+    | 'courseColor'
+    | 'courseIcon'
+    | 'progress'
+    | 'onToggleComplete'
+    | 'trailing'
+    | 'href'
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
@@ -334,6 +291,7 @@ function TouchRow({
             </span>
           </label>
         )}
+        <CourseIconBadge courseColor={courseColor} courseIcon={courseIcon} size={6} />
         <div className="min-w-0 flex-1">
           <div
             className={cn(
@@ -344,14 +302,7 @@ function TouchRow({
             {title}
           </div>
           <div className="mt-0.5 text-xs text-muted-foreground">{metaLine(courseCode, type)}</div>
-          {status === 'in_progress' && (
-            <div className="mt-1.5 flex items-center gap-2">
-              <ProgressBar percent={progressPct} className="max-w-32" />
-              <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
-                {Math.round(progressPct)}%
-              </span>
-            </div>
-          )}
+          {status === 'in_progress' && <ProgressStrip percent={progressPct} />}
         </div>
         {trailing && (
           <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
