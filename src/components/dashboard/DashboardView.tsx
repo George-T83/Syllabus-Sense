@@ -314,13 +314,14 @@ export function DashboardView() {
                   description="You're all caught up."
                 />
               ) : (
-                <div className="divide-y divide-border">
+                <div className="flex flex-col gap-2">
                   {upcomingTasks.map((item) => {
                     const course = courses.find((c) => c.id === item.courseId);
                     const overdue = !item.completed && new Date(item.dueDate).getTime() < now;
                     return (
                       <TaskRow
                         key={item.id}
+                        variant="card"
                         title={item.title}
                         href={'/tasks/' + item.id}
                         type={item.type}
@@ -418,13 +419,14 @@ export function DashboardView() {
               description="Check the calendar for what's ahead."
             />
           ) : (
-            <div className="divide-y divide-border">
+            <div className="flex flex-col gap-2">
               {plannerPreview.map(({ item, startDate, overloaded }) => {
                 const course = courses.find((c) => c.id === item.courseId);
                 const startsToday = startDate <= plan.weekLoad[0].key;
                 return (
                   <TaskRow
                     key={item.id}
+                    variant="card"
                     title={item.title}
                     href={'/tasks/' + item.id}
                     type={item.type}

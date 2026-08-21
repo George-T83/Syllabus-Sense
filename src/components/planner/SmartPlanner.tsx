@@ -119,10 +119,11 @@ export function SmartPlanner() {
             description="You're caught up - check back tomorrow."
           />
         ) : (
-          <div className="divide-y divide-border">
+          <div className="flex flex-col gap-2">
             {plan.startToday.map(({ item, overloaded, overdue }) => (
               <PlannedTaskRow
                 key={item.id}
+                variant="card"
                 item={item}
                 course={courses.find((c) => c.id === item.courseId)}
                 overloaded={overloaded}
@@ -184,10 +185,11 @@ export function SmartPlanner() {
             {selectedDayItems.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing due this day.</p>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="flex flex-col gap-2">
                 {selectedDayItems.map((item) => (
                   <TaskRow
                     key={item.id}
+                    variant="card"
                     title={item.title}
                     href={`/tasks/${item.id}`}
                     type={item.type}
@@ -230,15 +232,18 @@ function PlannedTaskRow({
   overloaded,
   overdue,
   onToggleComplete,
+  variant,
 }: {
   item: PlannedItem['item'];
   course: Course | undefined;
   overloaded: boolean;
   overdue: boolean;
   onToggleComplete?: () => void;
+  variant?: 'compact' | 'card' | 'touch';
 }) {
   return (
     <TaskRow
+      variant={variant}
       title={item.title}
       href={`/tasks/${item.id}`}
       type={item.type}

@@ -17,7 +17,7 @@ import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import { COURSE_COLOR_PRESETS, pickNextCourseColor } from '@/lib/courseColors';
+import { COURSE_COLOR_PRESETS, pickSuggestedCourseColor } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import type {
   ExtractedMeetingTime,
@@ -96,6 +96,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   } | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
   const [unresolved, setUnresolved] = useState<string[]>([]);
+  const [suggestedFileName, setSuggestedFileName] = useState<string | null>(null);
 
   const reset = () => {
     setStep('upload');
@@ -104,6 +105,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     setCourse(null);
     setItems([]);
     setUnresolved([]);
+    setSuggestedFileName(null);
   };
 
   const handleClose = () => {
@@ -147,11 +149,12 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         title: result.course.title,
         instructor: result.course.instructor ?? '',
         term: result.course.term ?? '',
-        // Auto-assigned to whichever preset is least represented among the
-        // user's existing courses, so extracted courses don't all default
-        // to the same blue - the user can still change it on the review
-        // screen before confirming.
-        color: pickNextCourseColor(state.courses),
+        // Claude's subject-matched suggestion when it made one and it isn't
+        // already taken by another of the user's courses; otherwise falls
+        // back to whichever preset is least represented so extracted
+        // courses don't all default to the same blue. Either way, the user
+        // can still change it on the review screen before confirming.
+        color: pickSuggestedCourseColor(state.courses, result.course.suggestedColor),
         modality: result.course.modality ?? undefined,
         meetingTimes: result.course.meetingTimes.map((m: ExtractedMeetingTime) => ({
           dayOfWeek: m.dayOfWeek,
@@ -171,6 +174,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         })),
       );
       setUnresolved(result.unresolved);
+      setSuggestedFileName(result.course.suggestedFileName ?? null);
       setStep('review');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Extraction failed. Please try again.');
@@ -286,7 +290,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
       if (file) {
         try {
-          await saveSyllabusPdf(user.uid, newCourse.id, file);
+          await saveSyllabusPdf(
+            user.uid,
+            newCourse.id,
+            withSuggestedFileName(file, suggestedFileName),
+          );
         } catch {
           // Non-fatal: the course and tasks are already saved. The user can
           // re-upload the PDF from the course page if this fails.
@@ -450,6 +458,17 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                       />
                     </label>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Color and file name are Claude&apos;s suggestions based on the syllabus &mdash;
+                    change them however you like.
+                    {suggestedFileName && (
+                      <>
+                        {' '}
+                        Saving as{' '}
+                        <span className="font-medium text-foreground">{suggestedFileName}</span>.
+                      </>
+                    )}
+                  </p>
                 </section>
 
                 {course.meetingTimes.length > 0 && (
@@ -653,6 +672,18 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       </div>
     </div>
   );
+}
+
+/** Renames a File to Claude's suggested display name (keeping the original
+ * extension), so the syllabus shows up in the course's file list as e.g.
+ * "ECON 201 - Fall 2026 Syllabus.pdf" instead of whatever the source file
+ * happened to be called. Falls back to the original file untouched when
+ * there's no suggestion. */
+function withSuggestedFileName(file: File, suggestedName: string | null): File {
+  if (!suggestedName) return file;
+  const dotIndex = file.name.lastIndexOf('.');
+  const extension = dotIndex > -1 ? file.name.slice(dotIndex) : '';
+  return new File([file], `${suggestedName}${extension}`, { type: file.type });
 }
 
 /** Wraps the existing resumable-upload hook for a one-shot call outside of
