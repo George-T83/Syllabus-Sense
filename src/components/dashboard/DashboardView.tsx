@@ -188,7 +188,7 @@ export function DashboardView() {
             </ProgressRing>
             <div className="grid w-full grid-cols-3 gap-2 text-center">
               <div>
-                <div className="text-lg font-bold text-primary">{courses.length}</div>
+                <div className="text-lg font-bold text-primary">{semesterCourses.length}</div>
                 <div className="text-[10px] text-muted-foreground">Courses</div>
               </div>
               <div>
