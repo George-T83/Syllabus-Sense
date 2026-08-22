@@ -39,6 +39,18 @@
     --card-shadow: 0 1px 2px rgba(16, 12, 30, 0.04), 0 10px 28px -8px rgba(91, 61, 245, 0.16);
     --card-shadow-hover:
       0 2px 4px rgba(16, 12, 30, 0.06), 0 18px 40px -10px rgba(91, 61, 245, 0.28);
+
+    /* Modal v1: a distinct elevation tier for true modal-overlay surfaces
+       (dialogs, sheets) that sit above cards in the stack. In light mode a
+       modal reads as "lifted" the same way a card does, so this falls back
+       to the same value as --card-shadow rather than inventing a second
+       light-mode look. */
+    --modal-shadow: var(--card-shadow);
+
+    /* Popover tier: reserved, unused. There's no custom dropdown/popover
+       component in this app yet (TermSwitcher etc. are native <select>
+       elements, which can't be styled with a custom box-shadow), so this
+       token intentionally has no consumer today. */
   }
 
   .dark {
@@ -79,6 +91,11 @@
        dark blur (which is nearly invisible against an already-dark page). */
     --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -8px rgba(139, 92, 246, 0.35);
     --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 40px -10px rgba(139, 92, 246, 0.5);
+
+    /* Modal v1: distinct from --card-shadow - a deeper, darker near shadow
+       plus a wider brand-tinted glow, so a modal reads as sitting above the
+       card tier instead of sharing its elevation. */
+    --modal-shadow: 0 4px 8px rgba(0, 0, 0, 0.5), 0 24px 60px -12px rgba(139, 92, 246, 0.45);
   }
 }
 
@@ -143,5 +160,21 @@
   .dark .glass {
     background-color: rgba(18, 18, 24, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* Respect the OS-level "reduce motion" preference by collapsing every
+     animation/transition down to effectively-instant. Duration is set to
+     0.01ms rather than 0 so animationend/transitionend listeners still fire
+     (some components depend on them to flip state after a transition).
+     Loading spinners (.animate-spin, Tailwind's own utility) are explicitly
+     exempted - freezing an in-progress spinner reads as "the app is stuck",
+     not as "calm", so those keep spinning regardless of this preference. */
+  @media (prefers-reduced-motion: reduce) {
+    *:not(.animate-spin, .animate-spin *) {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
