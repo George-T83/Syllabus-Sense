@@ -33,6 +33,17 @@ const dueDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
 });
 
+/** Which workload-ramp CSS var a given progress percentage should render
+ * as, for the slider's fill/thumb color. Quartile-banded rather than a
+ * continuous gradient so the color reads as a discrete signal ("just
+ * crossed into the next band") instead of a smear. */
+function progressColorVar(pct: number): string {
+  if (pct >= 75) return '--load-low';
+  if (pct >= 50) return '--load-medium';
+  if (pct >= 25) return '--load-high';
+  return '--load-critical';
+}
+
 const TYPE_LABELS: Record<AssignmentType, string> = {
   assignment: 'Assignment',
   exam: 'Exam',
@@ -65,6 +76,10 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
    * settled, at which point the committed item.progress is authoritative. */
   const [draftProgress, setDraftProgress] = useState<number | null>(null);
   const progressCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Purely visual - whether the slider's thumb should render in its
+   * "active" (larger, haloed) state. Driven by pointer down/up on the real
+   * input, independent of the debounce/commit state above. */
+  const [isDraggingProgress, setIsDraggingProgress] = useState(false);
   /** Same pattern as draftProgress, for the estimated-effort input - the
    * raw text the student is typing, kept separate so a half-typed "1."
    * doesn't get coerced mid-keystroke. null once the debounced write lands. */
@@ -324,17 +339,87 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
                     <ProgressRing percent={displayProgress} size={52} strokeWidth={6}>
                       <span className="text-xs font-bold text-foreground">{displayProgress}%</span>
                     </ProgressRing>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={PROGRESS_STEP}
-                      value={displayProgress}
-                      onChange={(e) => handleSliderChange(Number(e.target.value))}
-                      disabled={!user}
-                      aria-label="Task progress percentage"
-                      className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-card accent-primary disabled:cursor-not-allowed"
-                    />
+                    {/* Custom visual layer over a real native range input -
+                     * see the wrapper below for why the layering order
+                     * matters (input must stay topmost, everything else
+                     * pointer-events: none). */}
+                    <div className={cn('relative h-11 flex-1', !user && 'opacity-50')}>
+                      {/* Ticks at 25/50/75%. z-2: above the track/fill/thumb,
+                       * below the real input. */}
+                      {[25, 50, 75].map((tick) => (
+                        <span
+                          key={tick}
+                          aria-hidden="true"
+                          className="pointer-events-none absolute top-1/2 z-[2] w-px -translate-x-1/2 -translate-y-1/2 bg-[rgba(0,0,0,0.28)] dark:bg-[rgba(255,255,255,0.32)]"
+                          style={{ left: `${tick}%`, height: 6 }}
+                        />
+                      ))}
+
+                      {/* Track + fill. Width is set imperatively (not
+                       * transitioned) so a fast drag never lags behind the
+                       * pointer - only the fill's color eases across
+                       * quartile boundaries. */}
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute left-0 right-0 top-1/2 z-[1] h-2 -translate-y-1/2 overflow-hidden rounded-full bg-card"
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${displayProgress}%`,
+                            backgroundColor: `hsl(var(${progressColorVar(displayProgress)}))`,
+                            transition: 'background-color 150ms ease-out',
+                          }}
+                        />
+                      </div>
+
+                      {/* Decorative thumb, tracking the fill's edge. Grows
+                       * and gains a halo while dragging; position itself is
+                       * never transitioned, for the same lag-avoidance
+                       * reason as the fill above. */}
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute z-[1] rounded-full border-2 border-card shadow-sm"
+                        style={{
+                          top: '50%',
+                          left: `calc(${displayProgress}% - ${(isDraggingProgress ? 20 : 16) / 2}px)`,
+                          width: isDraggingProgress ? 20 : 16,
+                          height: isDraggingProgress ? 20 : 16,
+                          transform: 'translateY(-50%)',
+                          backgroundColor: `hsl(var(${progressColorVar(displayProgress)}))`,
+                          boxShadow: isDraggingProgress
+                            ? `0 0 0 6px hsl(var(${progressColorVar(displayProgress)}) / 0.28)`
+                            : undefined,
+                          transition:
+                            'width 120ms cubic-bezier(0.34, 1.56, 0.64, 1), height 120ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        }}
+                      />
+
+                      {/* The actual interactive/accessible element. Fully
+                       * transparent and absolutely positioned over the
+                       * whole wrapper (a real 44px tall hit area, not just
+                       * the ~8-20px of visible track), and given the
+                       * HIGHEST z-index of every layer here on purpose: if
+                       * a decorative layer above it were ever topmost, it
+                       * would silently swallow all pointer events and the
+                       * slider would stop being interactive - that bug has
+                       * shipped once already. */}
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={PROGRESS_STEP}
+                        value={displayProgress}
+                        onChange={(e) => handleSliderChange(Number(e.target.value))}
+                        onPointerDown={() => setIsDraggingProgress(true)}
+                        onPointerUp={() => setIsDraggingProgress(false)}
+                        onPointerCancel={() => setIsDraggingProgress(false)}
+                        onBlur={() => setIsDraggingProgress(false)}
+                        disabled={!user}
+                        aria-label="Task progress percentage"
+                        className="absolute inset-0 z-[3] w-full cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"
+                      />
+                    </div>
                   </div>
                   {remainingHoursAt(displayProgress) !== null && (
                     <p className="mt-3 text-xs text-muted-foreground">
