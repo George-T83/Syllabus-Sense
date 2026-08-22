@@ -456,7 +456,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
             {step === 'extracting' && (
               <div className="flex flex-col items-center justify-center gap-4 py-16">
                 <div className="relative h-12 w-12">
-                  <div className="absolute inset-0 animate-spin rounded-full border-[3px] border-primary/15 border-t-primary" />
+                  <div className="spinner-gradient absolute inset-0 animate-spin rounded-full" />
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-semibold text-foreground">
@@ -471,7 +471,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
             {(step === 'review' || step === 'saving') && course && (
               <div className="space-y-6">
-                <section className="space-y-4 rounded-2xl border border-border bg-accent/30 p-4 sm:p-5">
+                <section
+                  className="review-reveal space-y-4 rounded-2xl border border-border bg-accent/30 p-4 sm:p-5"
+                  style={{ animationDelay: '0ms' }}
+                >
                   <div className="flex items-start gap-3">
                     <span
                       className={cn(
@@ -629,7 +632,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 </section>
 
                 {course.meetingTimes.length > 0 && (
-                  <section className="space-y-2">
+                  <section className="review-reveal space-y-2" style={{ animationDelay: '60ms' }}>
                     <h3 className="text-sm font-semibold text-foreground">Meeting times</h3>
                     {course.meetingTimes.map((m, i) => (
                       <div
@@ -679,7 +682,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 )}
 
                 {course.materials.length > 0 && (
-                  <section className="space-y-2">
+                  <section className="review-reveal space-y-2" style={{ animationDelay: '120ms' }}>
                     <h3 className="text-sm font-semibold text-foreground">
                       Materials &amp; supplies
                     </h3>
@@ -705,7 +708,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 )}
 
                 <section className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div
+                    className="review-reveal flex flex-wrap items-center justify-between gap-2"
+                    style={{ animationDelay: '180ms' }}
+                  >
                     <h3 className="text-sm font-semibold text-foreground">
                       Assignments
                       <span className="ml-1.5 font-normal text-muted-foreground">
@@ -755,20 +761,24 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     )}
                   </div>
                   {items.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p
+                      className="review-reveal text-xs text-muted-foreground"
+                      style={{ animationDelay: '220ms' }}
+                    >
                       No dated items found in this syllabus.
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {items.map((it) => (
+                      {items.map((it, i) => (
                         <div
                           key={it.key}
                           className={cn(
-                            'rounded-xl border p-3 text-xs transition-colors',
+                            'review-reveal rounded-xl border p-3 text-xs transition-colors',
                             it.approved
                               ? 'border-border bg-card'
                               : 'border-dashed border-border/70 bg-transparent opacity-60',
                           )}
+                          style={{ animationDelay: `${Math.min(220 + i * 40, 580)}ms` }}
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="flex shrink-0 overflow-hidden rounded-full border border-border">
@@ -858,7 +868,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 </section>
 
                 {unresolved.length > 0 && (
-                  <section className="rounded-xl border border-load-medium/30 bg-load-medium/10 p-3">
+                  <section
+                    className="review-reveal rounded-xl border border-load-medium/30 bg-load-medium/10 p-3"
+                    style={{ animationDelay: '580ms' }}
+                  >
                     <h3 className="text-xs font-semibold text-load-medium">
                       Couldn&apos;t determine
                     </h3>
