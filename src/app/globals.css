@@ -111,6 +111,95 @@
     }
   }
 
+  /* Task-completion micro-interaction (TaskRow checkboxes, both the card
+     and touch variants): checking a task plays a pop + two staggered
+     ripple rings + a checkmark reveal + a brief row-background glow, all
+     keyed off hsl(var(--primary)) - deliberately NOT the load-level green
+     (--load-low), which already means "workload is light" elsewhere and
+     would send the wrong signal reused here. Unchecking is intentionally
+     understated (fast fade, no ripple, no glow) so undoing a task never
+     reads as an accomplishment. The checkmark reveals via opacity+scale,
+     not a stroke-dasharray "draw" - at the ~11-16px real render size a
+     dasharray draw looked like a distorted blob in an earlier pass.
+     `prefers-reduced-motion` handling lives in a sibling PR that zeroes
+     animation/transition durations globally, so nothing extra is needed
+     here. */
+  @keyframes task-check-pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.35);
+    }
+    70% {
+      transform: scale(0.96);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  .animate-task-check-pop {
+    animation: task-check-pop 480ms ease-in-out;
+  }
+
+  @keyframes task-check-ripple {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.55;
+    }
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+  .animate-task-check-ripple {
+    animation: task-check-ripple 500ms ease-out;
+  }
+  .animate-task-check-ripple-delayed {
+    animation: task-check-ripple 500ms ease-out 80ms;
+    animation-fill-mode: both;
+  }
+
+  @keyframes task-check-mark-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .animate-task-check-mark-in {
+    animation: task-check-mark-in 150ms ease-out 70ms both;
+  }
+
+  @keyframes task-check-mark-out {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+  }
+  .animate-task-check-mark-out {
+    animation: task-check-mark-out 100ms ease-in both;
+  }
+
+  @keyframes task-row-glow {
+    0% {
+      background-color: hsl(var(--primary) / 0.08);
+    }
+    100% {
+      background-color: hsl(var(--primary) / 0);
+    }
+  }
+  .animate-task-row-glow {
+    animation: task-row-glow 500ms ease-out;
+  }
+
   /* Matches the Logo mark's own gradient (Logo.tsx) so brand color isn't
      confined to the icon - hero panels, progress rings, and CTAs can pick up
      the same identity. */

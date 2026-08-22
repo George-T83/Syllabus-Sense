@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { courseChipTint, courseSwatch, courseWash } from '@/lib/courseColors';
@@ -15,6 +17,40 @@ const TYPE_LABEL: Record<AssignmentType, string> = {
   reading: 'Reading',
   other: 'Other',
 };
+
+type CheckAnimState = 'idle' | 'checked' | 'unchecked';
+
+/** Time to hold the 'checked' animation state open: long enough for the
+ * pop (480ms), the later of the two staggered ripple rings (80ms delay +
+ * 500ms = 580ms), and the checkmark reveal (70ms delay + 150ms = 220ms) to
+ * all finish before the transient classes are torn down. */
+const CHECK_ANIM_HOLD_MS = 580;
+const UNCHECK_ANIM_HOLD_MS = 100;
+
+/** Tracks the transient completion-animation state for a checkbox:
+ * 'checked' for a moment right after a task is marked done (pop + ripple +
+ * checkmark reveal + row glow), 'unchecked' for a moment right after it's
+ * marked undone (quick checkmark fade, no ripple/glow), 'idle' otherwise.
+ * Skips animating on first mount so a task that's already completed when
+ * the row renders doesn't replay the completion animation. */
+function useCheckAnimState(completed: boolean): CheckAnimState {
+  const [animState, setAnimState] = useState<CheckAnimState>('idle');
+  const prevCompleted = useRef(completed);
+
+  useEffect(() => {
+    if (prevCompleted.current === completed) return;
+    prevCompleted.current = completed;
+    const nextState: CheckAnimState = completed ? 'checked' : 'unchecked';
+    setAnimState(nextState);
+    const timer = setTimeout(
+      () => setAnimState('idle'),
+      completed ? CHECK_ANIM_HOLD_MS : UNCHECK_ANIM_HOLD_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [completed]);
+
+  return animState;
+}
 
 export interface TaskRowProps {
   title: string;
@@ -162,31 +198,83 @@ function CardRow({
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
+  const checkAnim = useCheckAnimState(completed);
   const rowClass = cn(
     'flex items-start gap-3 rounded-xl border border-border/60 p-3',
     href && 'transition-colors hover:border-border',
+    checkAnim === 'checked' && 'animate-task-row-glow',
   );
 
   const content = (
     <>
       {onToggleComplete && (
-        <input
-          type="checkbox"
-          checked={completed}
-          onChange={onToggleComplete}
+        <label
+          className="relative flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center"
           onClick={(e) => e.stopPropagation()}
-          className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
-          aria-label={`Mark ${title} complete`}
-        />
+        >
+          <input
+            type="checkbox"
+            checked={completed}
+            onChange={onToggleComplete}
+            className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            aria-label={`Mark ${title} complete`}
+          />
+          {checkAnim === 'checked' && (
+            <>
+              <span
+                aria-hidden="true"
+                className="animate-task-check-ripple pointer-events-none absolute inset-0 m-auto h-4 w-4 rounded-full border border-primary"
+              />
+              <span
+                aria-hidden="true"
+                className="animate-task-check-ripple-delayed pointer-events-none absolute inset-0 m-auto h-4 w-4 rounded-full border border-primary"
+              />
+            </>
+          )}
+          <span
+            className={cn(
+              'flex h-4 w-4 items-center justify-center rounded border-2 border-border bg-card transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card',
+              completed && 'border-primary bg-primary',
+              checkAnim === 'checked' && 'animate-task-check-pop',
+            )}
+          >
+            {(completed || checkAnim === 'unchecked') && (
+              <svg
+                className={cn(
+                  'h-2.5 w-2.5 stroke-primary-foreground',
+                  checkAnim === 'checked' && 'animate-task-check-mark-in',
+                  checkAnim === 'unchecked' && 'animate-task-check-mark-out',
+                )}
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={4}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </span>
+        </label>
       )}
       <CourseIconBadge courseColor={courseColor} courseIcon={courseIcon} size={7} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {priority === 'high' && !completed && (
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-              title="High priority"
+            <svg
+              className="h-2 w-2 shrink-0"
+              viewBox="0 0 12 12"
+              role="img"
               aria-label="High priority"
+            >
+              <title>High priority</title>
+              <path d="M6 1l5 9H1z" fill="hsl(var(--primary))" />
+            </svg>
+          )}
+          {priority === 'medium' && !completed && (
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/70"
+              title="Medium priority"
+              aria-label="Medium priority"
             />
           )}
           <div
@@ -250,9 +338,11 @@ function TouchRow({
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
+  const checkAnim = useCheckAnimState(completed);
   const outerClass = cn(
     'flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-accent/30',
     href && 'transition-colors hover:bg-accent/50',
+    checkAnim === 'checked' && 'animate-task-row-glow',
   );
   const swatch = courseSwatch(courseColor);
 
@@ -262,7 +352,7 @@ function TouchRow({
       <div className="flex items-center gap-3 px-3.5 py-3">
         {onToggleComplete && (
           <label
-            className="relative flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center"
+            className="relative flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             <input
@@ -272,18 +362,36 @@ function TouchRow({
               className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
               aria-label={`Mark ${title} complete`}
             />
+            {checkAnim === 'checked' && (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="animate-task-check-ripple pointer-events-none absolute inset-0 m-auto h-6 w-6 rounded-full border border-primary"
+                />
+                <span
+                  aria-hidden="true"
+                  className="animate-task-check-ripple-delayed pointer-events-none absolute inset-0 m-auto h-6 w-6 rounded-full border border-primary"
+                />
+              </>
+            )}
             <span
               className={cn(
                 'flex h-6 w-6 items-center justify-center rounded-full border-2 border-border bg-card transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card',
                 completed && 'border-primary bg-primary',
+                checkAnim === 'checked' && 'animate-task-check-pop',
               )}
             >
-              {completed && (
+              {(completed || checkAnim === 'unchecked') && (
                 <svg
-                  className="h-3.5 w-3.5 stroke-primary-foreground"
+                  className={cn(
+                    'h-3.5 w-3.5 stroke-primary-foreground',
+                    checkAnim === 'checked' && 'animate-task-check-mark-in',
+                    checkAnim === 'unchecked' && 'animate-task-check-mark-out',
+                  )}
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={3}
+                  aria-hidden="true"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
