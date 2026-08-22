@@ -459,7 +459,7 @@ export function MonthCalendar() {
               role="dialog"
               aria-modal="true"
               aria-label="Filters"
-              className="relative z-10 flex max-h-[80vh] w-full flex-col rounded-t-2xl border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+              className="relative z-10 flex max-h-[80vh] w-full flex-col rounded-t-2xl border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-modal"
             >
               <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-border" />
               <div className="mb-4 flex items-center justify-between">
