@@ -182,7 +182,7 @@ export function DocumentViewerModal({ syllabus, onClose }: DocumentViewerModalPr
         role="dialog"
         aria-modal="true"
         aria-label={syllabus.fileName}
-        className="flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+        className="flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-modal"
       >
         {/* Toolbar */}
         <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-2.5">
