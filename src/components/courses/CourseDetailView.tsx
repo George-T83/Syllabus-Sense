@@ -16,6 +16,7 @@ import {
   updateScheduleItem,
   deleteScheduleItem,
 } from '@/lib/firestore/scheduleItems';
+import { createContact, updateContact } from '@/lib/firestore/contacts';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
@@ -28,7 +29,7 @@ import { courseSwatch } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { ScheduleItem } from '@/types/schedule';
+import type { ScheduleItem, Contact, ContactRole } from '@/types/schedule';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -38,6 +39,153 @@ const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
  * marked done would otherwise render a triumphant full ring (CO-3). Below
  * the threshold a muted outline stands in for the gradient ring. */
 const RING_MIN_TASK_COUNT = 3;
+
+/**
+ * Lightweight `**bold**` → `<strong>` pass for learning objectives (which may
+ * carry markdown emphasis straight from the AI extractor, e.g. "**Analyze**
+ * primary sources for bias"). Deliberately not a markdown library - this is
+ * the only markdown syntax objectives ever contain.
+ */
+function renderInlineBold(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') ? (
+      <strong key={i}>{part.slice(2, -2)}</strong>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+}
+
+const inputClass =
+  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+
+interface ContactFormState {
+  fullName: string;
+  role: ContactRole;
+  title: string;
+  howToAddress: string;
+  email: string;
+  officeHours: string;
+  officeLocation: string;
+}
+
+const EMPTY_CONTACT_FORM: ContactFormState = {
+  fullName: '',
+  role: 'professor',
+  title: '',
+  howToAddress: '',
+  email: '',
+  officeHours: '',
+  officeLocation: '',
+};
+
+/** Shared field set for both the "add contact" and "edit contact" inline
+ * forms, so the two stay visually and behaviorally identical. */
+function ContactFormFields({
+  value,
+  onChange,
+  idPrefix,
+}: {
+  value: ContactFormState;
+  onChange: (next: ContactFormState) => void;
+  idPrefix: string;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="col-span-2 space-y-1.5 sm:col-span-1">
+        <label htmlFor={`${idPrefix}-fullName`} className="text-xs font-medium text-foreground">
+          Full name
+        </label>
+        <input
+          id={`${idPrefix}-fullName`}
+          value={value.fullName}
+          onChange={(e) => onChange({ ...value, fullName: e.target.value })}
+          className={inputClass}
+          placeholder="Dr. Jane Chen"
+        />
+      </div>
+      <div className="col-span-2 space-y-1.5 sm:col-span-1">
+        <label htmlFor={`${idPrefix}-role`} className="text-xs font-medium text-foreground">
+          Role
+        </label>
+        <select
+          id={`${idPrefix}-role`}
+          value={value.role}
+          onChange={(e) => onChange({ ...value, role: e.target.value as ContactRole })}
+          className={inputClass}
+        >
+          <option value="professor">Professor</option>
+          <option value="ta">TA</option>
+        </select>
+      </div>
+      <div className="col-span-2 space-y-1.5 sm:col-span-1">
+        <label htmlFor={`${idPrefix}-title`} className="text-xs font-medium text-foreground">
+          Title
+        </label>
+        <input
+          id={`${idPrefix}-title`}
+          value={value.title}
+          onChange={(e) => onChange({ ...value, title: e.target.value })}
+          className={inputClass}
+          placeholder="Associate Professor"
+        />
+      </div>
+      <div className="col-span-2 space-y-1.5 sm:col-span-1">
+        <label htmlFor={`${idPrefix}-howToAddress`} className="text-xs font-medium text-foreground">
+          Address as
+        </label>
+        <input
+          id={`${idPrefix}-howToAddress`}
+          value={value.howToAddress}
+          onChange={(e) => onChange({ ...value, howToAddress: e.target.value })}
+          className={inputClass}
+          placeholder="Dr. Chen"
+        />
+      </div>
+      <div className="col-span-2 space-y-1.5 sm:col-span-1">
+        <label htmlFor={`${idPrefix}-email`} className="text-xs font-medium text-foreground">
+          Email
+        </label>
+        <input
+          id={`${idPrefix}-email`}
+          type="email"
+          value={value.email}
+          onChange={(e) => onChange({ ...value, email: e.target.value })}
+          className={inputClass}
+          placeholder="jchen@university.edu"
+        />
+      </div>
+      <div className="col-span-2 space-y-1.5 sm:col-span-1">
+        <label htmlFor={`${idPrefix}-officeHours`} className="text-xs font-medium text-foreground">
+          Office hours
+        </label>
+        <input
+          id={`${idPrefix}-officeHours`}
+          value={value.officeHours}
+          onChange={(e) => onChange({ ...value, officeHours: e.target.value })}
+          className={inputClass}
+          placeholder="Tue/Thu 2-3pm"
+        />
+      </div>
+      <div className="col-span-2 space-y-1.5">
+        <label
+          htmlFor={`${idPrefix}-officeLocation`}
+          className="text-xs font-medium text-foreground"
+        >
+          Office location
+        </label>
+        <input
+          id={`${idPrefix}-officeLocation`}
+          value={value.officeLocation}
+          onChange={(e) => onChange({ ...value, officeLocation: e.target.value })}
+          className={inputClass}
+          placeholder="Room 204, Science Hall"
+        />
+      </div>
+    </div>
+  );
+}
 
 export function CourseDetailView({ courseId }: { courseId: string }) {
   const { state, dispatch } = useAppState();
@@ -50,10 +198,20 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [confirmingDeleteCourse, setConfirmingDeleteCourse] = useState(false);
   const [confirmingDeleteItemId, setConfirmingDeleteItemId] = useState<string | null>(null);
 
+  const [addContactOpen, setAddContactOpen] = useState(false);
+  const [newContact, setNewContact] = useState<ContactFormState>(EMPTY_CONTACT_FORM);
+  const [savingContact, setSavingContact] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [editContact, setEditContact] = useState<ContactFormState>(EMPTY_CONTACT_FORM);
+
+  const [objectivesEditing, setObjectivesEditing] = useState(false);
+  const [objectivesDraft, setObjectivesDraft] = useState('');
+
   const course = state.courses.find((c) => c.id === courseId);
   const items = state.scheduleItems
     .filter((item) => item.courseId === courseId)
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  const courseContacts = state.contacts.filter((c) => c.courseId === courseId);
 
   const completedCount = useMemo(() => items.filter((i) => i.completed).length, [items]);
   const progressPct = items.length ? Math.round((completedCount / items.length) * 100) : 0;
@@ -147,6 +305,96 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     if (!user) return;
     await deleteScheduleItem(user.uid, item, dispatch);
     setConfirmingDeleteItemId(null);
+  };
+
+  const handleAddContact = async () => {
+    if (!user || !newContact.fullName.trim()) return;
+    setSavingContact(true);
+    try {
+      await createContact(
+        user.uid,
+        {
+          id: crypto.randomUUID(),
+          courseId: course.id,
+          ...(course.term ? { term: course.term } : {}),
+          role: newContact.role,
+          fullName: newContact.fullName.trim(),
+          source: 'manual',
+          approved: true,
+          ...(newContact.title.trim() ? { title: newContact.title.trim() } : {}),
+          ...(newContact.howToAddress.trim()
+            ? { howToAddress: newContact.howToAddress.trim() }
+            : {}),
+          ...(newContact.email.trim() ? { email: newContact.email.trim() } : {}),
+          ...(newContact.officeHours.trim() ? { officeHours: newContact.officeHours.trim() } : {}),
+          ...(newContact.officeLocation.trim()
+            ? { officeLocation: newContact.officeLocation.trim() }
+            : {}),
+        },
+        dispatch,
+      );
+      setNewContact(EMPTY_CONTACT_FORM);
+      setAddContactOpen(false);
+    } finally {
+      setSavingContact(false);
+    }
+  };
+
+  const handleStartEditContact = (contact: Contact) => {
+    setEditingContactId(contact.id);
+    setEditContact({
+      fullName: contact.fullName,
+      role: contact.role,
+      title: contact.title ?? '',
+      howToAddress: contact.howToAddress ?? '',
+      email: contact.email ?? '',
+      officeHours: contact.officeHours ?? '',
+      officeLocation: contact.officeLocation ?? '',
+    });
+  };
+
+  const handleSaveContact = async (contact: Contact) => {
+    if (!user || !editContact.fullName.trim()) return;
+    await updateContact(
+      user.uid,
+      contact,
+      {
+        ...contact,
+        role: editContact.role,
+        fullName: editContact.fullName.trim(),
+        ...(editContact.title.trim() ? { title: editContact.title.trim() } : {}),
+        ...(editContact.howToAddress.trim()
+          ? { howToAddress: editContact.howToAddress.trim() }
+          : {}),
+        ...(editContact.email.trim() ? { email: editContact.email.trim() } : {}),
+        ...(editContact.officeHours.trim() ? { officeHours: editContact.officeHours.trim() } : {}),
+        ...(editContact.officeLocation.trim()
+          ? { officeLocation: editContact.officeLocation.trim() }
+          : {}),
+      },
+      dispatch,
+    );
+    setEditingContactId(null);
+  };
+
+  const handleStartEditObjectives = () => {
+    setObjectivesDraft((course.learningObjectives ?? []).join('\n'));
+    setObjectivesEditing(true);
+  };
+
+  const handleSaveObjectives = async () => {
+    if (!user) return;
+    const parsed = objectivesDraft
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    await updateCourse(
+      user.uid,
+      course,
+      { ...course, learningObjectives: parsed, learningObjectivesApproved: true },
+      dispatch,
+    );
+    setObjectivesEditing(false);
   };
 
   const handleExportICS = () => {
@@ -317,6 +565,213 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         </Card>
 
         <CourseAiSummaryCard course={course} />
+
+        <Card className="rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-foreground">Contacts</h2>
+            {!addContactOpen && (
+              <CardActionButton variant="solid" withPlus onClick={() => setAddContactOpen(true)}>
+                Add contact
+              </CardActionButton>
+            )}
+          </div>
+
+          {courseContacts.length === 0 && !addContactOpen && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border px-3 py-3">
+              <p className="text-sm text-muted-foreground">No contacts yet for this course.</p>
+              <button
+                onClick={() => setAddContactOpen(true)}
+                className="shrink-0 text-xs font-semibold text-primary hover:underline"
+              >
+                + Add
+              </button>
+            </div>
+          )}
+
+          {courseContacts.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {courseContacts.map((contact) => (
+                <div key={contact.id} className="rounded-lg border border-border p-3">
+                  {editingContactId === contact.id ? (
+                    <div className="space-y-3">
+                      <ContactFormFields
+                        value={editContact}
+                        onChange={setEditContact}
+                        idPrefix={`edit-${contact.id}`}
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setEditingContactId(null)}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleSaveContact(contact)}
+                          disabled={!editContact.fullName.trim()}
+                          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={cn(
+                              'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                              contact.role === 'professor'
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-accent text-muted-foreground',
+                            )}
+                          >
+                            {contact.role === 'professor' ? 'Professor' : 'TA'}
+                          </span>
+                          <span className="text-sm font-semibold text-foreground">
+                            {contact.fullName}
+                          </span>
+                          {contact.title && (
+                            <span className="text-xs text-muted-foreground">{contact.title}</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleStartEditContact(contact)}
+                          className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      {contact.howToAddress && (
+                        <p className="text-xs text-muted-foreground">
+                          Address as: {contact.howToAddress}
+                        </p>
+                      )}
+                      {(contact.email || contact.officeHours || contact.officeLocation) && (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          {contact.email && (
+                            <a
+                              href={`mailto:${contact.email}`}
+                              className="font-medium text-primary hover:underline"
+                            >
+                              {contact.email}
+                            </a>
+                          )}
+                          {(contact.officeHours || contact.officeLocation) && (
+                            <span>
+                              {[contact.officeHours, contact.officeLocation]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {addContactOpen && (
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <ContactFormFields
+                value={newContact}
+                onChange={setNewContact}
+                idPrefix="new-contact"
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setAddContactOpen(false);
+                    setNewContact(EMPTY_CONTACT_FORM);
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddContact}
+                  disabled={!newContact.fullName.trim() || savingContact}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {savingContact ? 'Saving…' : 'Save contact'}
+                </button>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        <Card className="rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-base font-semibold text-foreground">Learning Objectives</h2>
+              {course.learningObjectives && course.learningObjectives.length > 0 && (
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                    course.learningObjectivesApproved
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+                  )}
+                >
+                  {course.learningObjectivesApproved ? 'Approved' : 'Needs review'}
+                </span>
+              )}
+            </div>
+            {!objectivesEditing && (
+              <button
+                onClick={handleStartEditObjectives}
+                className="shrink-0 text-xs font-semibold text-primary hover:underline"
+              >
+                {course.learningObjectives && course.learningObjectives.length > 0
+                  ? 'Edit'
+                  : '+ Add'}
+              </button>
+            )}
+          </div>
+
+          {objectivesEditing ? (
+            <div className="space-y-3">
+              <textarea
+                value={objectivesDraft}
+                onChange={(e) => setObjectivesDraft(e.target.value)}
+                rows={6}
+                placeholder={'One objective per line, e.g.\n**Analyze** primary sources for bias'}
+                className={inputClass}
+              />
+              <p className="text-xs text-muted-foreground">
+                One objective per line. Use **bold** for emphasis.
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setObjectivesEditing(false)}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveObjectives}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : course.learningObjectives && course.learningObjectives.length > 0 ? (
+            <ul className="space-y-2">
+              {course.learningObjectives.map((objective, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  <span className="leading-relaxed">{renderInlineBold(objective)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No learning objectives yet.</p>
+          )}
+        </Card>
 
         <Card className="rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
