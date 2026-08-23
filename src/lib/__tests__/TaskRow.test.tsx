@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
-import { TaskRow } from '@/components/ui/TaskRow';
+import { TaskRow, GRADE_WEIGHT_BADGE_THRESHOLD } from '@/components/ui/TaskRow';
 
 describe('TaskRow', () => {
   it('renders the title and a course code + type meta line', () => {
@@ -63,5 +63,32 @@ describe('TaskRow', () => {
     const { container } = render(<TaskRow title="Icon set" courseIcon="calculator" />);
     // The 'calculator' glyph is built from a <rect> plus dot <circle>s.
     expect(container.querySelector('svg rect')).not.toBeNull();
+  });
+
+  describe('grade weight pill (TA-1)', () => {
+    it('shows the pill at/above the threshold', () => {
+      render(<TaskRow title="Midterm" gradeWeight={GRADE_WEIGHT_BADGE_THRESHOLD} />);
+      expect(screen.getByText(`${GRADE_WEIGHT_BADGE_THRESHOLD}%`)).toBeDefined();
+    });
+
+    it('hides the pill below the threshold - trivial/ungraded items stay quiet', () => {
+      render(<TaskRow title="Reading check" gradeWeight={GRADE_WEIGHT_BADGE_THRESHOLD - 1} />);
+      expect(screen.queryByText(`${GRADE_WEIGHT_BADGE_THRESHOLD - 1}%`)).toBeNull();
+    });
+
+    it('renders nothing when gradeWeight is not provided (optional/additive)', () => {
+      const { container } = render(<TaskRow title="No weight" />);
+      expect(container.querySelector('[title^="Worth "]')).toBeNull();
+    });
+
+    it('hides the pill on completed tasks even if heavily weighted', () => {
+      render(<TaskRow title="Done exam" gradeWeight={30} completed />);
+      expect(screen.queryByText('30%')).toBeNull();
+    });
+
+    it('also renders for the touch variant', () => {
+      render(<TaskRow title="Touch weight" gradeWeight={25} variant="touch" />);
+      expect(screen.getByText('25%')).toBeDefined();
+    });
   });
 });
