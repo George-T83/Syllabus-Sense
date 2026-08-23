@@ -131,7 +131,12 @@ export default function Sidebar() {
     <aside className="hidden md:flex fixed top-20 bottom-0 left-0 z-[45] w-64 flex-col border-r border-border/40 bg-card/90 glass">
       <nav className="flex-1 space-y-1 px-4 py-6">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          // NV-1: a plain exact match goes fully un-highlighted the moment
+          // a student drills one level deeper than a top-level route (e.g.
+          // /courses/[id] or /tasks/[id] never equals /courses or /tasks).
+          // A prefix match keeps the parent section highlighted for every
+          // nested route underneath it.
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
