@@ -1,4 +1,4 @@
-import type { ScheduleItem } from '@/types/schedule';
+import type { Priority, ScheduleItem } from '@/types/schedule';
 
 /**
  * Local-time calendar day key (YYYY-MM-DD).
@@ -50,6 +50,34 @@ export function getMonthGrid(month: Date): Date[] {
 export function getWeekDays(date: Date): Date[] {
   const weekStart = addDays(startOfDay(date), -date.getDay());
   return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+}
+
+// #CA-5: same high/medium/low ranking PlannerView's "Sort by: Priority"
+// already uses (see PRIORITY_RANK in components/schedule/PlannerView.tsx) -
+// duplicated here rather than imported since that file's constant isn't
+// exported and pulling a page-level component into a shared lib module
+// would be a layering inversion.
+const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+
+/**
+ * Orders a day's schedule items by at-a-glance urgency - high priority
+ * first, then overdue items, then soonest due - so callers that can only
+ * show a couple of items (a calendar cell's chip slice, a week column's
+ * "+N more" preview) reliably surface the important ones instead of
+ * whichever happened to be inserted first.
+ */
+export function sortItemsByUrgency(items: ScheduleItem[], referenceDate: Date): ScheduleItem[] {
+  return items.slice().sort((a, b) => {
+    const rankA = PRIORITY_RANK[a.priority ?? 'medium'];
+    const rankB = PRIORITY_RANK[b.priority ?? 'medium'];
+    if (rankA !== rankB) return rankA - rankB;
+
+    const overdueA = !a.completed && new Date(a.dueDate) < referenceDate;
+    const overdueB = !b.completed && new Date(b.dueDate) < referenceDate;
+    if (overdueA !== overdueB) return overdueA ? -1 : 1;
+
+    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  });
 }
 
 /** Groups schedule items by their local-time due day. */

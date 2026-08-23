@@ -74,8 +74,64 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center bg-background px-4 py-12">
-        <div className="w-full max-w-sm">{children}</div>
+      <div className="flex flex-1 flex-col items-center bg-background px-4 py-8 md:justify-center md:py-12">
+        <div className="w-full max-w-sm">
+          {/* VA-1: the pitch above was `hidden md:flex` - completely absent
+              on mobile, where most first-time visitors land. This gives
+              mobile the same pitch in compact form: a short strip above the
+              form, collapsed by default so it doesn't push the actual
+              login/signup fields below the fold, but genuinely present in
+              the DOM and one tap away rather than `display:none`. */}
+          <details
+            open
+            className="group mb-5 rounded-glass border border-border bg-card/60 shadow-card md:hidden"
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground">
+              <span className="text-gradient-brand">Why Syllabus Sense?</span>
+              <svg
+                className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="border-t border-border px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                Upload once, plan smarter, and see it all on one calendar.
+              </p>
+              <ul className="mt-3 space-y-2.5">
+                {PILLARS.map((pillar) => (
+                  <li key={pillar.title} className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-brand text-white">
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d={ICON_PATHS[pillar.icon]}
+                        />
+                      </svg>
+                    </span>
+                    <div>
+                      <div className="text-xs font-semibold text-foreground">{pillar.title}</div>
+                      <div className="text-[11px] text-muted-foreground">{pillar.description}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+
+          {children}
+        </div>
       </div>
     </div>
   );

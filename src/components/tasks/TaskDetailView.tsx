@@ -14,8 +14,109 @@ import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { clampProgress, TASK_STATUS_LABEL } from '@/lib/taskStatus';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { AssignmentType } from '@/types/schedule';
+import type { AssignmentType, Course, ScheduleItem } from '@/types/schedule';
 import { cn } from '@/lib/utils';
+
+const shortDueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
+/** Plain-English sentence comparing `item`'s grade weight to the rest of
+ * its course, so "worth 25%" comes with a sense of scale instead of a bare
+ * number. Only ever called once item.gradeWeight is known to be set. */
+function describeGradeImpact(item: ScheduleItem, courseItems: ScheduleItem[], courseLabel: string): string {
+  const weightedOthers = courseItems.filter((i) => i.id !== item.id && i.gradeWeight != null);
+  if (weightedOthers.length === 0) {
+    return `Worth ${item.gradeWeight}% of your grade in ${courseLabel} - no other item's weight is on record yet, so there's nothing to compare it to.`;
+  }
+  const maxOtherWeight = Math.max(...weightedOthers.map((i) => i.gradeWeight ?? 0));
+  if ((item.gradeWeight ?? 0) >= maxOtherWeight) {
+    return `This is your highest-weighted item in ${courseLabel}.`;
+  }
+  const higherCount = weightedOthers.filter((i) => (i.gradeWeight ?? 0) > (item.gradeWeight ?? 0)).length;
+  return `${higherCount} other item${higherCount === 1 ? '' : 's'} in ${courseLabel} ${
+    higherCount === 1 ? 'is' : 'are'
+  } weighted higher than this.`;
+}
+
+/** Grade-impact module (TA-3): fills the mostly-empty detail card with
+ * something real for weighted items - what this task is worth, and how
+ * that compares to the rest of the course - instead of leaving "From
+ * syllabus" as a promise the page never pays off. Renders nothing for a
+ * task with no gradeWeight on record. */
+function GradeImpactPanel({
+  item,
+  course,
+  courseItems,
+}: {
+  item: ScheduleItem;
+  course: Course | undefined;
+  courseItems: ScheduleItem[];
+}) {
+  if (item.gradeWeight === undefined) return null;
+
+  const courseLabel = course ? course.code : 'this course';
+  const others = courseItems.filter((i) => i.id !== item.id);
+  const maxWeight = Math.max(item.gradeWeight, ...others.map((i) => i.gradeWeight ?? 0));
+
+  // A short list of other still-open work in the course - "natural
+  // additional module" the audit called out as a nice-to-have once the
+  // required grade-impact comparison is in place.
+  const relatedUpcoming = others
+    .filter((i) => !i.completed)
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 3);
+
+  return (
+    <div className="p-6">
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="flex items-center gap-4">
+          <div className="shrink-0">
+            <p className="text-xs font-medium text-muted-foreground">Grade impact</p>
+            <p className="mt-1 text-3xl font-bold leading-none text-primary">{item.gradeWeight}%</p>
+            <p className="mt-1 text-xs text-muted-foreground">of your grade in {courseLabel}</p>
+          </div>
+          {/* A quick visual sense of scale next to the other items in this
+           * course - not just a number in isolation. */}
+          <div className="h-10 w-px shrink-0 bg-border" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-card">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.max(4, (item.gradeWeight / maxWeight) * 100)}%` }}
+              />
+            </div>
+            <p className="mt-2 text-sm text-foreground">
+              {describeGradeImpact(item, courseItems, courseLabel)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {relatedUpcoming.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">
+            Related work in {courseLabel}
+          </p>
+          <ul className="space-y-1.5">
+            {relatedUpcoming.map((related) => (
+              <li key={related.id} className="flex items-center justify-between gap-3 text-sm">
+                <Link
+                  href={`/tasks/${related.id}`}
+                  className="min-w-0 truncate text-foreground hover:text-primary hover:underline"
+                >
+                  {related.title}
+                </Link>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {shortDueDateFormatter.format(new Date(related.dueDate))}
+                  {related.gradeWeight != null ? ` · ${related.gradeWeight}%` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** 5-point steps rather than 1% - self-reported task progress is never
  * that precise, and 1% increments would turn a drag into 100 discrete
@@ -101,6 +202,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
   }
 
   const overdue = !item.completed && new Date(item.dueDate) < new Date();
+  const courseItems = state.scheduleItems.filter((i) => i.courseId === item.courseId);
 
   const handleToggleComplete = async () => {
     if (!user) return;
@@ -465,6 +567,8 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
               </div>
             </div>
           </div>
+
+          <GradeImpactPanel item={item} course={course} courseItems={courseItems} />
 
           {item.notes && (
             <div className="p-6">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { isSameDay, toDayKey } from '@/lib/calendar/dates';
+import { isSameDay, sortItemsByUrgency, toDayKey } from '@/lib/calendar/dates';
 import {
   formatTimeLabel,
   timeToFractionalHours,
@@ -10,7 +10,19 @@ import {
 import { cn } from '@/lib/utils';
 import { getWorkloadLevel } from '@/lib/workload';
 import { courseSwatch } from '@/lib/courseColors';
-import type { Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
+import type { AssignmentType, Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
+
+// #CA-3: same short, uppercase, mobile-lead labels MonthCalendar uses for
+// its day-cell chips - kept in sync so a truncated item reads the same way
+// in both views instead of picking a different abbreviation per screen.
+const TYPE_MOBILE_LABEL: Record<AssignmentType, string> = {
+  assignment: 'ASSIGN',
+  exam: 'EXAM',
+  quiz: 'QUIZ',
+  project: 'PROJECT',
+  reading: 'READING',
+  other: 'OTHER',
+};
 
 // Full 24-hour day, like Google Calendar/Outlook - a hardcoded 7am-9pm window
 // would silently hide any class or task that lands outside "typical" hours
@@ -32,6 +44,18 @@ const HEAT_TINT_CLASS: Record<WorkloadLevel, string> = {
   medium: 'bg-load-medium/5',
   high: 'bg-load-high/5',
   critical: 'bg-load-critical/10',
+};
+
+// #CA-1: mirrors MonthCalendar's due-here/prep-window split - a day column
+// only gets the full background wash when something is literally due or in
+// session that day. A day that only absorbed some of a *different* day's
+// spread-out prep-time load gets a slim top border instead, so the two
+// signals stay visually distinct here too.
+const PREP_INDICATOR_CLASS: Record<WorkloadLevel, string> = {
+  low: '',
+  medium: 'border-t-2 border-load-medium/50',
+  high: 'border-t-2 border-load-high/60',
+  critical: 'border-t-2 border-load-critical/70',
 };
 
 export interface WeekViewProps {
@@ -128,6 +152,7 @@ export function WeekView({
 
             {weekDays.map((day) => {
               const meetings = meetingsFor(day);
+              const dueHere = meetings.length > 0 || itemsFor(day).length > 0;
               const hours = dailyLoad.get(toDayKey(day)) ?? 0;
               const heatLevel = getWorkloadLevel(hours);
               const isSelected = selectedDay !== null && isSameDay(day, selectedDay);
@@ -138,7 +163,11 @@ export function WeekView({
                   style={{ height: GRID_HEIGHT }}
                   className={cn(
                     'relative border-l border-border',
-                    isSelected ? 'bg-primary/5' : HEAT_TINT_CLASS[heatLevel],
+                    isSelected
+                      ? 'bg-primary/5'
+                      : dueHere
+                        ? HEAT_TINT_CLASS[heatLevel]
+                        : PREP_INDICATOR_CLASS[heatLevel],
                   )}
                 >
                   {HOUR_LABELS.map((hour) => (
@@ -166,7 +195,21 @@ export function WeekView({
                         style={{ top, height, ...swatch.style }}
                         title={`${m.course.code} · ${formatTimeLabel(m.meeting.startTime)}–${formatTimeLabel(m.meeting.endTime)}`}
                       >
-                        <div className="truncate font-semibold">{m.course.code}</div>
+                        <div className="flex items-center gap-0.5 truncate font-semibold">
+                          <svg
+                            className="h-2.5 w-2.5 shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M22 10L12 5 2 10l10 5 10-5z" />
+                            <path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5" />
+                          </svg>
+                          <span className="truncate">{m.course.code}</span>
+                        </div>
                         {height > 32 && (
                           <div className="truncate opacity-90">
                             {formatTimeLabel(m.meeting.startTime)}
@@ -184,7 +227,10 @@ export function WeekView({
         <div className="mt-2 grid grid-cols-[3rem_repeat(7,1fr)] gap-1 border-t border-border px-0.5 pt-2">
           <div />
           {weekDays.map((day) => {
-            const items = itemsFor(day);
+            // #CA-5: same priority/urgency-first ordering as the month grid,
+            // so this column's 3-chip preview surfaces the important items
+            // rather than whichever were inserted first.
+            const items = sortItemsByUrgency(itemsFor(day), today);
             return (
               <div key={day.toISOString()} className="space-y-0.5">
                 {items.slice(0, 3).map((item) => (
@@ -192,12 +238,29 @@ export function WeekView({
                     key={item.id}
                     title={item.title}
                     className={cn(
-                      'block truncate rounded px-1 py-0.5 text-[9px] font-medium text-white',
+                      'flex items-center gap-0.5 truncate rounded px-1 py-0.5 text-[9px] font-medium text-white',
                       courseOf(item)?.color || 'bg-primary',
                       item.completed && 'opacity-40 line-through',
                     )}
                   >
-                    {item.title}
+                    <svg
+                      className="hidden h-2 w-2 shrink-0 sm:block"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M4 3v18M4 4h11l-2 4 2 4H4" />
+                    </svg>
+                    {/* #CA-3: mobile leads with the short, uppercase type
+                        instead of the title so similarly-named items stay
+                        distinguishable once truncated. */}
+                    <span className="min-w-0 truncate sm:hidden">
+                      {TYPE_MOBILE_LABEL[item.type]}
+                    </span>
+                    <span className="hidden min-w-0 truncate sm:inline">{item.title}</span>
                   </span>
                 ))}
                 {items.length > 3 && (

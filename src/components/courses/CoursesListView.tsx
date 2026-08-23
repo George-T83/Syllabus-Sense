@@ -30,13 +30,16 @@ export function CoursesListView() {
   const { courses, scheduleItems } = state;
 
   const [search, setSearch] = useState('');
-  // Seeded from the global term switcher (#101) so this page opens already
-  // scoped to whatever term the rest of the app is showing, while staying a
-  // fully independent local filter the user can change without affecting
-  // the global selection.
-  const [termFilter, setTermFilter] = useState(
-    () => resolveActiveTerm(state.selectedTerm, state.courses) ?? 'all',
-  );
+  // Defaults to the active term (same as the Dashboard/navbar), not "All
+  // Terms" - most visits are "what do I have this term," and narrowing by
+  // default reads better day to day. CO-2's original problem wasn't the
+  // narrowed default itself, it was that older courses vanished with zero
+  // indication a filter was hiding them. Solved instead with an always-on
+  // filter strip (below) that names the active term and surfaces exactly
+  // how many courses are hidden, one click from "All Terms." `null` means
+  // "no explicit choice yet" - follow the app-wide active term; setting the
+  // select to any concrete value (including 'all') overrides that.
+  const [termFilter, setTermFilter] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('code');
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
@@ -46,10 +49,21 @@ export function CoursesListView() {
     [courses],
   );
 
+  const activeTerm = useMemo(
+    () => resolveActiveTerm(state.selectedTerm, courses),
+    [state.selectedTerm, courses],
+  );
+  const effectiveTermFilter = termFilter ?? activeTerm ?? 'all';
+  const hiddenByTermCount =
+    effectiveTermFilter !== 'all'
+      ? courses.filter((c) => c.term !== effectiveTermFilter).length
+      : 0;
+
   const filteredCourses = useMemo(() => {
     let result = courses.slice();
 
-    if (termFilter !== 'all') result = result.filter((c) => c.term === termFilter);
+    if (effectiveTermFilter !== 'all')
+      result = result.filter((c) => c.term === effectiveTermFilter);
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -68,7 +82,7 @@ export function CoursesListView() {
     });
 
     return result;
-  }, [courses, search, termFilter, sortMode]);
+  }, [courses, search, effectiveTermFilter, sortMode]);
 
   const handleAddCourse = async (values: CourseFormValues) => {
     if (!user) throw new Error('You must be signed in to add a course.');
@@ -98,7 +112,9 @@ export function CoursesListView() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Courses</h1>
-            <p className="text-sm text-muted-foreground mt-1">Every course you&apos;re tracking.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              See what needs attention across every class.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <CardActionButton onClick={() => setAutofillOpen(true)}>
@@ -131,9 +147,16 @@ export function CoursesListView() {
             className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <select
-            value={termFilter}
+            value={effectiveTermFilter}
             onChange={(e) => setTermFilter(e.target.value)}
-            className={selectClass}
+            className={cn(
+              selectClass,
+              // Emphasized (bordered, tinted) whenever narrowed to one term,
+              // so a filter that's hiding courses is never just a quiet
+              // dropdown - it visibly looks "on."
+              effectiveTermFilter !== 'all' &&
+                'border-primary/50 bg-primary/5 font-semibold text-primary',
+            )}
           >
             <option value="all">All Terms</option>
             {terms.map((term) => (
@@ -152,6 +175,26 @@ export function CoursesListView() {
             <option value="term">Sort: Term</option>
           </select>
         </div>
+
+        {/* CO-2: names the active filter out loud and says exactly how many
+            courses it's hiding, so an older course never just silently
+            disappears - one click switches to All Terms. */}
+        {hiddenByTermCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <span>
+              Showing <span className="font-semibold">{effectiveTermFilter}</span> ·{' '}
+              {hiddenByTermCount} more {hiddenByTermCount === 1 ? 'course' : 'courses'} in other
+              terms.
+            </span>
+            <button
+              type="button"
+              onClick={() => setTermFilter('all')}
+              className="font-semibold text-primary hover:underline"
+            >
+              View all terms
+            </button>
+          </div>
+        )}
 
         {filteredCourses.length === 0 ? (
           <Card className="rounded-2xl p-6">
@@ -191,6 +234,14 @@ export function CoursesListView() {
               const completed = items.filter((i) => i.completed).length;
               const pct = items.length ? Math.round((completed / items.length) * 100) : 0;
               const meetingDays = meetingDaysLabel(course.meetingTimes);
+              // Same "overdue" definition CourseDetailView already uses for
+              // its per-task badge (CO-1) - surfaced here too so the list a
+              // student opens to decide what to worry about actually answers
+              // that, instead of only a generic completion percentage.
+              const now = new Date();
+              const overdueCount = items.filter(
+                (i) => !i.completed && new Date(i.dueDate) < now,
+              ).length;
 
               return (
                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
@@ -220,24 +271,40 @@ export function CoursesListView() {
                         </div>
                       </div>
 
-                      {(meetingDays || course.modality) && (
-                        <div className="mb-3 flex flex-wrap gap-1.5">
-                          {meetingDays && (
-                            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                              {meetingDays}
-                            </span>
+                      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                        {/* Term badge lives on every card (not just the bottom-line
+                            caption it replaces) so a course keeps a clear identity
+                            even once the list defaults to showing every term at
+                            once (CO-2). */}
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                            course.term
+                              ? 'bg-accent text-muted-foreground'
+                              : 'bg-accent/60 italic text-muted-foreground/70',
                           )}
-                          {course.modality && (
-                            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
-                              {course.modality}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                        >
+                          {course.term || 'No term set'}
+                        </span>
+                        {meetingDays && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {meetingDays}
+                          </span>
+                        )}
+                        {course.modality && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                            {course.modality}
+                          </span>
+                        )}
+                        {overdueCount > 0 && (
+                          <span className="ml-auto rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                            {overdueCount} overdue
+                          </span>
+                        )}
+                      </div>
 
                       <div className="mt-auto space-y-1.5">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{course.term || 'No term set'}</span>
+                        <div className="flex items-center justify-end text-xs text-muted-foreground">
                           <span>
                             {items.length > 0
                               ? `${pct}% · ${items.length} task${items.length === 1 ? '' : 's'}`

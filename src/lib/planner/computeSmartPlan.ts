@@ -6,6 +6,9 @@ export interface PlannedItem {
   item: ScheduleItem;
   startDate: string;
   overloaded: boolean;
+  /** PL-5: not overloaded, but placing this item used a day close to
+   * capacity. See `StudyStartRecommendation.tight`. */
+  tight: boolean;
   /** Already past its due date - distinct from `overloaded` (doesn't fit the
    * week's capacity). A late item and a merely-full week require different
    * reactions from the student, so they're tracked separately rather than
@@ -25,6 +28,15 @@ export interface SmartPlan {
   startToday: PlannedItem[];
   startThisWeek: PlannedItem[];
   startLater: PlannedItem[];
+  /**
+   * PL-1: total effective hours parked on PAST due dates (i.e. excluded from
+   * `weekLoad`, which only covers `referenceDate` through +6 days). Read from
+   * the same `calculateDailyLoad` output `weekLoad` is built from, so this is
+   * exactly the mass of hours the headline "today" figure silently drops —
+   * computed here rather than left implicit so the UI can surface it as its
+   * own number instead of a student having to infer it from a badge count.
+   */
+  overdueHours: number;
 }
 
 /**
@@ -66,9 +78,25 @@ export function computeSmartPlan(scheduleItems: ScheduleItem[], referenceDate: D
     // `referenceDate` used for workload bucketing) so "overdue" means the
     // same thing everywhere in the app.
     const overdue = !item.completed && new Date(item.dueDate) < new Date();
-    return { item, startDate: rec.startDate, overloaded: rec.overloaded, overdue };
+    return {
+      item,
+      startDate: rec.startDate,
+      overloaded: rec.overloaded,
+      tight: rec.tight,
+      overdue,
+    };
   });
   plannedItems.sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  // PL-1: `load` already carries each overdue item's full hours on its own
+  // (past) due date - see getItemDailyDistribution's overdue branch - so
+  // summing every key strictly before today recovers exactly the overdue
+  // backlog total, using the same weighting/stress math as everything else,
+  // without re-deriving it or touching the weekLoad/forecast math above.
+  let overdueHours = 0;
+  for (const [key, hours] of Array.from(load)) {
+    if (key < todayKey) overdueHours += hours;
+  }
 
   const weekEndKey = weekLoad[6].key;
   return {
@@ -76,5 +104,6 @@ export function computeSmartPlan(scheduleItems: ScheduleItem[], referenceDate: D
     startToday: plannedItems.filter((p) => p.startDate <= todayKey),
     startThisWeek: plannedItems.filter((p) => p.startDate > todayKey && p.startDate <= weekEndKey),
     startLater: plannedItems.filter((p) => p.startDate > weekEndKey),
+    overdueHours,
   };
 }

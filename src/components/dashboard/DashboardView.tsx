@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { CardActionLink, CardActionButton } from '@/components/ui/CardAction';
+import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { SectionIcon } from '@/components/ui/SectionIcon';
@@ -31,6 +31,34 @@ function getGreeting(hour: number): string {
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
+}
+
+/**
+ * DA-5: a plain, low-emphasis "view more" navigation link - deliberately
+ * lighter than CardActionLink's bordered-pill `ghost` styling, so secondary
+ * navigation ("View all", "Open planner") doesn't visually compete with the
+ * real actions on the dashboard (the Autofill banner, "+ Add Task"/"+ Add
+ * Course"). Local to this file rather than a CardAction variant change,
+ * since CardActionLink's current look is still correct elsewhere it's used.
+ */
+function QuietLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex shrink-0 items-center gap-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+    >
+      {children}
+      <svg
+        className="h-3 w-3"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2.5}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </Link>
+  );
 }
 
 export function DashboardView() {
@@ -85,7 +113,16 @@ export function DashboardView() {
     () => computeSmartPlan(termScheduleItems, referenceDate),
     [termScheduleItems, referenceDate],
   );
-  const plannerPreview = [...plan.startToday, ...plan.startThisWeek].slice(0, 4);
+  // DA-2: Planner Preview used to show the same due-soonest items as
+  // Upcoming Tasks (identical rows, contradicting badges - "Overdue" vs
+  // "Overloaded" - seconds apart). Excluding whatever Upcoming Tasks
+  // already surfaced means Planner Preview only ever shows genuinely
+  // different information: what the workload-aware planner recommends
+  // starting soon that isn't already covered by the plain due-date list.
+  const upcomingTaskIds = useMemo(() => new Set(upcomingTasks.map((t) => t.id)), [upcomingTasks]);
+  const plannerPreview = [...plan.startToday, ...plan.startThisWeek]
+    .filter((p) => !upcomingTaskIds.has(p.item.id))
+    .slice(0, 4);
 
   const greeting = useMemo(() => getGreeting(new Date().getHours()), []);
   const firstName = (user?.displayName || user?.email?.split('@')[0] || 'there').split(' ')[0];
@@ -181,20 +218,31 @@ export function DashboardView() {
 
         <div className="space-y-4">
           <Card accent="left" className="rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <SectionIcon icon="tasks" />
-                <h2 className="text-lg font-bold text-foreground">Upcoming Tasks</h2>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+                <div className="flex items-center gap-3">
+                  <SectionIcon icon="tasks" />
+                  <h2 className="text-lg font-bold text-foreground">Upcoming Tasks</h2>
+                </div>
                 {overdueCount > 0 && (
                   <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
                     {overdueCount} overdue
                   </span>
                 )}
+                {/* VA-5: pair the alarming overdue count with a real, positive
+                    number so the dashboard doesn't only ever talk in red
+                    pills. Scoped to the current term, same as the count
+                    above - "this term" rather than "this week" since
+                    ScheduleItem has no completion timestamp to narrow it
+                    further. */}
+                {completedTasksCount > 0 && (
+                  <span className="rounded-full bg-load-low/10 px-2 py-0.5 text-[10px] font-semibold text-load-low">
+                    {completedTasksCount} completed this term
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <CardActionLink href="/tasks" withChevron>
-                  View all
-                </CardActionLink>
+              <div className="flex shrink-0 items-center gap-3">
+                <QuietLink href="/tasks">View all</QuietLink>
                 <CardActionButton variant="solid" withPlus onClick={() => setAddTaskOpen(true)}>
                   Add Task
                 </CardActionButton>
@@ -210,11 +258,24 @@ export function DashboardView() {
                     stroke="currentColor"
                     strokeWidth={2}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d={courses.length === 0 ? 'M12 4.5v15m7.5-7.5h-15' : 'M5 13l4 4L19 7'}
+                    />
                   </svg>
                 }
-                title="Nothing due"
-                description="You're all caught up."
+                title={courses.length === 0 ? 'Add your first course' : 'Nothing due'}
+                description={
+                  courses.length === 0
+                    ? 'Get started by adding a course or two.'
+                    : "You're all caught up."
+                }
+                action={
+                  courses.length === 0
+                    ? { label: '+ Add Course', onClick: () => setAddCourseOpen(true) }
+                    : undefined
+                }
               />
             ) : (
               <div className="flex flex-col gap-2">
@@ -236,16 +297,22 @@ export function DashboardView() {
                       priority={item.priority}
                       onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                       trailing={
-                        <>
+                        // DA-1: stacked (badge above date) rather than
+                        // side-by-side - side-by-side was the widest
+                        // non-shrinking part of the row, the main reason due
+                        // dates got pushed off-screen on a real phone.
+                        // Stacking keeps the same information at roughly
+                        // half the horizontal footprint.
+                        <div className="flex flex-col items-end gap-0.5">
                           {overdue && (
-                            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                            <span className="whitespace-nowrap rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
                               Overdue
                             </span>
                           )}
-                          <span className="text-xs text-muted-foreground">
-                            Due {dueDateFormatter.format(new Date(item.dueDate))}
+                          <span className="whitespace-nowrap text-xs text-muted-foreground">
+                            {dueDateFormatter.format(new Date(item.dueDate))}
                           </span>
-                        </>
+                        </div>
                       }
                     />
                   );
@@ -256,18 +323,16 @@ export function DashboardView() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Card className="rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
+                <div className="flex min-w-0 items-center gap-2.5">
                   <SectionIcon icon="courseLoad" className="h-6 w-6" />
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-foreground">Course Load</h2>
                     {currentTerm && <p className="text-xs text-muted-foreground">{currentTerm}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CardActionLink href="/courses" withChevron>
-                    View all
-                  </CardActionLink>
+                <div className="flex shrink-0 items-center gap-3">
+                  <QuietLink href="/courses">View all</QuietLink>
                   <CardActionButton variant="solid" withPlus onClick={() => setAddCourseOpen(true)}>
                     Add Course
                   </CardActionButton>
@@ -329,47 +394,73 @@ export function DashboardView() {
               )}
             </Card>
 
-            <Card className="rounded-2xl p-4">
+            {/* DA-4/MO-5: `self-start` stops this card stretching to match
+                Course Load's height in the sm:grid-cols-2 row (the default
+                grid stretch left ~300-400px of dead space at both desktop
+                and tablet widths) - it now sizes to its own content. */}
+            <Card className="rounded-2xl p-4 self-start">
               <div className="mb-3 flex items-center gap-2.5">
                 <SectionIcon icon="star" className="h-6 w-6" />
                 <h2 className="text-sm font-semibold text-foreground">Term Progress</h2>
               </div>
-              <div className="flex items-center gap-4">
-                <ProgressRing percent={termProgressPct} size={80} strokeWidth={7}>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-foreground">{termProgressPct}%</div>
-                  </div>
-                </ProgressRing>
-                <div className="grid flex-1 grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className="text-base font-bold text-primary">{semesterCourses.length}</div>
-                    <div className="text-[10px] text-muted-foreground">Courses</div>
-                  </div>
-                  <div>
-                    <div className="text-base font-bold text-load-medium">
-                      {pendingTasks.length}
+              {courses.length === 0 ? (
+                // MO-4: a brand-new account with zero courses/zero everything
+                // used to render this same ring-at-0%-plus-zeros grid, which
+                // reads as "something failed to load" rather than "welcome".
+                // A distinct onboarding message replaces it instead.
+                <div className="flex flex-col items-start gap-2 py-1">
+                  <p className="text-sm font-semibold text-foreground">Welcome aboard</p>
+                  <p className="text-xs text-muted-foreground">
+                    Add your first course to start tracking assignments and workload.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAddCourseOpen(true)}
+                    className="mt-1 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                  >
+                    + Add Course
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <ProgressRing percent={termProgressPct} size={80} strokeWidth={7}>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-foreground">{termProgressPct}%</div>
                     </div>
-                    <div className="text-[10px] text-muted-foreground">Pending</div>
-                  </div>
-                  <div>
-                    <div className="text-base font-bold text-load-low">{completedTasksCount}</div>
-                    <div className="text-[10px] text-muted-foreground">Done</div>
+                  </ProgressRing>
+                  <div className="grid flex-1 grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-base font-bold text-primary">
+                        {semesterCourses.length}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Courses</div>
+                    </div>
+                    <div>
+                      <div className="text-base font-bold text-load-medium">
+                        {pendingTasks.length}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Pending</div>
+                    </div>
+                    <div>
+                      <div className="text-base font-bold text-load-low">{completedTasksCount}</div>
+                      <div className="text-[10px] text-muted-foreground">Done</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </Card>
           </div>
         </div>
 
         <Card className="rounded-2xl p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <SectionIcon icon="forecast" />
-              <h2 className="text-base font-semibold text-foreground">7-Day Load</h2>
-            </div>
-            <CardActionLink href="/planner" withChevron>
-              Open planner
-            </CardActionLink>
+          {/* DA-5: this card used to duplicate Planner Preview's "Open
+              planner" link below - two links to the same destination on
+              one screen. Planner Preview's is the more specific one (it
+              links from actual recommended items), so it's the one kept;
+              this header is now just a label. */}
+          <div className="mb-4 flex items-center gap-3">
+            <SectionIcon icon="forecast" />
+            <h2 className="text-base font-semibold text-foreground">7-Day Load</h2>
           </div>
           <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {plan.weekLoad.map(({ key, day, hours, level }) => {
@@ -403,14 +494,12 @@ export function DashboardView() {
         </Card>
 
         <Card className="rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
             <div className="flex items-center gap-3">
               <SectionIcon icon="planner" />
               <h2 className="text-base font-semibold text-foreground">Planner Preview</h2>
             </div>
-            <CardActionLink href="/planner" withChevron>
-              Open planner
-            </CardActionLink>
+            <QuietLink href="/planner">Open planner</QuietLink>
           </div>
           {plannerPreview.length === 0 ? (
             <EmptyState
@@ -449,8 +538,15 @@ export function DashboardView() {
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                     trailing={
                       overloaded ? (
-                        <span className="rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
-                          Overloaded
+                        // VA-5: "Overloaded" read as alarm-only red - the
+                        // same hue as a destructive/error state - with no
+                        // suggested next step. "Tight" + an action (start
+                        // today) reads as a coach's nudge instead of a
+                        // warning, and load-high (amber) instead of
+                        // load-critical (red) keeps it out of destructive-
+                        // red territory entirely.
+                        <span className="rounded-full bg-load-high/10 px-2 py-0.5 text-[10px] font-semibold text-load-high">
+                          Tight · start today
                         </span>
                       ) : (
                         <span
