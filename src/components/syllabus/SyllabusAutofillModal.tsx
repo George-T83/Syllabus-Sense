@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter } from '@/components/ui/Card';
 import { validateSyllabusFile } from '@/lib/validation/syllabusFile';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
+import { createContacts, updateContact } from '@/lib/firestore/contacts';
 import { courseFormSchema } from '@/lib/validation/course';
 import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
 import { useModalA11y } from '@/hooks/useModalA11y';
@@ -21,6 +22,8 @@ import type {
 } from '@/types/extraction';
 import type {
   AssignmentType,
+  Contact,
+  ContactRole,
   Course,
   CourseModality,
   MeetingTime,
@@ -54,6 +57,238 @@ interface DraftItem extends ExtractedScheduleItem {
    * no resolvable date start rejected and locked until a date is filled
    * in, so nothing with a fabricated date silently lands on the calendar. */
   approved: boolean;
+}
+
+/** One extracted contact as returned by the extraction API - inferred from
+ * the shared result type rather than imported separately, since this file
+ * is the only one this feature touches. */
+type ExtractedContactItem = SyllabusExtractionResult['course']['contacts'][number];
+
+/** The Contact fields a student can individually approve/deny on the review
+ * screen, mirroring `Contact['fieldApprovals']` minus the record-level `id`/
+ * `courseId`/etc. that aren't really "content" a syllabus states. */
+type ContactFieldKey =
+  'fullName' | 'title' | 'howToAddress' | 'email' | 'officeHours' | 'officeLocation';
+
+const CONTACT_FIELD_KEYS: ContactFieldKey[] = [
+  'fullName',
+  'title',
+  'howToAddress',
+  'email',
+  'officeHours',
+  'officeLocation',
+];
+
+const CONTACT_FIELD_LABELS: Record<ContactFieldKey, string> = {
+  fullName: 'Name',
+  title: 'Title',
+  howToAddress: 'How to address',
+  email: 'Email',
+  officeHours: 'Office hours',
+  officeLocation: 'Office location',
+};
+
+/** One extracted contact as it exists on the review screen: the raw
+ * extracted values plus everything needed to render and act on the SY-6
+ * dedup + per-field approval UI. */
+interface DraftContact {
+  /** Local id for React keys/editing - not persisted as-is. */
+  key: string;
+  role: ContactRole;
+  /** Every possible field, normalized to `string | null` regardless of
+   * whether the extractor actually found it - simplifies iterating
+   * `CONTACT_FIELD_KEYS` generically instead of a per-field switch. */
+  values: Record<ContactFieldKey, string | null>;
+  /** Which fields the syllabus actually provided a value for - only these
+   * render a checkbox or participate in dedup diffing. */
+  fields: ContactFieldKey[];
+  /** id of an existing contact (any course) whose normalized full name
+   * matches this one, or null when nothing matched. */
+  matchId: string | null;
+  /** Fields where the matched existing contact's value differs from what
+   * was just extracted - always empty when there's no match. */
+  diffFields: ContactFieldKey[];
+  /** 'existing' means "this is the same person I already have - don't
+   * create a duplicate record for this course" (though a checked, differing
+   * field still updates the existing record). 'new' creates a fresh
+   * course-scoped Contact from the checked fields below. */
+  selection: 'existing' | 'new';
+  /** Per-field approval - only meaningful for keys in `fields`, defaults to
+   * checked/true (absence in Contact['fieldApprovals'] means approved). */
+  fieldApproved: Partial<Record<ContactFieldKey, boolean>>;
+}
+
+/** Normalizes a full name for dedup matching: case, punctuation, and
+ * surrounding whitespace shouldn't cause "Dr. Sarah Chen" and "sarah chen"
+ * to read as different people. No fuzzy-matching library - the finding only
+ * asks for "likely match", and this catches the common real-world cases
+ * (titles, periods, extra whitespace) without over-engineering. */
+function normalizeContactName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .trim();
+}
+
+/** Finds an existing contact (regardless of which course it's attached to -
+ * a professor can teach multiple courses) whose normalized full name
+ * matches. Returns the first match; real name collisions between two
+ * distinct people are rare enough that "likely match" is an acceptable
+ * bar here, and the review UI always shows the side-by-side diff so a
+ * wrong match is easy to catch and reject. */
+function findExistingContactMatch(
+  fullName: string,
+  existingContacts: Contact[],
+): Contact | undefined {
+  const normalized = normalizeContactName(fullName);
+  if (!normalized) return undefined;
+  return existingContacts.find((c) => normalizeContactName(c.fullName) === normalized);
+}
+
+function extractedContactValues(c: ExtractedContactItem): Record<ContactFieldKey, string | null> {
+  return {
+    fullName: c.fullName ?? null,
+    title: c.title ?? null,
+    howToAddress: c.howToAddress ?? null,
+    email: c.email ?? null,
+    officeHours: c.officeHours ?? null,
+    officeLocation: c.officeLocation ?? null,
+  };
+}
+
+/** Which of `fields` differ between what was just extracted and the
+ * matched existing contact, so the review UI can show only the fields
+ * that actually changed instead of the whole record. */
+function diffFieldsAgainstExisting(
+  values: Record<ContactFieldKey, string | null>,
+  fields: ContactFieldKey[],
+  existing: Contact,
+): ContactFieldKey[] {
+  return fields.filter((f) => (values[f] ?? '').trim() !== (existing[f] ?? '').toString().trim());
+}
+
+/** Builds the DraftContact rows for a fresh extraction: matches each
+ * extracted contact against the student's existing contacts, computes which
+ * fields differ, and pre-selects "use existing" only when nothing differs -
+ * any real difference defaults to "save as new/updated" so the student
+ * consciously confirms the change instead of it being silently applied. */
+function buildContactDrafts(
+  extractedContacts: ExtractedContactItem[],
+  existingContacts: Contact[],
+): DraftContact[] {
+  return extractedContacts.map((c, i) => {
+    const values = extractedContactValues(c);
+    const fields = CONTACT_FIELD_KEYS.filter((k) => (values[k] ?? '').trim().length > 0);
+    const match = findExistingContactMatch(c.fullName, existingContacts);
+    const diffFields = match ? diffFieldsAgainstExisting(values, fields, match) : [];
+    const fieldApproved: Partial<Record<ContactFieldKey, boolean>> = {};
+    fields.forEach((f) => {
+      fieldApproved[f] = true;
+    });
+    return {
+      key: `${i}-${c.fullName}`,
+      role: c.role,
+      values,
+      fields,
+      matchId: match?.id ?? null,
+      diffFields,
+      selection: match ? (diffFields.length === 0 ? 'existing' : 'new') : 'new',
+      fieldApproved,
+    };
+  });
+}
+
+/** Strips the synthetic per-contact `key` before a draft is snapshotted for
+ * the SY-5 dirty check, matching `omitDraftKey` for schedule items. */
+function omitContactDraftKey(item: DraftContact): Omit<DraftContact, 'key'> {
+  const rest: Partial<DraftContact> = { ...item };
+  delete rest.key;
+  return rest as Omit<DraftContact, 'key'>;
+}
+
+/** Builds the Contact[] to actually write on confirm, from the review UI's
+ * draft state and the just-created course's id/term. "Use existing"
+ * selections write nothing unless a checked field genuinely differs from
+ * the matched record, in which case that one record is updated in place
+ * rather than creating a duplicate. Everything else becomes a full,
+ * course-scoped Contact with only the checked fields populated. */
+function buildContactsToSave(
+  drafts: DraftContact[],
+  existingContacts: Contact[],
+  courseId: string,
+  term: string | undefined,
+): { newContacts: Contact[]; updates: { previous: Contact; updated: Contact }[] } {
+  const newContacts: Contact[] = [];
+  const updates: { previous: Contact; updated: Contact }[] = [];
+
+  for (const cd of drafts) {
+    if (cd.selection === 'existing') {
+      const existing = cd.matchId ? existingContacts.find((c) => c.id === cd.matchId) : undefined;
+      if (!existing) continue;
+      // `fullName` is deliberately excluded from silently overwriting an
+      // existing record - a diff here is more likely a punctuation/casing
+      // quirk than a real rename, and the student can still pick "Save as
+      // new/updated" if they actually mean it.
+      const fieldsToApply = cd.diffFields.filter(
+        (f) => f !== 'fullName' && cd.fieldApproved[f] !== false,
+      );
+      if (fieldsToApply.length === 0) continue;
+      const updated: Contact = { ...existing };
+      for (const f of fieldsToApply) {
+        const value = cd.values[f];
+        if (value) (updated as unknown as Record<ContactFieldKey, string>)[f] = value;
+      }
+      updates.push({ previous: existing, updated });
+      continue;
+    }
+
+    const fullNameApproved = cd.fieldApproved.fullName !== false;
+    const contact: Contact = {
+      id: crypto.randomUUID(),
+      courseId,
+      role: cd.role,
+      // Approving/denying is a per-field mechanic, but `fullName` is the
+      // one required field on Contact - an explicit denial blanks it
+      // (rather than omitting the key, which isn't possible for a required
+      // field) instead of silently keeping a value the student rejected.
+      fullName: fullNameApproved ? (cd.values.fullName ?? '') : '',
+      source: 'ai',
+      approved: true,
+      ...(term ? { term } : {}),
+    };
+    const fieldApprovals: NonNullable<Contact['fieldApprovals']> = {};
+    for (const f of cd.fields) {
+      if (f === 'fullName') {
+        if (!fullNameApproved) fieldApprovals.fullName = false;
+        continue;
+      }
+      const checked = cd.fieldApproved[f] !== false;
+      if (checked) {
+        const value = cd.values[f];
+        if (value) (contact as unknown as Record<ContactFieldKey, string>)[f] = value;
+      } else {
+        fieldApprovals[f] = false;
+      }
+    }
+    if (Object.keys(fieldApprovals).length > 0) contact.fieldApprovals = fieldApprovals;
+    newContacts.push(contact);
+  }
+
+  return { newContacts, updates };
+}
+
+/** Renders one learning-objective line with minimal inline markdown -
+ * `**bold**` only, per the extraction prompt's own "may contain light
+ * emphasis" note. Deliberately not a markdown library for one regex pass. */
+function renderInlineMarkdown(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
+  return parts.map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') && part.length > 4 ? (
+      <strong key={i}>{part.slice(2, -2)}</strong>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
 }
 
 /** Classifies a caught extraction error into a user-facing bucket so the UI
@@ -138,6 +373,23 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
    * caption. Empty string is valid input mid-edit; falls back to the
    * original upload's name at save time if left blank. */
   const [fileName, setFileName] = useState('');
+  /** One objective per line, freely rewritable - defaults to the extracted
+   * bullets joined by newlines. Kept as raw editable text rather than an
+   * array so a student can restructure freely, split back into lines at
+   * render/save time. */
+  const [learningObjectivesText, setLearningObjectivesText] = useState('');
+  /** Whether the objectives section renders at all - set once at extraction
+   * time from whether Claude found any, independent of later edits (mirrors
+   * the "Claude also caught" notes/skipDates section, which stays visible
+   * once populated even as its content is edited). */
+  const [hasLearningObjectives, setHasLearningObjectives] = useState(false);
+  const [learningObjectivesApproved, setLearningObjectivesApproved] = useState(true);
+  const [contactDrafts, setContactDrafts] = useState<DraftContact[]>([]);
+  /** Set once the course + schedule items have actually been persisted, so
+   * a later contacts-save failure can keep the modal open to show that
+   * failure without letting a second Confirm click create a duplicate
+   * course. Cleared on full success/close and on reset. */
+  const [savedCourseId, setSavedCourseId] = useState<string | null>(null);
 
   const reset = () => {
     setStep('upload');
@@ -147,6 +399,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     setItems([]);
     setUnresolved([]);
     setFileName('');
+    setLearningObjectivesText('');
+    setHasLearningObjectives(false);
+    setLearningObjectivesApproved(true);
+    setContactDrafts([]);
+    setSavedCourseId(null);
     setRerunCount(0);
     setShowRerunConfirm(false);
     initialDraftRef.current = null;
@@ -218,10 +475,17 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         approved: item.dueDate !== null,
       }));
       const nextUnresolved = result.unresolved;
+      const nextLearningObjectivesText = result.course.learningObjectives.join('\n');
+      const nextHasLearningObjectives = result.course.learningObjectives.length > 0;
+      const nextContactDrafts = buildContactDrafts(result.course.contacts, state.contacts);
 
       setCourse(nextCourse);
       setItems(nextItems);
       setUnresolved(nextUnresolved);
+      setLearningObjectivesText(nextLearningObjectivesText);
+      setHasLearningObjectives(nextHasLearningObjectives);
+      setLearningObjectivesApproved(true);
+      setContactDrafts(nextContactDrafts);
       setFileName(
         dedupeSuggestedFileName(
           state.courses,
@@ -232,11 +496,15 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       );
       // Baseline for the SY-5 "did the student already edit this?" check -
       // taken from the exact objects just written to state, minus the
-      // synthetic per-item `key` used only for React list identity.
+      // synthetic per-item/per-contact `key` used only for React list
+      // identity.
       initialDraftRef.current = JSON.stringify({
         course: nextCourse,
         items: nextItems.map(omitDraftKey),
         unresolved: nextUnresolved,
+        learningObjectivesText: nextLearningObjectivesText,
+        learningObjectivesApproved: true,
+        contactDrafts: nextContactDrafts.map(omitContactDraftKey),
       });
       setStep('review');
     } catch (err) {
@@ -268,6 +536,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       course,
       items: items.map(omitDraftKey),
       unresolved,
+      learningObjectivesText,
+      learningObjectivesApproved,
+      contactDrafts: contactDrafts.map(omitContactDraftKey),
     });
     return current !== initialDraftRef.current;
   };
@@ -348,6 +619,31 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     setCourse((c) => (c ? { ...c, materials: c.materials.filter((_, i) => i !== index) } : c));
   };
 
+  const setContactSelection = (key: string, selection: DraftContact['selection']) => {
+    setContactDrafts((prev) => prev.map((c) => (c.key === key ? { ...c, selection } : c)));
+  };
+
+  const toggleContactField = (key: string, field: ContactFieldKey) => {
+    setContactDrafts((prev) =>
+      prev.map((c) =>
+        c.key === key
+          ? {
+              ...c,
+              fieldApproved: { ...c.fieldApproved, [field]: c.fieldApproved[field] === false },
+            }
+          : c,
+      ),
+    );
+  };
+
+  // Recomputed on every render from the freely-edited textarea rather than
+  // stored separately, so the live bullet preview below always matches
+  // exactly what will be saved.
+  const learningObjectivesLines = learningObjectivesText
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+
   const approvedCount = items.filter((i) => i.approved).length;
   // Counts for the VA-3 post-extraction summary chip: high-stakes uses the
   // same `highStakes` flag the per-item badge already renders below, and
@@ -404,6 +700,12 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         ...(course.materials.length ? { materials: course.materials.filter(Boolean) } : {}),
         ...(course.skipDates.length ? { skipDates: course.skipDates } : {}),
         ...(course.notes ? { notes: course.notes } : {}),
+        // Only written when the student left "Save to course" checked -
+        // unchecking it means "not now", not "erase what Claude found", so
+        // the extraction itself is never persisted as unapproved.
+        ...(learningObjectivesApproved && learningObjectivesLines.length > 0
+          ? { learningObjectives: learningObjectivesLines, learningObjectivesApproved: true }
+          : {}),
       };
       const approved = items.filter((it) => it.approved && it.dueDate);
       const scheduleItems: ScheduleItem[] = approved.map((it) => ({
@@ -434,6 +736,35 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
           // Non-fatal: the course and tasks are already saved. The user can
           // re-upload the PDF from the course page if this fails.
         }
+      }
+
+      // The course and its schedule items are now safely persisted - a
+      // contacts failure from here on must never read as "the whole
+      // autofill failed" and must never risk a duplicate course being
+      // created by a retry, since there's nothing left here to retry.
+      const { newContacts, updates } = buildContactsToSave(
+        contactDrafts,
+        state.contacts,
+        newCourse.id,
+        course.term || undefined,
+      );
+      try {
+        if (newContacts.length > 0) {
+          await createContacts(user.uid, newContacts, dispatch);
+        }
+        for (const { previous, updated } of updates) {
+          await updateContact(user.uid, previous, updated, dispatch);
+        }
+      } catch (err) {
+        setError(
+          `Course saved, but contacts couldn't be saved: ${
+            err instanceof Error ? err.message : 'please try again from the course page.'
+          }`,
+        );
+        setSavedCourseId(newCourse.id);
+        setStep('review');
+        router.push(`/courses/${newCourse.id}`);
+        return;
       }
 
       handleClose();
@@ -467,9 +798,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
               Let Claude read it, you decide what sticks
             </h2>
             <p className="mt-1.5 max-w-xl text-sm text-white/80">
-              Grade weights, high-stakes deadlines, and easy-to-miss dates get buried in a long
-              PDF &mdash; Claude pulls them out so nothing slips by, and you approve every one
-              before it hits your calendar.
+              Grade weights, high-stakes deadlines, and easy-to-miss dates get buried in a long PDF
+              &mdash; Claude pulls them out so nothing slips by, and you approve every one before it
+              hits your calendar.
             </p>
             <div className="mt-5">
               <StepIndicator step={step} />
@@ -566,9 +897,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   tabIndex={0}
                   className={cn(
                     'flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-16 text-center cursor-pointer transition-colors',
-                    dragActive
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:bg-accent/60',
+                    dragActive ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent/60',
                   )}
                 >
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -953,6 +1282,182 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   </section>
                 )}
 
+                {hasLearningObjectives && (
+                  <section
+                    className="review-reveal space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4"
+                    style={{ animationDelay: '165ms' }}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s4.332.477 5.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                          />
+                        </svg>
+                        Learning objectives
+                      </h3>
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={learningObjectivesApproved}
+                          onChange={(e) => setLearningObjectivesApproved(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+                        />
+                        Save to course
+                      </label>
+                    </div>
+                    {learningObjectivesLines.length > 0 && (
+                      <ul className="space-y-1 text-xs text-foreground">
+                        {learningObjectivesLines.map((line, i) => (
+                          <li key={i} className="flex gap-1.5">
+                            <span className="text-primary">&bull;</span>
+                            <span>{renderInlineMarkdown(line)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="space-y-1">
+                      <label
+                        htmlFor="autofill-learning-objectives"
+                        className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        Edit &mdash; one per line
+                      </label>
+                      <textarea
+                        id="autofill-learning-objectives"
+                        value={learningObjectivesText}
+                        onChange={(e) => setLearningObjectivesText(e.target.value)}
+                        rows={4}
+                        placeholder="One objective per line"
+                        className="w-full resize-none rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Uncheck &quot;Save to course&quot; to skip saving these for now without losing
+                      what Claude found.
+                    </p>
+                  </section>
+                )}
+
+                {contactDrafts.length > 0 && (
+                  <section className="space-y-3">
+                    <div
+                      className="review-reveal flex flex-wrap items-center justify-between gap-2"
+                      style={{ animationDelay: '172ms' }}
+                    >
+                      <h3 className="text-sm font-semibold text-foreground">Contacts</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {contactDrafts.map((cd, i) => {
+                        const match = cd.matchId
+                          ? state.contacts.find((c) => c.id === cd.matchId)
+                          : undefined;
+                        return (
+                          <div
+                            key={cd.key}
+                            className="review-reveal rounded-xl border border-border bg-card p-3 text-xs"
+                            style={{ animationDelay: `${Math.min(172 + i * 30, 300)}ms` }}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-accent px-2 py-0.5 font-semibold text-foreground">
+                                {cd.role === 'professor' ? 'Professor' : 'TA'}
+                              </span>
+                              <span className="font-semibold text-foreground">
+                                {cd.values.fullName}
+                              </span>
+                            </div>
+
+                            {match && (
+                              <div className="mt-2 space-y-2 rounded-lg border border-load-medium/30 bg-load-medium/10 p-2">
+                                <p className="text-foreground">
+                                  This looks like <strong>{match.fullName}</strong> you already
+                                  have.
+                                </p>
+                                <div className="flex w-fit overflow-hidden rounded-full border border-border">
+                                  <button
+                                    type="button"
+                                    onClick={() => setContactSelection(cd.key, 'existing')}
+                                    className={cn(
+                                      'px-2.5 py-1 font-semibold transition-colors',
+                                      cd.selection === 'existing'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-card text-muted-foreground hover:bg-accent',
+                                    )}
+                                  >
+                                    Use existing
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setContactSelection(cd.key, 'new')}
+                                    className={cn(
+                                      'border-l border-border px-2.5 py-1 font-semibold transition-colors',
+                                      cd.selection === 'new'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-card text-muted-foreground hover:bg-accent',
+                                    )}
+                                  >
+                                    Save as new/updated
+                                  </button>
+                                </div>
+                                {cd.diffFields.length > 0 && (
+                                  <div className="space-y-1">
+                                    {cd.diffFields.map((f) => (
+                                      <div
+                                        key={f}
+                                        className="grid grid-cols-2 gap-2 rounded-md bg-card px-2 py-1.5"
+                                      >
+                                        <div>
+                                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                            {CONTACT_FIELD_LABELS[f]} &mdash; existing
+                                          </div>
+                                          <div className="text-foreground">{match[f] || '—'}</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                            {CONTACT_FIELD_LABELS[f]} &mdash; extracted
+                                          </div>
+                                          <div className="text-foreground">
+                                            {cd.values[f] || '—'}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
+                              {cd.fields.map((f) => (
+                                <label key={f} className="flex items-center gap-1.5">
+                                  <input
+                                    type="checkbox"
+                                    checked={cd.fieldApproved[f] !== false}
+                                    onChange={() => toggleContactField(cd.key, f)}
+                                    className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+                                  />
+                                  <span className="text-foreground">
+                                    {CONTACT_FIELD_LABELS[f]}:{' '}
+                                    <span className="text-muted-foreground">{cd.values[f]}</span>
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
                 <section className="space-y-3">
                   <div
                     className="review-reveal flex flex-wrap items-center justify-between gap-2"
@@ -1151,27 +1656,42 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
             )}
           </CardContent>
 
-          {(step === 'review' || step === 'saving') && (
-            <CardFooter className="flex-wrap justify-end gap-2 border-t border-border bg-accent/20 px-6 py-4 sm:px-8">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={step === 'saving' || !course?.code || !course?.title}
-                className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {step === 'saving'
-                  ? 'Saving...'
-                  : `Add Course & ${approvedCount} Task${approvedCount === 1 ? '' : 's'}`}
-              </button>
-            </CardFooter>
-          )}
+          {(step === 'review' || step === 'saving') &&
+            (savedCourseId ? (
+              // The course + schedule items already landed successfully;
+              // only the contacts write failed. Confirm is deliberately not
+              // offered here - clicking it again would create a second,
+              // duplicate course instead of retrying the part that failed.
+              <CardFooter className="flex-wrap justify-end gap-2 border-t border-border bg-accent/20 px-6 py-4 sm:px-8">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90"
+                >
+                  Close
+                </button>
+              </CardFooter>
+            ) : (
+              <CardFooter className="flex-wrap justify-end gap-2 border-t border-border bg-accent/20 px-6 py-4 sm:px-8">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={step === 'saving' || !course?.code || !course?.title}
+                  className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {step === 'saving'
+                    ? 'Saving...'
+                    : `Add Course & ${approvedCount} Task${approvedCount === 1 ? '' : 's'}`}
+                </button>
+              </CardFooter>
+            ))}
         </Card>
       </div>
 
