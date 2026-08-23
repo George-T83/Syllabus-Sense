@@ -33,6 +33,10 @@ export interface Course {
   instructor?: string;
   /** HEX or Tailwind class for color coding this course in UI elements */
   color?: string;
+  /** One of COURSE_ICON_PRESETS (lib/courseIcons.ts) - a subject glyph
+   * shown alongside color, e.g. a flask for a science course. Missing or
+   * unrecognized values resolve to the default via resolveCourseIcon(). */
+  icon?: string;
   /** The academic term, e.g., 'Fall 2026' */
   term?: string;
   /** Free-text notes about the course */
@@ -88,8 +92,17 @@ export interface ScheduleItem {
   dueDate: string;
   /** Estimated hours required to complete this task */
   estimatedHours?: number;
-  /** Completion status of the task */
+  /** Completion status of the task - the sole authoritative "done" signal.
+   * `progress` below is a separate, softer measure and never overrides this. */
   completed: boolean;
+  /** Self-reported completion progress, 0-100. Undefined or 0 means not
+   * started; a value above 0 (while `completed` is still false) means in
+   * progress. Feeds the workload engine's remaining-hours estimate (see
+   * getBaseEffectiveHours in lib/workload/dailyLoad.ts) so a half-finished
+   * project counts as half its estimated hours instead of its full estimate
+   * right up until the moment it's checked done. See lib/taskStatus.ts for
+   * the derived not_started/in_progress/completed status every surface uses. */
+  progress?: number;
   /** User-assigned priority */
   priority?: Priority;
   /** Free-text notes */

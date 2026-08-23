@@ -84,6 +84,9 @@ const config: Config = {
         // (globals.css) so the same class works in light and dark.
         card: 'var(--card-shadow)',
         'card-hover': 'var(--card-shadow-hover)',
+        // Modal v1: a distinct, deeper elevation tier for true modal-overlay
+        // surfaces (dialogs, sheets), theme-aware via --modal-shadow.
+        modal: 'var(--modal-shadow)',
       },
     },
   },

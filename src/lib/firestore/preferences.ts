@@ -8,12 +8,20 @@ export interface UserPreferences {
   dailyDigest: boolean;
   deadlineReminders: boolean;
   weeklyRecap: boolean;
+  /** Which TaskRow visual density the student wants used everywhere the
+   * app renders a task - 'card' (tinted background, denser info) or
+   * 'touch' (top accent bar, large circular checkbox, built for tapping
+   * on a phone). Set from Profile; synced the same as every other
+   * preference here, so it's realtime and follows the account across
+   * devices rather than being a per-browser setting. */
+  taskRowVariant: 'card' | 'touch';
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   dailyDigest: true,
   deadlineReminders: true,
   weeklyRecap: false,
+  taskRowVariant: 'card',
 };
 
 function requireDb() {

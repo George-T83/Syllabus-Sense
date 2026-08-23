@@ -2,14 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from '@/components/ui/Card';
+import { Card, CardContent, CardFooter } from '@/components/ui/Card';
 import { validateSyllabusFile } from '@/lib/validation/syllabusFile';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { courseFormSchema } from '@/lib/validation/course';
@@ -17,7 +10,9 @@ import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import { COURSE_COLOR_PRESETS, pickNextCourseColor } from '@/lib/courseColors';
+import { COURSE_COLOR_PRESETS, courseSwatch, pickSuggestedCourseColor } from '@/lib/courseColors';
+import { COURSE_ICON_PRESETS, pickSuggestedCourseIcon } from '@/lib/courseIcons';
+import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 import { cn } from '@/lib/utils';
 import type {
   ExtractedMeetingTime,
@@ -45,13 +40,20 @@ const TYPE_LABELS: Record<AssignmentType, string> = {
 
 type Step = 'upload' | 'extracting' | 'review' | 'saving';
 
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'upload', label: 'Upload' },
+  { key: 'extracting', label: 'Parse' },
+  { key: 'review', label: 'Review' },
+  { key: 'saving', label: 'Save' },
+];
+
 interface DraftItem extends ExtractedScheduleItem {
   /** Local id for React keys/editing - not persisted as-is. */
   key: string;
   /** Whether this item will be created when the user confirms. Items with
-   * no resolvable date start unchecked and locked until a date is filled
+   * no resolvable date start rejected and locked until a date is filled
    * in, so nothing with a fabricated date silently lands on the calendar. */
-  include: boolean;
+  approved: boolean;
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -80,6 +82,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [rerunCount, setRerunCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [course, setCourse] = useState<{
@@ -88,6 +91,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     instructor: string;
     term: string;
     color: string;
+    icon: string;
     modality: CourseModality | undefined;
     meetingTimes: MeetingTime[];
     materials: string[];
@@ -96,6 +100,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   } | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
   const [unresolved, setUnresolved] = useState<string[]>([]);
+  /** Claude's suggested syllabus file name, freely editable - not just a
+   * caption. Empty string is valid input mid-edit; falls back to the
+   * original upload's name at save time if left blank. */
+  const [fileName, setFileName] = useState('');
 
   const reset = () => {
     setStep('upload');
@@ -104,6 +112,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     setCourse(null);
     setItems([]);
     setUnresolved([]);
+    setFileName('');
+    setRerunCount(0);
   };
 
   const handleClose = () => {
@@ -119,16 +129,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
   if (!open) return null;
 
-  const handleFile = async (selected: File) => {
-    const result = validateSyllabusFile(selected);
-    if (!result.valid) {
-      setError(result.error ?? 'Invalid file.');
-      return;
-    }
+  const runExtraction = async (selected: File) => {
     setError(null);
-    setFile(selected);
     setStep('extracting');
-
     try {
       if (!user) throw new Error('You must be signed in.');
       const idToken = await user.getIdToken();
@@ -147,11 +150,21 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         title: result.course.title,
         instructor: result.course.instructor ?? '',
         term: result.course.term ?? '',
-        // Auto-assigned to whichever preset is least represented among the
-        // user's existing courses, so extracted courses don't all default
-        // to the same blue - the user can still change it on the review
-        // screen before confirming.
-        color: pickNextCourseColor(state.courses),
+        // Claude's subject-matched suggestion when it made one and it isn't
+        // already taken by another of this term's courses; otherwise falls
+        // back to whichever preset is least represented so extracted
+        // courses don't all default to the same blue. Either way, the user
+        // can still change it on the review screen before confirming.
+        color: pickSuggestedCourseColor(
+          state.courses,
+          result.course.term,
+          result.course.suggestedColor,
+        ),
+        icon: pickSuggestedCourseIcon(
+          state.courses,
+          result.course.term,
+          result.course.suggestedIcon,
+        ),
         modality: result.course.modality ?? undefined,
         meetingTimes: result.course.meetingTimes.map((m: ExtractedMeetingTime) => ({
           dayOfWeek: m.dayOfWeek,
@@ -167,15 +180,43 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         result.scheduleItems.map((item, i) => ({
           ...item,
           key: `${i}-${item.title}`,
-          include: item.dueDate !== null,
+          approved: item.dueDate !== null,
         })),
       );
       setUnresolved(result.unresolved);
+      setFileName(
+        dedupeSuggestedFileName(
+          state.courses,
+          result.course.term,
+          result.course.code,
+          result.course.suggestedFileName,
+        ),
+      );
       setStep('review');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Extraction failed. Please try again.');
-      setStep('upload');
+      setStep(course ? 'review' : 'upload');
     }
+  };
+
+  const handleFile = async (selected: File) => {
+    const result = validateSyllabusFile(selected);
+    if (!result.valid) {
+      setError(result.error ?? 'Invalid file.');
+      return;
+    }
+    setFile(selected);
+    await runExtraction(selected);
+  };
+
+  /** "Reject and send it back to the AI": discards the current draft and
+   * re-runs extraction on the same uploaded file. A fresh pass can land
+   * differently since the model isn't deterministic, and it's cheaper than
+   * asking the student to re-upload. */
+  const handleRerun = async () => {
+    if (!file) return;
+    setRerunCount((n) => n + 1);
+    await runExtraction(file);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -187,6 +228,14 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
   const updateItem = (key: string, patch: Partial<DraftItem>) => {
     setItems((prev) => prev.map((it) => (it.key === key ? { ...it, ...patch } : it)));
+  };
+
+  const approveAll = () => {
+    setItems((prev) => prev.map((it) => ({ ...it, approved: it.dueDate !== null })));
+  };
+
+  const rejectAll = () => {
+    setItems((prev) => prev.map((it) => ({ ...it, approved: false })));
   };
 
   const updateMeeting = (index: number, patch: Partial<MeetingTime>) => {
@@ -215,6 +264,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     setCourse((c) => (c ? { ...c, materials: c.materials.filter((_, i) => i !== index) } : c));
   };
 
+  const approvedCount = items.filter((i) => i.approved).length;
+
   const handleConfirm = async () => {
     if (!course || !user) return;
 
@@ -228,7 +279,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       return;
     }
     for (const it of items) {
-      if (!it.include || !it.dueDate) continue;
+      if (!it.approved || !it.dueDate) continue;
       const itemCheck = scheduleItemFormSchema.safeParse({
         title: it.title,
         type: it.type,
@@ -253,6 +304,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         code: course.code,
         title: course.title,
         color: course.color,
+        icon: course.icon,
         source: 'ai',
         ...(course.instructor ? { instructor: course.instructor } : {}),
         ...(course.term ? { term: course.term } : {}),
@@ -262,8 +314,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         ...(course.skipDates.length ? { skipDates: course.skipDates } : {}),
         ...(course.notes ? { notes: course.notes } : {}),
       };
-      const included = items.filter((it) => it.include && it.dueDate);
-      const scheduleItems: ScheduleItem[] = included.map((it) => ({
+      const approved = items.filter((it) => it.approved && it.dueDate);
+      const scheduleItems: ScheduleItem[] = approved.map((it) => ({
         id: crypto.randomUUID(),
         courseId: newCourse.id,
         title: it.title,
@@ -286,7 +338,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
       if (file) {
         try {
-          await saveSyllabusPdf(user.uid, newCourse.id, file);
+          await saveSyllabusPdf(user.uid, newCourse.id, withFileName(file, fileName));
         } catch {
           // Non-fatal: the course and tasks are already saved. The user can
           // re-upload the PDF from the course page if this fails.
@@ -303,7 +355,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4 py-8"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4 py-8 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="autofill-title"
@@ -312,21 +364,43 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="max-h-full w-full max-w-2xl overflow-y-auto outline-none"
+        className="max-h-full w-full max-w-3xl overflow-y-auto outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card>
-          <CardHeader>
-            <CardTitle id="autofill-title">Autofill from Syllabus</CardTitle>
-            <CardDescription>
-              Upload a syllabus PDF or Word doc and review what Claude found before it&apos;s added.
-            </CardDescription>
-          </CardHeader>
+        <Card className="overflow-hidden rounded-3xl border-none p-0 shadow-modal">
+          <div className="bg-gradient-brand px-6 py-6 text-white sm:px-8">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
+              Syllabus Autofill
+            </p>
+            <h2 id="autofill-title" className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
+              Let Claude read it, you decide what sticks
+            </h2>
+            <p className="mt-1.5 max-w-xl text-sm text-white/80">
+              Upload a syllabus, review every field and assignment Claude drafted, and approve only
+              what you want on your calendar.
+            </p>
+            <div className="mt-5">
+              <StepIndicator step={step} />
+            </div>
+          </div>
 
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5 p-6 sm:p-8">
             {error && (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
+              <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+                <svg
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <span>{error}</span>
               </div>
             )}
 
@@ -342,11 +416,26 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 role="button"
                 tabIndex={0}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-10 text-center cursor-pointer transition-colors',
-                  dragActive ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent',
+                  'flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-16 text-center cursor-pointer transition-colors',
+                  dragActive ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent/60',
                 )}
               >
-                <span className="text-sm font-medium text-foreground">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.75}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v9m0-9l-3 3m3-3l3 3"
+                    />
+                  </svg>
+                </span>
+                <span className="text-sm font-semibold text-foreground">
                   Drop a syllabus PDF or Word doc here, or click to browse
                 </span>
                 <span className="text-xs text-muted-foreground">PDF or .docx, up to 10MB</span>
@@ -365,95 +454,185 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
             )}
 
             {step === 'extracting' && (
-              <div className="flex flex-col items-center justify-center gap-3 py-14">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-sm text-muted-foreground">Reading your syllabus...</p>
+              <div className="flex flex-col items-center justify-center gap-4 py-16">
+                <div className="relative h-12 w-12">
+                  <div className="spinner-gradient absolute inset-0 animate-spin rounded-full" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-foreground">
+                    {rerunCount > 0 ? 'Giving it another pass...' : 'Reading your syllabus...'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Finding the course details, every assignment, and a color and icon that fit.
+                  </p>
+                </div>
               </div>
             )}
 
             {(step === 'review' || step === 'saving') && course && (
               <div className="space-y-6">
-                <section className="space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">Course</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <TextField
-                      id="autofill-course-code"
-                      label="Code"
-                      value={course.code}
-                      onChange={(v) => setCourse((c) => c && { ...c, code: v })}
-                    />
-                    <TextField
-                      id="autofill-course-term"
-                      label="Term"
-                      value={course.term}
-                      onChange={(v) => setCourse((c) => c && { ...c, term: v })}
-                    />
+                <section
+                  className="review-reveal space-y-4 rounded-2xl border border-border bg-accent/30 p-4 sm:p-5"
+                  style={{ animationDelay: '0ms' }}
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      className={cn(
+                        'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm',
+                        courseSwatch(course.color).className,
+                      )}
+                      style={courseSwatch(course.color).style}
+                    >
+                      <CourseIconGlyph icon={course.icon} className="h-6 w-6" />
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <TextField
+                          id="autofill-course-code"
+                          label="Code"
+                          value={course.code}
+                          onChange={(v) => setCourse((c) => c && { ...c, code: v })}
+                        />
+                        <TextField
+                          id="autofill-course-term"
+                          label="Term"
+                          value={course.term}
+                          onChange={(v) => setCourse((c) => c && { ...c, term: v })}
+                        />
+                      </div>
+                      <TextField
+                        id="autofill-course-title"
+                        label="Title"
+                        value={course.title}
+                        onChange={(v) => setCourse((c) => c && { ...c, title: v })}
+                      />
+                    </div>
                   </div>
-                  <TextField
-                    id="autofill-course-title"
-                    label="Title"
-                    value={course.title}
-                    onChange={(v) => setCourse((c) => c && { ...c, title: v })}
-                  />
+
                   <TextField
                     id="autofill-course-instructor"
                     label="Instructor"
                     value={course.instructor}
                     onChange={(v) => setCourse((c) => c && { ...c, instructor: v })}
                   />
-                  <div className="flex flex-wrap gap-2">
-                    {COURSE_COLOR_PRESETS.map((preset) => (
-                      <button
-                        key={preset.value}
-                        type="button"
-                        aria-label={preset.value}
-                        onClick={() => setCourse((c) => c && { ...c, color: preset.value })}
+
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground">Color</span>
+                    <div className="flex flex-wrap gap-2">
+                      {COURSE_COLOR_PRESETS.map((preset) => (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          aria-label={preset.value}
+                          onClick={() => setCourse((c) => c && { ...c, color: preset.value })}
+                          className={cn(
+                            'h-7 w-7 rounded-full transition-transform',
+                            preset.value,
+                            course.color === preset.value
+                              ? 'ring-2 ring-offset-2 ring-primary ring-offset-card scale-110'
+                              : 'hover:scale-110',
+                          )}
+                        />
+                      ))}
+                      <label
+                        aria-label="Custom color"
+                        title="Custom color"
                         className={cn(
-                          'h-6 w-6 rounded-full transition-transform',
-                          preset.value,
-                          course.color === preset.value
-                            ? 'ring-2 ring-offset-2 ring-primary ring-offset-card scale-110'
-                            : 'hover:scale-110',
+                          'relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-transform hover:scale-110',
+                          course.color.startsWith('#') &&
+                            'border-solid ring-2 ring-offset-2 ring-primary ring-offset-card scale-110',
                         )}
-                      />
-                    ))}
-                    <label
-                      aria-label="Custom color"
-                      title="Custom color"
-                      className={cn(
-                        'relative flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-transform hover:scale-110',
-                        course.color.startsWith('#') &&
-                          'border-solid ring-2 ring-offset-2 ring-primary ring-offset-card scale-110',
-                      )}
-                      style={
-                        course.color.startsWith('#')
-                          ? { backgroundColor: course.color, borderStyle: 'solid' }
-                          : undefined
-                      }
-                    >
-                      {!course.color.startsWith('#') && (
-                        <svg
-                          className="h-3 w-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
+                        style={
+                          course.color.startsWith('#')
+                            ? { backgroundColor: course.color, borderStyle: 'solid' }
+                            : undefined
+                        }
+                      >
+                        {!course.color.startsWith('#') && (
+                          <svg
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                        )}
+                        <input
+                          type="color"
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          value={course.color.startsWith('#') ? course.color : '#7c3aed'}
+                          onChange={(e) => setCourse((c) => c && { ...c, color: e.target.value })}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground">Icon</span>
+                    <div className="flex flex-wrap gap-2">
+                      {COURSE_ICON_PRESETS.map((preset) => (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          title={preset.label}
+                          aria-label={preset.label}
+                          onClick={() => setCourse((c) => c && { ...c, icon: preset.value })}
+                          className={cn(
+                            'flex h-8 w-8 items-center justify-center rounded-full border text-muted-foreground transition-colors',
+                            course.icon === preset.value
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border bg-card hover:bg-accent',
+                          )}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                        </svg>
-                      )}
-                      <input
-                        type="color"
-                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                        value={course.color.startsWith('#') ? course.color : '#7c3aed'}
-                        onChange={(e) => setCourse((c) => c && { ...c, color: e.target.value })}
-                      />
+                          <CourseIconGlyph icon={preset.value} className="h-4 w-4" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="autofill-filename"
+                      className="text-xs font-semibold text-muted-foreground"
+                    >
+                      Syllabus file name
                     </label>
+                    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+                      <svg
+                        className="h-4 w-4 shrink-0 text-muted-foreground"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.75}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <input
+                        id="autofill-filename"
+                        value={fileName}
+                        onChange={(e) => setFileName(e.target.value)}
+                        placeholder={file?.name ?? 'Syllabus'}
+                        className="min-w-0 flex-1 bg-transparent text-sm text-foreground focus:outline-none"
+                      />
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {extensionOf(file?.name)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Color, icon, and this file name are Claude&apos;s suggestions &mdash; every
+                      one is editable.
+                    </p>
                   </div>
                 </section>
 
                 {course.meetingTimes.length > 0 && (
-                  <section className="space-y-2">
+                  <section className="review-reveal space-y-2" style={{ animationDelay: '60ms' }}>
                     <h3 className="text-sm font-semibold text-foreground">Meeting times</h3>
                     {course.meetingTimes.map((m, i) => (
                       <div
@@ -503,7 +682,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 )}
 
                 {course.materials.length > 0 && (
-                  <section className="space-y-2">
+                  <section className="review-reveal space-y-2" style={{ animationDelay: '120ms' }}>
                     <h3 className="text-sm font-semibold text-foreground">
                       Materials &amp; supplies
                     </h3>
@@ -528,33 +707,107 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   </section>
                 )}
 
-                <section className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Schedule items ({items.filter((i) => i.include).length} of {items.length}{' '}
-                    selected)
-                  </h3>
+                <section className="space-y-3">
+                  <div
+                    className="review-reveal flex flex-wrap items-center justify-between gap-2"
+                    style={{ animationDelay: '180ms' }}
+                  >
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Assignments
+                      <span className="ml-1.5 font-normal text-muted-foreground">
+                        {approvedCount} of {items.length} approved
+                      </span>
+                    </h3>
+                    {items.length > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={approveAll}
+                          className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+                        >
+                          Approve all
+                        </button>
+                        <button
+                          type="button"
+                          onClick={rejectAll}
+                          className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                        >
+                          Reject all
+                        </button>
+                        {file && (
+                          <button
+                            type="button"
+                            onClick={handleRerun}
+                            className="ml-1 flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                            title="Not right? Discard this draft and ask Claude to re-read the file."
+                          >
+                            <svg
+                              className="h-3 w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2.25}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </svg>
+                            Not right? Re-run AI
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {items.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p
+                      className="review-reveal text-xs text-muted-foreground"
+                      style={{ animationDelay: '220ms' }}
+                    >
                       No dated items found in this syllabus.
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {items.map((it) => (
+                      {items.map((it, i) => (
                         <div
                           key={it.key}
                           className={cn(
-                            'rounded-lg border p-2.5 text-xs',
-                            it.include ? 'border-border' : 'border-dashed border-border opacity-70',
+                            'review-reveal rounded-xl border p-3 text-xs transition-colors',
+                            it.approved
+                              ? 'border-border bg-card'
+                              : 'border-dashed border-border/70 bg-transparent opacity-60',
                           )}
+                          style={{ animationDelay: `${Math.min(220 + i * 40, 580)}ms` }}
                         >
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={it.include}
-                              disabled={!it.dueDate}
-                              onChange={(e) => updateItem(it.key, { include: e.target.checked })}
-                              className="h-3.5 w-3.5 rounded border-border accent-primary"
-                            />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex shrink-0 overflow-hidden rounded-full border border-border">
+                              <button
+                                type="button"
+                                onClick={() => updateItem(it.key, { approved: true })}
+                                disabled={!it.dueDate}
+                                className={cn(
+                                  'px-2.5 py-1 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                                  it.approved
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-card text-muted-foreground hover:bg-accent',
+                                )}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateItem(it.key, { approved: false })}
+                                className={cn(
+                                  'border-l border-border px-2.5 py-1 font-semibold transition-colors',
+                                  !it.approved
+                                    ? 'bg-destructive/10 text-destructive'
+                                    : 'bg-card text-muted-foreground hover:bg-accent',
+                                )}
+                              >
+                                Reject
+                              </button>
+                            </div>
                             <input
                               value={it.title}
                               onChange={(e) => updateItem(it.key, { title: e.target.value })}
@@ -579,13 +832,13 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                               onChange={(e) =>
                                 updateItem(it.key, {
                                   dueDate: e.target.value || null,
-                                  include: e.target.value ? it.include : false,
+                                  approved: e.target.value ? it.approved : false,
                                 })
                               }
                               className="rounded-md border border-border bg-background px-1.5 py-1 text-foreground"
                             />
                           </div>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-6">
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-[4.5rem]">
                             {it.dateConfidence === 'approximate' && (
                               <span className="rounded-full bg-load-medium/10 px-2 py-0.5 font-semibold text-load-medium">
                                 ~ approximate date, please confirm
@@ -593,7 +846,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                             )}
                             {it.dateConfidence === 'unknown' && (
                               <span className="rounded-full bg-accent px-2 py-0.5 font-medium text-muted-foreground">
-                                No date found - add one to include this
+                                No date found - add one to approve this
                               </span>
                             )}
                             {it.highStakes && (
@@ -615,7 +868,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 </section>
 
                 {unresolved.length > 0 && (
-                  <section className="rounded-lg border border-load-medium/30 bg-load-medium/10 p-3">
+                  <section
+                    className="review-reveal rounded-xl border border-load-medium/30 bg-load-medium/10 p-3"
+                    style={{ animationDelay: '580ms' }}
+                  >
                     <h3 className="text-xs font-semibold text-load-medium">
                       Couldn&apos;t determine
                     </h3>
@@ -631,7 +887,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
           </CardContent>
 
           {(step === 'review' || step === 'saving') && (
-            <CardFooter className="justify-end gap-2">
+            <CardFooter className="flex-wrap justify-end gap-2 border-t border-border bg-accent/20 px-6 py-4 sm:px-8">
               <button
                 type="button"
                 onClick={handleClose}
@@ -645,7 +901,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 disabled={step === 'saving' || !course?.code || !course?.title}
                 className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {step === 'saving' ? 'Saving...' : 'Add Course & Tasks'}
+                {step === 'saving'
+                  ? 'Saving...'
+                  : `Add Course & ${approvedCount} Task${approvedCount === 1 ? '' : 's'}`}
               </button>
             </CardFooter>
           )}
@@ -653,6 +911,88 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       </div>
     </div>
   );
+}
+
+function StepIndicator({ step }: { step: Step }) {
+  const currentIndex = STEPS.findIndex((s) => s.key === step);
+  return (
+    <ol className="flex items-center gap-2">
+      {STEPS.map((s, i) => (
+        <li key={s.key} className="flex flex-1 items-center gap-2 last:flex-none">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span
+              className={cn(
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors',
+                i < currentIndex
+                  ? 'bg-white text-primary'
+                  : i === currentIndex
+                    ? 'bg-white/25 text-white ring-2 ring-white'
+                    : 'bg-white/15 text-white/60',
+              )}
+            >
+              {i < currentIndex ? (
+                <svg
+                  className="h-3 w-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                i + 1
+              )}
+            </span>
+            <span
+              className={cn(
+                'text-xs font-semibold whitespace-nowrap',
+                i <= currentIndex ? 'text-white' : 'text-white/50',
+              )}
+            >
+              {s.label}
+            </span>
+          </div>
+          {i < STEPS.length - 1 && (
+            <div className={cn('h-px flex-1', i < currentIndex ? 'bg-white/70' : 'bg-white/20')} />
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Suffixes Claude's suggested file name with a small disambiguator when
+ * another course this term already shares this course's code (e.g. two
+ * sections of the same class) - not a guarantee against every possible
+ * collision, just enough that the common case doesn't quietly produce two
+ * identically-named syllabus files. The user can still edit it either way. */
+function dedupeSuggestedFileName(
+  existingCourses: Pick<Course, 'code' | 'term'>[],
+  term: string | null | undefined,
+  code: string | undefined,
+  suggested: string | null | undefined,
+): string {
+  if (!suggested || !code) return suggested ?? '';
+  const collisions = existingCourses.filter((c) => c.term === term && c.code === code).length;
+  return collisions > 0 ? `${suggested} (${collisions + 1})` : suggested;
+}
+
+function extensionOf(name: string | undefined): string {
+  if (!name) return '';
+  const dotIndex = name.lastIndexOf('.');
+  return dotIndex > -1 ? name.slice(dotIndex) : '';
+}
+
+/** Renames a File to the (editable) suggested display name, keeping the
+ * original extension, so the syllabus shows up in the course's file list
+ * as e.g. "ECON 201 - Fall 2026 Syllabus.pdf" instead of whatever the
+ * source file happened to be called. Falls back to the original file
+ * untouched when the field was left blank. */
+function withFileName(file: File, name: string): File {
+  const trimmed = name.trim();
+  if (!trimmed) return file;
+  return new File([file], `${trimmed}${extensionOf(file.name)}`, { type: file.type });
 }
 
 /** Wraps the existing resumable-upload hook for a one-shot call outside of
@@ -693,14 +1033,14 @@ function TextField({
 }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="text-xs font-medium text-foreground">
+      <label htmlFor={id} className="text-xs font-semibold text-muted-foreground">
         {label}
       </label>
       <input
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        className="w-full rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
       />
     </div>
   );
