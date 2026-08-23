@@ -42,8 +42,5 @@ next-env.d.ts
 
 .vercel
 
-# local-only sample data, never committed
-/test-fixtures/
-
 # local browser automation profile, never committed
 /chrome-profile/
