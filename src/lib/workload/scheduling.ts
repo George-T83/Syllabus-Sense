@@ -1,10 +1,15 @@
 import type { ScheduleItem } from '@/types/schedule';
-import { WORKLOAD_LEVEL_THRESHOLDS } from './constants';
+import { DAILY_SCHEDULING_CAPACITY_HOURS, TIGHT_UTILIZATION_RATIO } from './constants';
 import { addDays, diffInDays, formatDateISO, toDateOnly } from './dateUtils';
 import { getBaseEffectiveHours } from './dailyLoad';
 
-/** Default per-day capacity (effective hours) the recommender tries not to exceed. Matches the 'medium' band ceiling. */
-export const DEFAULT_DAILY_CAPACITY_HOURS = WORKLOAD_LEVEL_THRESHOLDS.medium;
+/**
+ * Default per-day capacity (effective hours) the recommender tries not to
+ * exceed. See `DAILY_SCHEDULING_CAPACITY_HOURS` (constants.ts) for why this
+ * is a dedicated planning parameter rather than one of the display-band
+ * thresholds (PL-5).
+ */
+export const DEFAULT_DAILY_CAPACITY_HOURS = DAILY_SCHEDULING_CAPACITY_HOURS;
 
 export interface RecommendStartDateOptions {
   /** Max effective hours to allow on any single day before it's considered saturated. Defaults to the 'medium' threshold. */
@@ -22,6 +27,13 @@ export interface StudyStartRecommendation {
    * i.e. there isn't enough runway left, even starting today.
    */
   overloaded: boolean;
+  /**
+   * PL-5: true when the item isn't `overloaded`, but placing it required
+   * using a day at/above `TIGHT_UTILIZATION_RATIO` of capacity — runway
+   * technically exists, but at least one day in the plan is close to full.
+   * The middle tier between a comfortable day and a genuinely overloaded one.
+   */
+  tight: boolean;
 }
 
 /**
@@ -70,17 +82,21 @@ export function recommendStudyStartDate(
       startDate: dueDateKey,
       dailyAllocation: { [dueDateKey]: totalHours },
       overloaded: true,
+      tight: false,
     };
   }
 
   if (totalHours === 0) {
     // Nothing to schedule — recommend starting (and "finishing") on the due date.
-    return { startDate: dueDateKey, dailyAllocation: {}, overloaded: false };
+    return { startDate: dueDateKey, dailyAllocation: {}, overloaded: false, tight: false };
   }
 
   const allocation = new Map<string, number>();
   let remaining = totalHours;
   let cursor = due;
+  // PL-5: highest observed (existing + this item's allocation) / capacity
+  // across the days this item actually landed on, to derive the "tight" tier.
+  let peakUtilization = 0;
 
   // Walk backward from the due date through (and including) today.
   while (remaining > 1e-9) {
@@ -92,6 +108,10 @@ export function recommendStudyStartDate(
     if (allocated > 0) {
       allocation.set(dateKey, allocated);
       remaining -= allocated;
+      if (maxDailyHours > 0) {
+        const utilization = (existing + allocated) / maxDailyHours;
+        if (utilization > peakUtilization) peakUtilization = utilization;
+      }
     }
 
     if (diffInDays(cursor, today) <= 0) break; // reached the earliest available day
@@ -99,6 +119,7 @@ export function recommendStudyStartDate(
   }
 
   const overloaded = remaining > 1e-9;
+  const tight = !overloaded && peakUtilization >= TIGHT_UTILIZATION_RATIO;
 
   // Sort chronologically for a stable, readable dailyAllocation record.
   const sortedEntries = Array.from(allocation.entries()).sort(([a], [b]) =>
@@ -108,5 +129,5 @@ export function recommendStudyStartDate(
 
   const startDate = sortedEntries.length > 0 ? sortedEntries[0][0] : formatDateISO(today);
 
-  return { startDate, dailyAllocation, overloaded };
+  return { startDate, dailyAllocation, overloaded, tight };
 }

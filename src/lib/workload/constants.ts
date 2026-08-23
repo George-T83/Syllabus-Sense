@@ -94,3 +94,30 @@ export const WORKLOAD_LEVEL_LABELS = {
   high: 'High',
   critical: 'Extreme',
 } as const;
+
+/**
+ * PL-5: Daily effective-hours capacity the backward-fill recommender
+ * (`recommendStudyStartDate`) treats as a day's ceiling before it's
+ * considered saturated.
+ *
+ * Deliberately a dedicated planning parameter, decoupled from
+ * `WORKLOAD_LEVEL_THRESHOLDS` — those answer "how should this day *look*"
+ * for the 7-day forecast strip; this answers "how much can we actually
+ * still schedule on this day" for the recommender. It was previously
+ * aliased to the 'medium' display threshold (5h), which — combined with the
+ * uncapped backward-fill window — meant a genuinely full day almost never
+ * tripped `overloaded` in practice, so the engine's strongest signal never
+ * fired. 4h reflects realistic *remaining* focus capacity once classes,
+ * commute, and other commitments already claim part of the day, and is
+ * conservative enough that only a genuinely dense cluster of near-term,
+ * high-effort items (e.g. finals week) triggers it.
+ */
+export const DAILY_SCHEDULING_CAPACITY_HOURS = 4;
+
+/**
+ * PL-5: fraction of `DAILY_SCHEDULING_CAPACITY_HOURS` at/above which a day
+ * that is NOT overloaded is instead flagged "tight" — close to capacity but
+ * still schedulable. Gives the recommender a genuine 3-tier signal (normal /
+ * tight / overloaded) instead of only a binary normal/overloaded jump.
+ */
+export const TIGHT_UTILIZATION_RATIO = 0.85;
