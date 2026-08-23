@@ -33,6 +33,12 @@ import type { ScheduleItem } from '@/types/schedule';
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/** Below this many logged tasks, `progressPct` is too small a sample to read
+ * as a meaningful measure of how the class is going - a single seeded task
+ * marked done would otherwise render a triumphant full ring (CO-3). Below
+ * the threshold a muted outline stands in for the gradient ring. */
+const RING_MIN_TASK_COUNT = 3;
+
 export function CourseDetailView({ courseId }: { courseId: string }) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
@@ -189,9 +195,29 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 </div>
               </div>
               {items.length > 0 && (
-                <ProgressRing percent={progressPct} size={56} strokeWidth={6}>
-                  <span className="text-xs font-bold text-foreground">{progressPct}%</span>
-                </ProgressRing>
+                <div className="flex shrink-0 flex-col items-center gap-1">
+                  {items.length < RING_MIN_TASK_COUNT ? (
+                    // Too few tracked tasks for a percentage to mean anything -
+                    // a muted dashed outline stands in for the bold gradient
+                    // arc so this doesn't read as a confident grade proxy.
+                    <div
+                      className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30"
+                      title="Not enough tracked tasks yet for a meaningful progress ring"
+                    >
+                      <span className="text-[11px] font-semibold text-muted-foreground">
+                        {completedCount}/{items.length}
+                      </span>
+                    </div>
+                  ) : (
+                    <ProgressRing percent={progressPct} size={56} strokeWidth={6}>
+                      <span className="text-xs font-bold text-foreground">{progressPct}%</span>
+                    </ProgressRing>
+                  )}
+                  <span className="max-w-[88px] text-center text-[10px] leading-tight text-muted-foreground">
+                    {completedCount} of {items.length} tracked task{items.length === 1 ? '' : 's'}{' '}
+                    done
+                  </span>
+                </div>
               )}
             </div>
 
@@ -340,6 +366,18 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                     trailing={
                       <>
+                        {/* Stakes badge (CO-5) - a 25%-of-grade exam and a
+                            zero-weight attendance check otherwise render as
+                            visual near-twins in this list. Only items with a
+                            real grade weight get the badge, so it stays a
+                            signal rather than noise on every row. Reuses
+                            TaskRow's existing `trailing` slot; TaskRow itself
+                            is untouched. */}
+                        {item.gradeWeight != null && item.gradeWeight > 0 && (
+                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                            {item.gradeWeight}% grade
+                          </span>
+                        )}
                         {overdue && (
                           <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
                             Overdue
