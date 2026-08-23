@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useAppState } from '@/context/AppStateContext';
+import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
@@ -30,14 +30,16 @@ export function CoursesListView() {
   const { courses, scheduleItems } = state;
 
   const [search, setSearch] = useState('');
-  // Defaults to "All Terms" rather than the global term switcher's active
-  // term (#101) - this page is where a student comes to find a specific
-  // course, including one from a past term, and a silently-narrowed default
-  // used to make older courses disappear with no indication a filter was
-  // hiding them (CO-2). Users can still narrow explicitly via the select
-  // below; each card is term-badged so identity stays clear once several
-  // terms are shown together.
-  const [termFilter, setTermFilter] = useState<string>('all');
+  // Defaults to the active term (same as the Dashboard/navbar), not "All
+  // Terms" - most visits are "what do I have this term," and narrowing by
+  // default reads better day to day. CO-2's original problem wasn't the
+  // narrowed default itself, it was that older courses vanished with zero
+  // indication a filter was hiding them. Solved instead with an always-on
+  // filter strip (below) that names the active term and surfaces exactly
+  // how many courses are hidden, one click from "All Terms." `null` means
+  // "no explicit choice yet" - follow the app-wide active term; setting the
+  // select to any concrete value (including 'all') overrides that.
+  const [termFilter, setTermFilter] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('code');
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
@@ -47,10 +49,21 @@ export function CoursesListView() {
     [courses],
   );
 
+  const activeTerm = useMemo(
+    () => resolveActiveTerm(state.selectedTerm, courses),
+    [state.selectedTerm, courses],
+  );
+  const effectiveTermFilter = termFilter ?? activeTerm ?? 'all';
+  const hiddenByTermCount =
+    effectiveTermFilter !== 'all'
+      ? courses.filter((c) => c.term !== effectiveTermFilter).length
+      : 0;
+
   const filteredCourses = useMemo(() => {
     let result = courses.slice();
 
-    if (termFilter !== 'all') result = result.filter((c) => c.term === termFilter);
+    if (effectiveTermFilter !== 'all')
+      result = result.filter((c) => c.term === effectiveTermFilter);
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -69,7 +82,7 @@ export function CoursesListView() {
     });
 
     return result;
-  }, [courses, search, termFilter, sortMode]);
+  }, [courses, search, effectiveTermFilter, sortMode]);
 
   const handleAddCourse = async (values: CourseFormValues) => {
     if (!user) throw new Error('You must be signed in to add a course.');
@@ -134,9 +147,16 @@ export function CoursesListView() {
             className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <select
-            value={termFilter}
+            value={effectiveTermFilter}
             onChange={(e) => setTermFilter(e.target.value)}
-            className={selectClass}
+            className={cn(
+              selectClass,
+              // Emphasized (bordered, tinted) whenever narrowed to one term,
+              // so a filter that's hiding courses is never just a quiet
+              // dropdown - it visibly looks "on."
+              effectiveTermFilter !== 'all' &&
+                'border-primary/50 bg-primary/5 font-semibold text-primary',
+            )}
           >
             <option value="all">All Terms</option>
             {terms.map((term) => (
@@ -155,6 +175,26 @@ export function CoursesListView() {
             <option value="term">Sort: Term</option>
           </select>
         </div>
+
+        {/* CO-2: names the active filter out loud and says exactly how many
+            courses it's hiding, so an older course never just silently
+            disappears - one click switches to All Terms. */}
+        {hiddenByTermCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <span>
+              Showing <span className="font-semibold">{effectiveTermFilter}</span> ·{' '}
+              {hiddenByTermCount} more {hiddenByTermCount === 1 ? 'course' : 'courses'} in other
+              terms.
+            </span>
+            <button
+              type="button"
+              onClick={() => setTermFilter('all')}
+              className="font-semibold text-primary hover:underline"
+            >
+              View all terms
+            </button>
+          </div>
+        )}
 
         {filteredCourses.length === 0 ? (
           <Card className="rounded-2xl p-6">
