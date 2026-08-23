@@ -4,13 +4,20 @@ import { cn } from '@/lib/utils';
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   interactive?: boolean;
   hoverable?: boolean;
-  /** Renders a brand-gradient bar along the card's top edge. */
-  accent?: boolean;
+  /**
+   * Renders a brand accent marking this card as visually important.
+   * `true` (or `"top"`) draws a gradient bar along the top edge; `"left"`
+   * draws a solid primary-colored border down the left edge instead - used
+   * to promote a single card as the dominant/primary one in a section.
+   */
+  accent?: boolean | 'top' | 'left';
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, children, interactive, hoverable, accent, ...props }, ref) => {
     const isInteractive = interactive || hoverable;
+    const accentTop = accent === true || accent === 'top';
+    const accentLeft = accent === 'left';
     return (
       <div
         ref={ref}
@@ -18,11 +25,12 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
           'relative rounded-glass border border-border bg-card/90 backdrop-blur-md shadow-card overflow-hidden',
           isInteractive &&
             'transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover',
+          accentLeft && 'border-l-[3px] border-l-primary',
           className,
         )}
         {...props}
       >
-        {accent && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-brand" />}
+        {accentTop && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-brand" />}
         {children}
       </div>
     );

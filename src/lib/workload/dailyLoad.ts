@@ -1,4 +1,5 @@
 import type { ScheduleItem, WorkloadLevel } from '@/types/schedule';
+import { clampProgress } from '@/lib/taskStatus';
 import {
   ASSIGNMENT_TYPE_WEIGHT,
   DEFAULT_ESTIMATED_HOURS,
@@ -31,10 +32,20 @@ export interface WorkloadOptions {
  * un-estimated item as zero load. A true 0-hour item (estimatedHours: 0) is
  * respected as zero, since that's an explicit user statement, not an absence
  * of data.
+ *
+ * The result is further scaled by how much of the item is *not yet* done
+ * (`1 - progress/100`), so a half-finished project counts as half its
+ * estimate instead of its full estimate right up until it's checked
+ * complete - this is the single choke point both `calculateDailyLoad` (today
+ * forward) and `recommendStudyStartDate` (backward from the due date) read
+ * through, so progress-aware remaining effort is consistent everywhere the
+ * workload engine is used. An item with no `progress` set behaves exactly as
+ * before (fraction of 1, no change).
  */
 export function getBaseEffectiveHours(item: ScheduleItem): number {
   const rawHours = item.estimatedHours ?? DEFAULT_ESTIMATED_HOURS[item.type];
-  return rawHours * ASSIGNMENT_TYPE_WEIGHT[item.type];
+  const remainingFraction = 1 - clampProgress(item.progress ?? 0) / 100;
+  return rawHours * ASSIGNMENT_TYPE_WEIGHT[item.type] * remainingFraction;
 }
 
 /**

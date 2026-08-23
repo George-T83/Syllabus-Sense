@@ -459,7 +459,7 @@ export function MonthCalendar() {
               role="dialog"
               aria-modal="true"
               aria-label="Filters"
-              className="relative z-10 flex max-h-[80vh] w-full flex-col rounded-t-2xl border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+              className="relative z-10 flex max-h-[80vh] w-full flex-col rounded-t-2xl border-t border-border bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-modal"
             >
               <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-border" />
               <div className="mb-4 flex items-center justify-between">
@@ -738,12 +738,15 @@ export function MonthCalendar() {
                       return (
                         <TaskRow
                           key={item.id}
+                          variant={state.preferences.taskRowVariant}
                           title={item.title}
                           href={`/tasks/${item.id}`}
                           type={item.type}
                           courseCode={course ? course.code : 'General'}
                           courseColor={course?.color}
+                          courseIcon={course?.icon}
                           completed={item.completed}
+                          progress={item.progress}
                           priority={item.priority}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                         />
@@ -841,6 +844,8 @@ function DayDetailCard({
   courseOf: (item: ScheduleItem) => Course | undefined;
   onToggleComplete?: (item: ScheduleItem) => void;
 }) {
+  const { state } = useAppState();
+
   return (
     <Card className="rounded-2xl p-6">
       <h3 className="text-base font-semibold text-foreground mb-3">
@@ -910,26 +915,40 @@ function DayDetailCard({
               <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Due
               </h4>
-              <div className="divide-y divide-border">
+              <div className="flex flex-col gap-2">
                 {items.map((item) => {
                   const course = courseOf(item);
                   return (
                     <TaskRow
                       key={item.id}
+                      variant={state.preferences.taskRowVariant}
                       title={item.title}
                       href={`/tasks/${item.id}`}
                       type={item.type}
                       courseCode={course ? course.code : 'General'}
                       courseColor={course?.color}
+                      courseIcon={course?.icon}
                       completed={item.completed}
+                      progress={item.progress}
                       priority={item.priority}
                       onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}
                       trailing={
                         <div className="flex items-center gap-1">
-                          <a
-                            href={generateGoogleCalendarUrl(item, course)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          {/* <button>, not <a href>: this trailing content
+                              renders inside the row's own <Link> (the row
+                              itself navigates to the task on click) - an
+                              <a> nested inside an <a> is invalid HTML and
+                              gets silently unnested by the browser's parser,
+                              breaking both links' click targets. */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              window.open(
+                                generateGoogleCalendarUrl(item, course),
+                                '_blank',
+                                'noopener,noreferrer',
+                              )
+                            }
                             title="Add to Google Calendar"
                             className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                           >
@@ -946,16 +965,21 @@ function DayDetailCard({
                                 d="M12 4v16m8-8H4"
                               />
                             </svg>
-                          </a>
-                          <a
-                            href={generateOutlookCalendarUrl(item, course)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              window.open(
+                                generateOutlookCalendarUrl(item, course),
+                                '_blank',
+                                'noopener,noreferrer',
+                              )
+                            }
                             title="Add to Outlook"
                             className="rounded-md p-1 text-[9px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground"
                           >
                             O
-                          </a>
+                          </button>
                         </div>
                       }
                     />

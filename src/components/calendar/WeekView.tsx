@@ -201,9 +201,13 @@ export function WeekView({
                   </span>
                 ))}
                 {items.length > 3 && (
-                  <span className="block text-[9px] font-semibold text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => onSelectDay(day)}
+                    className="block w-full text-left text-[9px] font-semibold text-muted-foreground hover:text-primary hover:underline"
+                  >
                     +{items.length - 3} more due
-                  </span>
+                  </button>
                 )}
               </div>
             );

@@ -53,6 +53,7 @@ const scheduleItems: ScheduleItem[] = [
     dueDate: '2026-09-10T00:00:00.000Z',
     completed: false,
     priority: 'low',
+    progress: 30,
   },
   {
     id: 'i2',
@@ -85,12 +86,16 @@ function renderPlanner() {
 }
 
 describe('PlannerView', () => {
-  it('lists all tasks by default, sorted by due date', () => {
+  it('groups by due date by default, with completed items in their own group', () => {
     renderPlanner();
+    // Pending items always render in due-date order regardless of which
+    // date bucket (Overdue/Today/This Week/Later) they land in, and the
+    // Completed bucket always renders last - so this ordering holds no
+    // matter what "today" is when the test runs.
     const titles = screen
       .getAllByText(/^(Recursion HW|Midterm Exam|Finished Reading)$/)
       .map((el) => el.textContent);
-    expect(titles).toEqual(['Finished Reading', 'Midterm Exam', 'Recursion HW']);
+    expect(titles).toEqual(['Midterm Exam', 'Recursion HW', 'Finished Reading']);
   });
 
   it('filters to only pending tasks', () => {
@@ -107,15 +112,45 @@ describe('PlannerView', () => {
     expect(screen.getByText('Midterm Exam')).toBeDefined();
   });
 
-  it('sorts by priority when selected', () => {
+  it('sorts by priority when selected, within a flat list', () => {
     renderPlanner();
-    fireEvent.change(screen.getByDisplayValue('Sort: Due Date'), {
+    fireEvent.change(screen.getByDisplayValue('Group: Due Date'), { target: { value: 'flat' } });
+    fireEvent.change(screen.getByDisplayValue('Then by: Due Date'), {
       target: { value: 'priority' },
     });
     const titles = screen
       .getAllByText(/^(Recursion HW|Midterm Exam|Finished Reading)$/)
       .map((el) => el.textContent);
     expect(titles).toEqual(['Midterm Exam', 'Finished Reading', 'Recursion HW']);
+  });
+
+  it('groups by course and can reorder within a course by status', () => {
+    renderPlanner();
+    fireEvent.change(screen.getByDisplayValue('Group: Due Date'), { target: { value: 'course' } });
+    expect(screen.getByRole('heading', { name: 'CSCI 213' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'MATH 301' })).toBeDefined();
+
+    fireEvent.change(screen.getByDisplayValue('Then by: Due Date'), {
+      target: { value: 'status' },
+    });
+    // CSCI 213 has Recursion HW (pending) and Finished Reading (completed) -
+    // sorting the course group by status should put the pending item first
+    // regardless of due date.
+    const csciTitles = screen
+      .getAllByText(/^(Recursion HW|Finished Reading)$/)
+      .map((el) => el.textContent);
+    expect(csciTitles).toEqual(['Recursion HW', 'Finished Reading']);
+  });
+
+  it('groups by status into Overdue/In Progress/Upcoming/Completed', () => {
+    renderPlanner();
+    fireEvent.change(screen.getByDisplayValue('Group: Due Date'), { target: { value: 'status' } });
+    // Recursion HW has progress > 0 and isn't overdue, so it lands in
+    // "In Progress" rather than "Upcoming" - distinct from Midterm Exam,
+    // which has no progress logged.
+    expect(screen.getByRole('heading', { name: 'In Progress' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Upcoming' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Completed' })).toBeDefined();
   });
 
   it('shows an empty state when no tasks match the filters', () => {

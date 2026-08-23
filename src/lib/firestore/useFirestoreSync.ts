@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
+import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 import type { Course, ScheduleItem } from '@/types/schedule';
 
 /**
@@ -31,10 +32,19 @@ export function useFirestoreSync() {
         });
       },
     );
+    // Same doc ProfileView writes to via updateUserPreferences - kept here
+    // instead of a separate listener per consumer, so a change (from this
+    // device or another) reaches every view that reads state.preferences
+    // through the one realtime subscription.
+    const unsubPreferences = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
+      const stored = snapshot.data()?.preferences as Partial<UserPreferences> | undefined;
+      dispatch({ type: 'SET_PREFERENCES', payload: { ...DEFAULT_PREFERENCES, ...stored } });
+    });
 
     return () => {
       unsubCourses();
       unsubItems();
+      unsubPreferences();
     };
   }, [user, dispatch]);
 }

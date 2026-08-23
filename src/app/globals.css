@@ -39,6 +39,18 @@
     --card-shadow: 0 1px 2px rgba(16, 12, 30, 0.04), 0 10px 28px -8px rgba(91, 61, 245, 0.16);
     --card-shadow-hover:
       0 2px 4px rgba(16, 12, 30, 0.06), 0 18px 40px -10px rgba(91, 61, 245, 0.28);
+
+    /* Modal v1: a distinct elevation tier for true modal-overlay surfaces
+       (dialogs, sheets) that sit above cards in the stack. In light mode a
+       modal reads as "lifted" the same way a card does, so this falls back
+       to the same value as --card-shadow rather than inventing a second
+       light-mode look. */
+    --modal-shadow: var(--card-shadow);
+
+    /* Popover tier: reserved, unused. There's no custom dropdown/popover
+       component in this app yet (TermSwitcher etc. are native <select>
+       elements, which can't be styled with a custom box-shadow), so this
+       token intentionally has no consumer today. */
   }
 
   .dark {
@@ -79,6 +91,11 @@
        dark blur (which is nearly invisible against an already-dark page). */
     --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -8px rgba(139, 92, 246, 0.35);
     --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 40px -10px rgba(139, 92, 246, 0.5);
+
+    /* Modal v1: distinct from --card-shadow - a deeper, darker near shadow
+       plus a wider brand-tinted glow, so a modal reads as sitting above the
+       card tier instead of sharing its elevation. */
+    --modal-shadow: 0 4px 8px rgba(0, 0, 0, 0.5), 0 24px 60px -12px rgba(139, 92, 246, 0.45);
   }
 }
 
@@ -111,6 +128,95 @@
     }
   }
 
+  /* Task-completion micro-interaction (TaskRow checkboxes, both the card
+     and touch variants): checking a task plays a pop + two staggered
+     ripple rings + a checkmark reveal + a brief row-background glow, all
+     keyed off hsl(var(--primary)) - deliberately NOT the load-level green
+     (--load-low), which already means "workload is light" elsewhere and
+     would send the wrong signal reused here. Unchecking is intentionally
+     understated (fast fade, no ripple, no glow) so undoing a task never
+     reads as an accomplishment. The checkmark reveals via opacity+scale,
+     not a stroke-dasharray "draw" - at the ~11-16px real render size a
+     dasharray draw looked like a distorted blob in an earlier pass.
+     `prefers-reduced-motion` handling lives in a sibling PR that zeroes
+     animation/transition durations globally, so nothing extra is needed
+     here. */
+  @keyframes task-check-pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.35);
+    }
+    70% {
+      transform: scale(0.96);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  .animate-task-check-pop {
+    animation: task-check-pop 480ms ease-in-out;
+  }
+
+  @keyframes task-check-ripple {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.55;
+    }
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+  .animate-task-check-ripple {
+    animation: task-check-ripple 500ms ease-out;
+  }
+  .animate-task-check-ripple-delayed {
+    animation: task-check-ripple 500ms ease-out 80ms;
+    animation-fill-mode: both;
+  }
+
+  @keyframes task-check-mark-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .animate-task-check-mark-in {
+    animation: task-check-mark-in 150ms ease-out 70ms both;
+  }
+
+  @keyframes task-check-mark-out {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+  }
+  .animate-task-check-mark-out {
+    animation: task-check-mark-out 100ms ease-in both;
+  }
+
+  @keyframes task-row-glow {
+    0% {
+      background-color: hsl(var(--primary) / 0.08);
+    }
+    100% {
+      background-color: hsl(var(--primary) / 0);
+    }
+  }
+  .animate-task-row-glow {
+    animation: task-row-glow 500ms ease-out;
+  }
+
   /* Matches the Logo mark's own gradient (Logo.tsx) so brand color isn't
      confined to the icon - hero panels, progress rings, and CTAs can pick up
      the same identity. */
@@ -122,6 +228,42 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  /* Brand-gradient spinner ring: same purple-to-teal stops as
+     .bg-gradient-brand, painted as a conic sweep and masked down to a ring
+     (rather than a filled disc) so it drops into the same
+     `animate-spin`-timed element the flat border-t-primary ring used to
+     occupy. The mask's inner radius matches that ring's old 3px stroke. */
+  .spinner-gradient {
+    background-image: conic-gradient(
+      from 0deg,
+      #8c6eff 0%,
+      #5b3df5 55%,
+      #00bfa0 100%,
+      #8c6eff 100%
+    );
+    -webkit-mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+    mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  }
+
+  /* Staggered entrance for the syllabus autofill review list: each
+     course/meeting/materials/assignment row fades and lifts in on its own
+     delay (set inline per-row) instead of the whole review screen mounting
+     in one synchronous paint. `both` fill mode holds the 0%-keyframe state
+     through the delay so rows don't flash visible before their turn. */
+  @keyframes syllabus-review-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .review-reveal {
+    animation: syllabus-review-reveal 250ms ease-out both;
   }
 
   /* Used on the fixed Navbar, which sits above scrolling page content -
@@ -143,5 +285,21 @@
   .dark .glass {
     background-color: rgba(18, 18, 24, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* Respect the OS-level "reduce motion" preference by collapsing every
+     animation/transition down to effectively-instant. Duration is set to
+     0.01ms rather than 0 so animationend/transitionend listeners still fire
+     (some components depend on them to flip state after a transition).
+     Loading spinners (.animate-spin, Tailwind's own utility) are explicitly
+     exempted - freezing an in-progress spinner reads as "the app is stuck",
+     not as "calm", so those keep spinning regardless of this preference. */
+  @media (prefers-reduced-motion: reduce) {
+    *:not(.animate-spin, .animate-spin *) {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

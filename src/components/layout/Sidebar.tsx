@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSidebar } from './SidebarContext';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -14,7 +13,6 @@ interface NavItem {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { isOpen, setIsOpen } = useSidebar();
 
   const navItems: NavItem[] = [
     {
@@ -130,45 +128,28 @@ export default function Sidebar() {
   ];
 
   return (
-    <>
-      {/* Mobile Sidebar Overlay Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Drawer Container */}
-      <aside
-        className={cn(
-          'fixed top-20 bottom-0 left-0 z-[45] w-64 border-r border-border/40 bg-card/90 glass transition-transform duration-300 md:translate-x-0 md:flex md:flex-col',
-          isOpen ? 'translate-x-0' : '-translate-x-full',
-        )}
-      >
-        <nav className="flex-1 space-y-1 px-4 py-6">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
-                  isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                )}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                {item.icon}
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
-    </>
+    <aside className="hidden md:flex fixed top-20 bottom-0 left-0 z-[45] w-64 flex-col border-r border-border/40 bg-card/90 glass">
+      <nav className="flex-1 space-y-1 px-4 py-6">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+              )}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              {item.icon}
+              <span>{item.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
   );
 }

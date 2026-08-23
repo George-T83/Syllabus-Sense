@@ -32,7 +32,12 @@ describe('meetingTimeSchema', () => {
 });
 
 describe('courseFormSchema with meetingTimes', () => {
-  const base = { code: 'CSCI 213', title: 'Computer Science I', color: 'bg-blue-500' };
+  const base = {
+    code: 'CSCI 213',
+    title: 'Computer Science I',
+    color: 'bg-blue-500',
+    icon: 'code',
+  };
 
   it('accepts a course with no meeting times', () => {
     expect(courseFormSchema.safeParse(base).success).toBe(true);

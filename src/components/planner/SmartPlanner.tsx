@@ -119,10 +119,11 @@ export function SmartPlanner() {
             description="You're caught up - check back tomorrow."
           />
         ) : (
-          <div className="divide-y divide-border">
+          <div className="flex flex-col gap-2">
             {plan.startToday.map(({ item, overloaded, overdue }) => (
               <PlannedTaskRow
                 key={item.id}
+                variant={state.preferences.taskRowVariant}
                 item={item}
                 course={courses.find((c) => c.id === item.courseId)}
                 overloaded={overloaded}
@@ -184,16 +185,19 @@ export function SmartPlanner() {
             {selectedDayItems.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing due this day.</p>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="flex flex-col gap-2">
                 {selectedDayItems.map((item) => (
                   <TaskRow
                     key={item.id}
+                    variant={state.preferences.taskRowVariant}
                     title={item.title}
                     href={`/tasks/${item.id}`}
                     type={item.type}
                     courseCode={courses.find((c) => c.id === item.courseId)?.code ?? 'General'}
                     courseColor={courses.find((c) => c.id === item.courseId)?.color}
+                    courseIcon={courses.find((c) => c.id === item.courseId)?.icon}
                     completed={item.completed}
+                    progress={item.progress}
                     priority={item.priority}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                   />
@@ -210,12 +214,14 @@ export function SmartPlanner() {
             title="Start This Week"
             items={plan.startThisWeek}
             courses={courses}
+            variant={state.preferences.taskRowVariant}
             onToggleComplete={user ? handleToggleComplete : undefined}
           />
           <PlanSection
             title="Later"
             items={plan.startLater}
             courses={courses}
+            variant={state.preferences.taskRowVariant}
             onToggleComplete={user ? handleToggleComplete : undefined}
           />
         </>
@@ -230,21 +236,26 @@ function PlannedTaskRow({
   overloaded,
   overdue,
   onToggleComplete,
+  variant,
 }: {
   item: PlannedItem['item'];
   course: Course | undefined;
   overloaded: boolean;
   overdue: boolean;
   onToggleComplete?: () => void;
+  variant?: 'card' | 'touch';
 }) {
   return (
     <TaskRow
+      variant={variant}
       title={item.title}
       href={`/tasks/${item.id}`}
       type={item.type}
       courseCode={course ? course.code : 'General'}
       courseColor={course?.color}
+      courseIcon={course?.icon}
       completed={item.completed}
+      progress={item.progress}
       priority={item.priority}
       onToggleComplete={onToggleComplete}
       trailing={
@@ -273,11 +284,13 @@ function PlanSection({
   title,
   items,
   courses,
+  variant,
   onToggleComplete,
 }: {
   title: string;
   items: PlannedItem[];
   courses: Course[];
+  variant?: 'card' | 'touch';
   onToggleComplete?: (item: ScheduleItem) => void;
 }) {
   if (items.length === 0) return null;
@@ -285,7 +298,7 @@ function PlanSection({
   return (
     <Card className="rounded-2xl p-6">
       <h2 className="mb-3 text-sm font-semibold text-foreground">{title}</h2>
-      <div className="divide-y divide-border">
+      <div className="flex flex-col gap-2">
         {items.map(({ item, overloaded, overdue }) => (
           <PlannedTaskRow
             key={item.id}
@@ -293,6 +306,7 @@ function PlanSection({
             course={courses.find((c) => c.id === item.courseId)}
             overloaded={overloaded}
             overdue={overdue}
+            variant={variant}
             onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}
           />
         ))}

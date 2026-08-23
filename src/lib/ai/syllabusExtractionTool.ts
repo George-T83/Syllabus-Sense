@@ -1,4 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
+import { COURSE_ICON_PRESETS } from '@/lib/courseIcons';
 
 /**
  * Forces Claude's response into our exact schema via tool-calling, rather
@@ -63,6 +65,23 @@ export const SYLLABUS_EXTRACTION_TOOL: Anthropic.Tool = {
             type: ['string', 'null'],
             description:
               'Free-text catch-all for things worth keeping but not worth modeling structurally: footnotes on meeting times (e.g. "sectional days start at noon"), "no comprehensive final exam", grading-dispute windows, etc.',
+          },
+          suggestedColor: {
+            type: ['string', 'null'],
+            enum: [...COURSE_COLOR_PRESETS.map((p) => p.value), null],
+            description:
+              'The best-fitting color for this course from the fixed preset list, using common US academic subject-color conventions where a clear one exists (e.g. math/stats: red or blue; natural sciences - biology, chemistry, physics, environmental science: green; computer science/engineering: indigo or violet; English/literature/writing: purple; history/social studies/political science: orange or amber; economics/business/accounting: amber; foreign languages: teal or cyan; art/music/theater/performance: pink or rose; health/kinesiology/PE/nursing: lime; psychology: teal). For a subject with no strong convention, use judgment - pick whichever available color feels most fitting rather than defaulting to the same one every time.',
+          },
+          suggestedFileName: {
+            type: ['string', 'null'],
+            description:
+              'A clean, human-readable name for the syllabus file itself, with NO extension, built from the actual course code and term found in the document - e.g. "ECON 201 - Fall 2026 Syllabus" - not the original uploaded file\'s name.',
+          },
+          suggestedIcon: {
+            type: ['string', 'null'],
+            enum: [...COURSE_ICON_PRESETS.map((p) => p.value), null],
+            description:
+              'The best-fitting subject icon for this course from the fixed preset list: "book" (reading-heavy/general/humanities with no better fit), "calculator" (math/statistics), "flask" (lab science - biology/chemistry/physics/environmental), "globe" (history/geography/social studies), "chat" (foreign language), "code" (computer science/software engineering), "chart" (business/economics/accounting), "palette" (art/design), "music" (music), "film" (media/theater/film studies), "heart" (health/psychology/nursing), "scale" (law/political science), "bolt" (kinesiology/PE/fitness), "puzzle" (anything else). Pick the closest match rather than defaulting to "book" for every course.',
           },
         },
       },
@@ -133,4 +152,7 @@ export const SYLLABUS_EXTRACTION_SYSTEM_PROMPT = `You are an expert academic pla
 6. Look beyond traditional assignments for other calendar-worthy dates: mandatory performances/rehearsals/trips (especially in arts/ensemble courses), registrar deadlines the syllabus itself lists (add/drop, withdrawal-with-refund cutoffs), and holidays/breaks called out in a weekly schedule table. Holidays/breaks go in skipDates (so recurring class meetings can skip them), not scheduleItems.
 7. Extract a general materials list only when the syllabus actually describes required/optional supplies (textbook, calculator, specific paper, dress code, instrument, etc.) - leave it empty if none are mentioned, and don't confuse free/open-source software tools with physical supplies.
 8. Flag highStakes: true on items with roughly 15%+ grade weight, or explicit "mandatory"/"required attendance"/"automatic F if missed" language - these deserve a visual warning during review, not the same treatment as a routine reading.
-9. If the term/year is stated anywhere in the document (header, "Spring 2026", a schedule table's date range), use it to resolve every date to a full ISO YYYY-MM-DD - never leave a date ambiguous about the year.`;
+9. If the term/year is stated anywhere in the document (header, "Spring 2026", a schedule table's date range), use it to resolve every date to a full ISO YYYY-MM-DD - never leave a date ambiguous about the year.
+10. Always propose suggestedColor: pick whichever preset best matches the course's subject by common academic convention (see the tool schema for examples). This is just a starting point the student can change, so a reasonable guess beats leaving it null.
+11. Always propose suggestedFileName: a short, human-readable name built from the real course code and term (e.g. "PSYC 220 - Spring 2026 Syllabus"), not a restatement of the uploaded file's own name.
+12. Always propose suggestedIcon: pick the preset that best matches the course's actual subject (see the tool schema's enum for what each icon represents) - another starting point the student can change, not a final answer.`;
