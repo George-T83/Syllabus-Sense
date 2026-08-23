@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
@@ -30,13 +30,14 @@ export function CoursesListView() {
   const { courses, scheduleItems } = state;
 
   const [search, setSearch] = useState('');
-  // Seeded from the global term switcher (#101) so this page opens already
-  // scoped to whatever term the rest of the app is showing, while staying a
-  // fully independent local filter the user can change without affecting
-  // the global selection.
-  const [termFilter, setTermFilter] = useState(
-    () => resolveActiveTerm(state.selectedTerm, state.courses) ?? 'all',
-  );
+  // Defaults to "All Terms" rather than the global term switcher's active
+  // term (#101) - this page is where a student comes to find a specific
+  // course, including one from a past term, and a silently-narrowed default
+  // used to make older courses disappear with no indication a filter was
+  // hiding them (CO-2). Users can still narrow explicitly via the select
+  // below; each card is term-badged so identity stays clear once several
+  // terms are shown together.
+  const [termFilter, setTermFilter] = useState<string>('all');
   const [sortMode, setSortMode] = useState<SortMode>('code');
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
@@ -98,7 +99,9 @@ export function CoursesListView() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Courses</h1>
-            <p className="text-sm text-muted-foreground mt-1">Every course you&apos;re tracking.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              See what needs attention across every class.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <CardActionButton onClick={() => setAutofillOpen(true)}>
@@ -191,6 +194,14 @@ export function CoursesListView() {
               const completed = items.filter((i) => i.completed).length;
               const pct = items.length ? Math.round((completed / items.length) * 100) : 0;
               const meetingDays = meetingDaysLabel(course.meetingTimes);
+              // Same "overdue" definition CourseDetailView already uses for
+              // its per-task badge (CO-1) - surfaced here too so the list a
+              // student opens to decide what to worry about actually answers
+              // that, instead of only a generic completion percentage.
+              const now = new Date();
+              const overdueCount = items.filter(
+                (i) => !i.completed && new Date(i.dueDate) < now,
+              ).length;
 
               return (
                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
@@ -220,24 +231,40 @@ export function CoursesListView() {
                         </div>
                       </div>
 
-                      {(meetingDays || course.modality) && (
-                        <div className="mb-3 flex flex-wrap gap-1.5">
-                          {meetingDays && (
-                            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                              {meetingDays}
-                            </span>
+                      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                        {/* Term badge lives on every card (not just the bottom-line
+                            caption it replaces) so a course keeps a clear identity
+                            even once the list defaults to showing every term at
+                            once (CO-2). */}
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                            course.term
+                              ? 'bg-accent text-muted-foreground'
+                              : 'bg-accent/60 italic text-muted-foreground/70',
                           )}
-                          {course.modality && (
-                            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
-                              {course.modality}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                        >
+                          {course.term || 'No term set'}
+                        </span>
+                        {meetingDays && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {meetingDays}
+                          </span>
+                        )}
+                        {course.modality && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                            {course.modality}
+                          </span>
+                        )}
+                        {overdueCount > 0 && (
+                          <span className="ml-auto rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                            {overdueCount} overdue
+                          </span>
+                        )}
+                      </div>
 
                       <div className="mt-auto space-y-1.5">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{course.term || 'No term set'}</span>
+                        <div className="flex items-center justify-end text-xs text-muted-foreground">
                           <span>
                             {items.length > 0
                               ? `${pct}% · ${items.length} task${items.length === 1 ? '' : 's'}`
