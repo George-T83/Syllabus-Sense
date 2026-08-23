@@ -47,10 +47,11 @@
        light-mode look. */
     --modal-shadow: var(--card-shadow);
 
-    /* Popover tier: reserved, unused. There's no custom dropdown/popover
-       component in this app yet (TermSwitcher etc. are native <select>
-       elements, which can't be styled with a custom box-shadow), so this
-       token intentionally has no consumer today. */
+    /* Popover tier: reserved, still unused. NV-4 replaced TermSwitcher's
+       native <select> with a custom dropdown, and the navbar's search/
+       notification panels follow the same pattern, but all of them reuse
+       the existing --card-shadow-backed `shadow-glass` utility rather than
+       a dedicated popover elevation, so this token still has no consumer. */
   }
 
   .dark {
@@ -100,7 +101,18 @@
 }
 
 @layer base {
+  /* NV-2 global safety net: the navbar is `position: fixed`, so it stays
+     put while any page's real horizontal overflow pans the body underneath
+     it - the classic "desktop site squeezed into a phone" tell. This is a
+     backstop, not a fix for the root cause on any individual page (those
+     are handled per-page elsewhere); it just guarantees the chrome itself
+     can never be undermined by a page that hasn't been fixed yet. */
+  html {
+    overflow-x: hidden;
+  }
+
   body {
+    overflow-x: hidden;
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     @apply font-sans;
