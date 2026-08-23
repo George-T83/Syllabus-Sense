@@ -11,7 +11,9 @@ export default function CalendarPage() {
     <div className="max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground tracking-tight">Calendar</h1>
-        <p className="text-sm text-muted-foreground mt-1">Click a day to see what&apos;s due.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          See your workload build before it hits — not just what&apos;s due.
+        </p>
       </div>
       <MonthCalendar />
     </div>
