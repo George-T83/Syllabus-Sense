@@ -139,7 +139,7 @@ export default function LandingPage() {
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <div className="rounded-glass-lg bg-gradient-brand px-6 py-10 text-center text-white shadow-card sm:px-12 sm:py-14">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Stop finding out about the 25% project the week it&apos;s due.
+              Stop finding out about the project worth 25% of your grade the week it&apos;s due.
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-white/80 sm:text-base">
               Upload your syllabi, get a workload-aware plan, and see the whole semester on one
