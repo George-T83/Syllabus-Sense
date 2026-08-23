@@ -38,6 +38,23 @@ export const extractedMeetingTimeSchema = z.object({
   location: z.string().max(100).nullable().optional(),
 });
 
+const contactRoleSchema = z.enum(['professor', 'ta']);
+
+export const extractedContactSchema = z.object({
+  role: contactRoleSchema,
+  fullName: z.string().min(1).max(100),
+  title: z.string().max(150).nullable().optional(),
+  /** How the syllabus itself says to address them, e.g. "Dr. Chen" -
+   * distinct from fullName, which is the plain legal/display name. */
+  howToAddress: z.string().max(60).nullable().optional(),
+  email: z.string().max(150).nullable().optional(),
+  /** Free text, not structured times - real syllabi state office hours too
+   * inconsistently ("by appointment", "drop-in Tue/Thu 2-3pm") to force
+   * into one shape. */
+  officeHours: z.string().max(200).nullable().optional(),
+  officeLocation: z.string().max(150).nullable().optional(),
+});
+
 export const extractedScheduleItemSchema = z.object({
   title: z.string().min(1).max(200),
   type: assignmentTypeSchema,
@@ -88,6 +105,13 @@ export const extractedCourseSchema = z.object({
    * fits the subject, e.g. a flask for a lab science. Same "suggestion,
    * not mandate" treatment as suggestedColor. */
   suggestedIcon: z.enum(courseIconValues).nullable().optional(),
+  /** Professors/TAs named in the syllabus, deduped by the review UI
+   * against the student's existing contacts before anything is saved. */
+  contacts: z.array(extractedContactSchema).default([]),
+  /** Detailed, bulleted course learning objectives (each string is one
+   * bullet) - only when the syllabus states them explicitly; never
+   * fabricated from the course description. */
+  learningObjectives: z.array(z.string().max(400)).default([]),
 });
 
 export const syllabusExtractionSchema = z.object({

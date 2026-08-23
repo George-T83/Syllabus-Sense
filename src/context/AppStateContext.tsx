@@ -1,12 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
-import { Course, ScheduleItem } from '@/types/schedule';
+import { Contact, Course, ScheduleItem } from '@/types/schedule';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 
 export interface AppState {
   courses: Course[];
   scheduleItems: ScheduleItem[];
+  contacts: Contact[];
   selectedCourseId: string | null;
   /** #101 semester switcher. `null` means "no explicit choice made yet" -
    * consumers should fall back to `inferCurrentTerm`. The literal string
@@ -32,6 +33,11 @@ export type AppAction =
   | { type: 'UPDATE_SCHEDULE_ITEM'; payload: ScheduleItem }
   | { type: 'REMOVE_SCHEDULE_ITEM'; payload: string }
   | { type: 'TOGGLE_SCHEDULE_ITEM_COMPLETED'; payload: string }
+  | { type: 'SET_CONTACTS'; payload: Contact[] }
+  | { type: 'ADD_CONTACT'; payload: Contact }
+  | { type: 'ADD_CONTACTS'; payload: Contact[] }
+  | { type: 'UPDATE_CONTACT'; payload: Contact }
+  | { type: 'REMOVE_CONTACT'; payload: string }
   | { type: 'SELECT_COURSE'; payload: string | null }
   | { type: 'SELECT_TERM'; payload: string | null }
   | { type: 'SET_PREFERENCES'; payload: UserPreferences };
@@ -39,6 +45,7 @@ export type AppAction =
 export const initialAppState: AppState = {
   courses: [],
   scheduleItems: [],
+  contacts: [],
   selectedCourseId: null,
   selectedTerm: null,
   preferences: DEFAULT_PREFERENCES,
@@ -57,14 +64,14 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
         courses: state.courses.map((c) => (c.id === action.payload.id ? action.payload : c)),
       };
     case 'REMOVE_COURSE':
-      // Removing a course also drops its schedule items. Without this the
-      // items linger with a courseId pointing at a course that no longer
-      // exists, so any view listing all items (dashboard, heatmap) would
-      // still render work for a deleted course.
+      // Removing a course also drops its schedule items and contacts.
+      // Without this, orphaned records would linger with a courseId
+      // pointing at a course that no longer exists.
       return {
         ...state,
         courses: state.courses.filter((c) => c.id !== action.payload),
         scheduleItems: state.scheduleItems.filter((item) => item.courseId !== action.payload),
+        contacts: state.contacts.filter((c) => c.courseId !== action.payload),
         selectedCourseId: state.selectedCourseId === action.payload ? null : state.selectedCourseId,
       };
     case 'SET_SCHEDULE_ITEMS':
@@ -90,6 +97,19 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
           item.id === action.payload ? { ...item, completed: !item.completed } : item,
         ),
       };
+    case 'SET_CONTACTS':
+      return { ...state, contacts: action.payload };
+    case 'ADD_CONTACT':
+      return { ...state, contacts: [...state.contacts, action.payload] };
+    case 'ADD_CONTACTS':
+      return { ...state, contacts: [...state.contacts, ...action.payload] };
+    case 'UPDATE_CONTACT':
+      return {
+        ...state,
+        contacts: state.contacts.map((c) => (c.id === action.payload.id ? action.payload : c)),
+      };
+    case 'REMOVE_CONTACT':
+      return { ...state, contacts: state.contacts.filter((c) => c.id !== action.payload) };
     case 'SELECT_COURSE':
       return { ...state, selectedCourseId: action.payload };
     case 'SELECT_TERM':

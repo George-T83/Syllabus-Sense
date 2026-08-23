@@ -59,6 +59,66 @@ export interface Course {
    * recently summarized syllabus upload. Cached here rather than
    * regenerated on every view - see src/app/api/syllabus/summarize. */
   aiSummary?: CourseAiSummary;
+  /** Detailed, bulleted learning objectives extracted from the syllabus
+   * (or written manually) - each string is one bullet, may itself contain
+   * markdown emphasis (e.g. "**Analyze** primary sources for bias"). */
+  learningObjectives?: string[];
+  /** Whether the student has reviewed/approved `learningObjectives` after
+   * an AI extraction - mirrors the review step every other AI-sourced
+   * field goes through, so objectives are never silently trusted. */
+  learningObjectivesApproved?: boolean;
+}
+
+/** Whether a contact is the instructor of record or a teaching assistant. */
+export type ContactRole = 'professor' | 'ta';
+
+/**
+ * A course-affiliated professor or TA, usually populated from syllabus
+ * extraction (Contacts feature). Scoped to one course/term rather than a
+ * global address book, since office hours/location are course-specific and
+ * the same person's info can legitimately differ semester to semester.
+ */
+export interface Contact {
+  /** Unique identifier for the contact */
+  id: string;
+  /** The course this contact is affiliated with */
+  courseId: string;
+  /** The academic term, mirrors the parent course's term at creation time
+   * so Contacts can be filtered by term the same way Courses is, without
+   * a join back to the course on every render. */
+  term?: string;
+  role: ContactRole;
+  fullName: string;
+  /** e.g. "Associate Professor of Computer Science" */
+  title?: string;
+  /** How the syllabus says to address them, e.g. "Dr. Chen" or "Professor
+   * Lee" - distinct from `fullName` since it's a social/etiquette detail,
+   * not identity. */
+  howToAddress?: string;
+  email?: string;
+  /** Free text rather than structured MeetingTime[] - office hours are
+   * stated too inconsistently across real syllabi ("by appointment",
+   * "drop-in Tue/Thu", a specific range) to force into one shape. */
+  officeHours?: string;
+  officeLocation?: string;
+  /** Whether this record originated from AI syllabus extraction or was
+   * entered/edited by hand. */
+  source?: DataSource;
+  /** Whether the student has reviewed and approved this contact as a
+   * whole - AI-sourced contacts start false so a student always sees a
+   * chance to correct or reject before it's treated as final. */
+  approved?: boolean;
+  /** Per-field approval, for AI extractions the student partially trusts -
+   * e.g. approving the name and email but flagging office hours as wrong.
+   * A field absent from this map is treated as approved (true is the
+   * implicit default so a fully-approved contact doesn't need every key
+   * listed). */
+  fieldApprovals?: Partial<
+    Record<
+      'fullName' | 'title' | 'howToAddress' | 'email' | 'officeHours' | 'officeLocation',
+      boolean
+    >
+  >;
 }
 
 /**

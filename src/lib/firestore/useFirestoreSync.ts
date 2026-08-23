@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
-import type { Course, ScheduleItem } from '@/types/schedule';
+import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 
 /**
  * Keeps AppStateContext live-synced with the signed-in user's Firestore data.
@@ -32,6 +32,9 @@ export function useFirestoreSync() {
         });
       },
     );
+    const unsubContacts = onSnapshot(collection(db, 'users', user.uid, 'contacts'), (snapshot) => {
+      dispatch({ type: 'SET_CONTACTS', payload: snapshot.docs.map((d) => d.data() as Contact) });
+    });
     // Same doc ProfileView writes to via updateUserPreferences - kept here
     // instead of a separate listener per consumer, so a change (from this
     // device or another) reaches every view that reads state.preferences
@@ -44,6 +47,7 @@ export function useFirestoreSync() {
     return () => {
       unsubCourses();
       unsubItems();
+      unsubContacts();
       unsubPreferences();
     };
   }, [user, dispatch]);
