@@ -17,7 +17,15 @@ export interface CoursePreset {
   hex: string;
 }
 
-export const COURSE_COLOR_PRESETS: CoursePreset[] = [
+/**
+ * DA-3 (dashboard UX audit): the full historical set of presets, including
+ * red/rose. Kept separate from the exported `COURSE_COLOR_PRESETS` below so
+ * a course saved with `bg-red-500`/`bg-rose-500` before this fix still
+ * resolves its real hex (via `resolveCourseHex`) and chip tint (via
+ * `COURSE_CHIP_TINT_CLASS`, unchanged below) instead of silently falling
+ * back to a default color or breaking.
+ */
+const ALL_COURSE_COLOR_PRESETS: CoursePreset[] = [
   { value: 'bg-blue-500', hex: '#3b82f6' },
   { value: 'bg-green-500', hex: '#22c55e' },
   { value: 'bg-purple-500', hex: '#a855f7' },
@@ -33,6 +41,24 @@ export const COURSE_COLOR_PRESETS: CoursePreset[] = [
   { value: 'bg-violet-500', hex: '#8b5cf6' },
   { value: 'bg-emerald-500', hex: '#10b981' },
 ];
+
+/**
+ * Presets offered for a NEW color choice - the course creation/edit form's
+ * picker, and the least-used-preset auto-assignment below
+ * (`pickNextCourseColor`/`pickSuggestedCourseColor`, used for manually
+ * added and AI-autofilled courses alike).
+ *
+ * DA-3 fix: red/rose used to be in this list, so a course could land on
+ * (or be auto-assigned) the exact hue the app already uses for destructive/
+ * "Overdue" state - a course card tinted red reads as "you're failing this
+ * class" next to an unrelated red Overdue badge. Removing them here only
+ * stops *new* assignment; a course already saved with one of these two
+ * colors keeps rendering exactly as before (see `ALL_COURSE_COLOR_PRESETS`
+ * above and `resolveCourseHex` below).
+ */
+export const COURSE_COLOR_PRESETS: CoursePreset[] = ALL_COURSE_COLOR_PRESETS.filter(
+  (preset) => preset.value !== 'bg-red-500' && preset.value !== 'bg-rose-500',
+);
 
 /** Back-compat alias - the old 6-entry list some components imported by
  * this name. Kept as the first 6 presets so previously-saved courses using
@@ -111,7 +137,7 @@ export function getCourseChipTintClass(color: string | undefined): string {
 function resolveCourseHex(color: string | undefined): string {
   return isCustomColor(color)
     ? color
-    : (COURSE_COLOR_PRESETS.find((p) => p.value === color)?.hex ?? '#7c3aed');
+    : (ALL_COURSE_COLOR_PRESETS.find((p) => p.value === color)?.hex ?? '#7c3aed');
 }
 
 /** A faint full-surface background wash (course cards, list rows) - subtler
