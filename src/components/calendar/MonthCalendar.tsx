@@ -15,6 +15,7 @@ import {
   getWeekDays,
   groupItemsByDay,
   isSameDay,
+  sortItemsByUrgency,
   toDayKey,
   startOfDay,
 } from '@/lib/calendar/dates';
@@ -29,6 +30,7 @@ import {
   getWorkloadLevel,
   WORKLOAD_LEVEL_LABELS,
   WORKLOAD_CHIP_CLASS,
+  WORKLOAD_PREP_INDICATOR_CLASS,
   WORKLOAD_SWATCH_CLASS,
   WORKLOAD_TEXT_CLASS,
   WORKLOAD_TINT_CLASS,
@@ -37,7 +39,7 @@ import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
 import { useModalA11y } from '@/hooks/useModalA11y';
-import type { Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
+import type { AssignmentType, Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const monthLabelFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
@@ -127,6 +129,26 @@ function WorkloadGaugeIcon({ level, className }: { level: WorkloadLevel; classNa
   );
 }
 
+/** Small triangular alert glyph for the CA-4 "busiest stretch" callout -
+ * distinct from the workload gauge (which encodes a *level*) since this
+ * icon just needs to say "heads up", not grade a severity. */
+function AlertIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
+}
+
 function FilterIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -152,10 +174,39 @@ function formatWeekRangeLabel(weekDays: Date[]): string {
   return `${startLabel} – ${endLabel}, ${end.getFullYear()}`;
 }
 
+/** Compact "Sep 3 – 9" style range for the CA-4 busiest-stretch banner - no
+ * year, since it's a single inline banner line rather than a page heading. */
+function formatStretchRangeLabel(start: Date, end: Date): string {
+  const sameMonth = start.getMonth() === end.getMonth();
+  const startLabel = weekLabelFormatter.format(start);
+  const endLabel = sameMonth ? String(end.getDate()) : weekLabelFormatter.format(end);
+  return `${startLabel} – ${endLabel}`;
+}
+
 const MAX_VISIBLE_CHIPS = 2;
 const AGENDA_WINDOW_DAYS = 30;
+// #CA-4: width of the rolling window scanned for the term's busiest
+// upcoming stretch - a week-long lens, since a single busy day is already
+// covered by the per-month "Busiest" callout and a whole month is too
+// coarse to act on.
+const BUSY_STRETCH_WINDOW_DAYS = 7;
 
 const LEGEND_LEVELS: WorkloadLevel[] = ['low', 'medium', 'high', 'critical'];
+
+// #CA-3: on mobile-width chips there's only room for a handful of
+// characters before truncation, so a shared title prefix ("Final...")
+// collapses several different items to the same illegible fragment. Leading
+// with the item's type instead keeps mobile chips distinguishable even
+// fully truncated. Short and uppercase so it reads as a tag, not a
+// truncated word.
+const TYPE_MOBILE_LABEL: Record<AssignmentType, string> = {
+  assignment: 'ASSIGN',
+  exam: 'EXAM',
+  quiz: 'QUIZ',
+  project: 'PROJECT',
+  reading: 'READING',
+  other: 'OTHER',
+};
 
 type ViewMode = 'month' | 'week' | 'agenda';
 
@@ -253,6 +304,38 @@ export function MonthCalendar() {
     }
     return { pendingCount, totalHours, busiestDay };
   }, [grid, viewMonth, itemsByDay, dailyLoad]);
+
+  // #CA-4: the term's genuinely busiest upcoming stretch, scanned across the
+  // *entire* known dataset (dailyLoad already spans every course's items,
+  // not just the visible month) rather than monthStats above, which is
+  // deliberately scoped to whichever month is currently in view. A student
+  // paging through August has no way to discover November is brutal without
+  // this - that's the whole point of a workload-aware calendar over a plain
+  // one. Slides a BUSY_STRETCH_WINDOW_DAYS window starting from today (never
+  // the past - "upcoming") across every day that carries any load, and keeps
+  // whichever window sums the most effective hours.
+  const busiestStretch = useMemo(() => {
+    let maxDate: Date | null = null;
+    for (const key of Array.from(dailyLoad.keys())) {
+      if ((dailyLoad.get(key) ?? 0) <= 0) continue;
+      const [y, m, d] = key.split('-').map(Number);
+      const day = new Date(y, m - 1, d);
+      if (!maxDate || day > maxDate) maxDate = day;
+    }
+    if (!maxDate || maxDate < today) return null;
+
+    let best: { start: Date; end: Date; hours: number } | null = null;
+    for (let cursor = today; cursor <= maxDate; cursor = addDays(cursor, 1)) {
+      let sum = 0;
+      for (let i = 0; i < BUSY_STRETCH_WINDOW_DAYS; i++) {
+        sum += dailyLoad.get(toDayKey(addDays(cursor, i))) ?? 0;
+      }
+      if (!best || sum > best.hours) {
+        best = { start: cursor, end: addDays(cursor, BUSY_STRETCH_WINDOW_DAYS - 1), hours: sum };
+      }
+    }
+    return best && best.hours > 0 ? best : null;
+  }, [dailyLoad, today]);
 
   const handleToggleComplete = async (item: ScheduleItem) => {
     if (!user) return;
@@ -374,6 +457,23 @@ export function MonthCalendar() {
             )}
           </div>
         </div>
+
+        {/* #CA-4: term-wide proactive heads-up, shown no matter which month/
+            week is currently in view - the whole point is surfacing a busy
+            stretch the student hasn't paged forward to see yet. */}
+        {busiestStretch && (
+          <button
+            onClick={() => selectDay(busiestStretch.start)}
+            className="mb-3 flex w-full items-center gap-2 rounded-xl border border-load-high/30 bg-load-high/10 px-3 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-load-high/15 sm:text-sm"
+          >
+            <AlertIcon className="h-4 w-4 shrink-0 text-load-high" />
+            <span>
+              Heads up: your busiest stretch this term is{' '}
+              {formatStretchRangeLabel(busiestStretch.start, busiestStretch.end)} (
+              {busiestStretch.hours.toFixed(1)}h)
+            </span>
+          </button>
+        )}
 
         {state.courses.length > 0 && (
           <>
@@ -584,8 +684,18 @@ export function MonthCalendar() {
                 const isSelected = selectedDay !== null && isSameDay(day, selectedDay);
                 const hours = dailyLoad.get(toDayKey(day)) ?? 0;
                 const heatLevel = getWorkloadLevel(hours);
-                const visibleChips = dayItems.slice(0, MAX_VISIBLE_CHIPS);
-                const hiddenCount = dayItems.length - visibleChips.length;
+                // #CA-1: only a day something is literally due/scheduled on
+                // gets the full "due here" tint. A day that merely picked up
+                // some of an item's spread-out prep-time load (from
+                // calculateDailyLoad distributing hours across the days
+                // leading up to a *different* day's due date) gets the
+                // quieter WORKLOAD_PREP_INDICATOR_CLASS treatment instead -
+                // otherwise the heatmap shades empty days and a student who
+                // clicks one expecting to see why stops trusting it.
+                const dueHere = dayItems.length > 0 || dayMeetings.length > 0;
+                const sortedItems = sortItemsByUrgency(dayItems, today);
+                const visibleChips = sortedItems.slice(0, MAX_VISIBLE_CHIPS);
+                const hiddenCount = sortedItems.length - visibleChips.length;
 
                 return (
                   <button
@@ -595,7 +705,11 @@ export function MonthCalendar() {
                       'min-h-[4rem] rounded-lg p-1 flex flex-col items-start gap-0.5 text-left transition-colors sm:min-h-[6.5rem] sm:rounded-xl sm:p-1.5 sm:gap-1',
                       inCurrentMonth ? 'hover:bg-accent' : 'opacity-40 hover:bg-accent/50',
                       isSelected && 'ring-2 ring-primary',
-                      !isSelected && inCurrentMonth && WORKLOAD_TINT_CLASS[heatLevel],
+                      !isSelected &&
+                        inCurrentMonth &&
+                        (dueHere
+                          ? WORKLOAD_TINT_CLASS[heatLevel]
+                          : WORKLOAD_PREP_INDICATOR_CLASS[heatLevel]),
                     )}
                   >
                     <span
@@ -615,12 +729,14 @@ export function MonthCalendar() {
                           <span
                             key={`${m.course.id}-${i}`}
                             className={cn(
-                              'h-1.5 w-1.5 rounded-[2px]',
+                              'flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] text-white',
                               courseSwatch(m.course.color).className,
                             )}
                             style={courseSwatch(m.course.color).style}
                             title={`${m.course.code} · ${formatTimeLabel(m.meeting.startTime)}`}
-                          />
+                          >
+                            <GraduationCapIcon className="h-2 w-2" />
+                          </span>
                         ))}
                       </div>
                     )}
@@ -630,14 +746,29 @@ export function MonthCalendar() {
                         <span
                           key={item.id}
                           className={cn(
-                            'block w-full truncate rounded px-1 py-0.5 text-[9px] font-medium leading-tight text-white',
+                            'flex w-full min-w-0 items-center gap-0.5 overflow-hidden rounded px-1 py-0.5 text-[9px] font-medium leading-tight text-white',
                             courseSwatch(courseOf(item)?.color).className,
                             item.completed && 'opacity-40 line-through',
                           )}
                           style={courseSwatch(courseOf(item)?.color).style}
                           title={item.title}
                         >
-                          {item.title}
+                          {/* Hidden below sm: at mobile chip widths every
+                              pixel goes to the type label (CA-3) - the icon
+                              still fulfills the legend's promise (CA-2) at
+                              sm+, where there's room for both. */}
+                          <FlagIcon className="hidden h-2 w-2 shrink-0 sm:block" />
+                          {/* #CA-3: mobile-width chips only fit a handful of
+                              characters, so several similarly-titled items
+                              ("Final Exam"/"Final Project"/...) all truncate
+                              to the same illegible "Fina…". Leading with the
+                              type keeps them distinguishable; the full title
+                              is still shown at sm+ and always in the
+                              day-detail panel below. */}
+                          <span className="min-w-0 truncate sm:hidden">
+                            {TYPE_MOBILE_LABEL[item.type]}
+                          </span>
+                          <span className="hidden min-w-0 truncate sm:inline">{item.title}</span>
                         </span>
                       ))}
                       {hiddenCount > 0 && (
