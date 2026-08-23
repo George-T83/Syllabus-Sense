@@ -15,6 +15,13 @@ export interface UserPreferences {
    * preference here, so it's realtime and follows the account across
    * devices rather than being a per-browser setting. */
   taskRowVariant: 'card' | 'touch';
+  /** Optional custom avatar background - one of the Tailwind class values
+   * from COURSE_COLOR_PRESETS (lib/courseColors.ts), reusing the same
+   * palette already used for course colors rather than introducing a
+   * second color system. `undefined`/absent means "use the default
+   * gradient" (the original always-on look), so existing accounts with no
+   * stored value need no migration. */
+  avatarColor?: string;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
