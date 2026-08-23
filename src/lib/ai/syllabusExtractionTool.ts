@@ -83,6 +83,42 @@ export const SYLLABUS_EXTRACTION_TOOL: Anthropic.Tool = {
             description:
               'The best-fitting subject icon for this course from the fixed preset list: "book" (reading-heavy/general/humanities with no better fit), "calculator" (math/statistics), "flask" (lab science - biology/chemistry/physics/environmental), "globe" (history/geography/social studies), "chat" (foreign language), "code" (computer science/software engineering), "chart" (business/economics/accounting), "palette" (art/design), "music" (music), "film" (media/theater/film studies), "heart" (health/psychology/nursing), "scale" (law/political science), "bolt" (kinesiology/PE/fitness), "puzzle" (anything else). Pick the closest match rather than defaulting to "book" for every course.',
           },
+          contacts: {
+            type: 'array',
+            description:
+              'Every professor and TA named in the syllabus, with whatever contact/office details are actually stated. Omit entirely rather than inventing a TA that is not named.',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['role', 'fullName'],
+              properties: {
+                role: { type: 'string', enum: ['professor', 'ta'] },
+                fullName: { type: 'string' },
+                title: {
+                  type: ['string', 'null'],
+                  description: 'e.g. "Associate Professor of Computer Science"',
+                },
+                howToAddress: {
+                  type: ['string', 'null'],
+                  description:
+                    'How the syllabus itself says to address them, e.g. "Dr. Chen" or "Professor Lee" - only if stated or clearly implied by their stated title, not guessed from the name alone.',
+                },
+                email: { type: ['string', 'null'] },
+                officeHours: {
+                  type: ['string', 'null'],
+                  description:
+                    'Verbatim or lightly cleaned-up, e.g. "Tue/Thu 2:00-3:30pm" or "By appointment" - do not invent a schedule that is not stated.',
+                },
+                officeLocation: { type: ['string', 'null'] },
+              },
+            },
+          },
+          learningObjectives: {
+            type: 'array',
+            description:
+              'The course\'s stated learning objectives/outcomes, one per array entry, as detailed as the syllabus itself states them. Only extract when the syllabus has an actual "Learning Objectives/Outcomes" section or equivalent - never fabricate objectives from a course description alone.',
+            items: { type: 'string' },
+          },
         },
       },
       scheduleItems: {
@@ -155,4 +191,6 @@ export const SYLLABUS_EXTRACTION_SYSTEM_PROMPT = `You are an expert academic pla
 9. If the term/year is stated anywhere in the document (header, "Spring 2026", a schedule table's date range), use it to resolve every date to a full ISO YYYY-MM-DD - never leave a date ambiguous about the year.
 10. Always propose suggestedColor: pick whichever preset best matches the course's subject by common academic convention (see the tool schema for examples). This is just a starting point the student can change, so a reasonable guess beats leaving it null.
 11. Always propose suggestedFileName: a short, human-readable name built from the real course code and term (e.g. "PSYC 220 - Spring 2026 Syllabus"), not a restatement of the uploaded file's own name.
-12. Always propose suggestedIcon: pick the preset that best matches the course's actual subject (see the tool schema's enum for what each icon represents) - another starting point the student can change, not a final answer.`;
+12. Always propose suggestedIcon: pick the preset that best matches the course's actual subject (see the tool schema's enum for what each icon represents) - another starting point the student can change, not a final answer.
+13. Extract every professor and TA named in the syllabus into contacts, with whatever details are actually stated (title, how to address them, email, office hours, office location) - leave a field null rather than guessing it, and never invent a TA who is not named anywhere.
+14. Extract learningObjectives only when the syllabus has an actual "Learning Objectives," "Course Outcomes," or equivalent section - copy them as detailed, individual bullet entries. Do not synthesize objectives from the course description or title if no such section exists; leave the array empty instead.`;

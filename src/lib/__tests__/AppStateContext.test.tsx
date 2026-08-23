@@ -180,6 +180,7 @@ describe('AppStateContext Reducer & Selectors', () => {
     const customState: AppState = {
       courses: [mockCourse],
       scheduleItems: [mockItem],
+      contacts: [],
       selectedCourseId: 'c1',
       selectedTerm: null,
       preferences: DEFAULT_PREFERENCES,
