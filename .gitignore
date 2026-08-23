@@ -44,3 +44,4 @@ next-env.d.ts
 
 # local browser automation profile, never committed
 /chrome-profile/
+.env*
