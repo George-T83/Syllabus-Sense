@@ -65,8 +65,8 @@ export default function LandingPage() {
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
             <div>
               <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
-                Never miss the grade-critical deadline{' '}
-                <span className="text-gradient-brand">buried on page 6</span> of a syllabus.
+                Everything that matters,{' '}
+                <span className="text-gradient-brand">right where you can see it</span>.
               </h1>
               <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
                 Upload a syllabus and Syllabus Sense pulls out every assignment, exam, and grade
@@ -139,7 +139,7 @@ export default function LandingPage() {
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <div className="rounded-glass-lg bg-gradient-brand px-6 py-10 text-center text-white shadow-card sm:px-12 sm:py-14">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Stop finding out about the project worth 25% of your grade the week it&apos;s due.
+              We read the fine print so you don&apos;t have to.
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-white/80 sm:text-base">
               Upload your syllabi, get a workload-aware plan, and see the whole semester on one
