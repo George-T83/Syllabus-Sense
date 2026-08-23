@@ -108,19 +108,6 @@ export function DashboardView() {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 4);
 
-  // DA-4: what the stat card leads with. The soonest-due pending item, plus
-  // how many days out it is, so the card can open with something
-  // forward-looking ("Next: ... in 2 days") instead of the bare completion
-  // percentage.
-  const nextTask = upcomingTasks[0];
-  const nextTaskDaysUntil = nextTask
-    ? Math.ceil((new Date(nextTask.dueDate).getTime() - now) / (1000 * 60 * 60 * 24))
-    : null;
-  const dueThisWeekCount = pendingTasks.filter((item) => {
-    const days = (new Date(item.dueDate).getTime() - now) / (1000 * 60 * 60 * 24);
-    return days >= 0 && days <= 7;
-  }).length;
-
   const referenceDate = useMemo(() => getLocalReferenceDate(), []);
   const plan = useMemo(
     () => computeSmartPlan(termScheduleItems, referenceDate),
@@ -435,54 +422,28 @@ export function DashboardView() {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="min-w-0">
-                    {nextTask ? (
-                      <>
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          Next: {nextTask.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {nextTaskDaysUntil !== null && nextTaskDaysUntil < 0
-                            ? 'Overdue'
-                            : nextTaskDaysUntil === 0
-                              ? 'Due today'
-                              : `Due in ${nextTaskDaysUntil} day${nextTaskDaysUntil === 1 ? '' : 's'}`}
-                          {dueThisWeekCount > 1 ? ` · ${dueThisWeekCount} due this week` : ''}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm font-semibold text-foreground">
-                        Nothing due - you&rsquo;re clear
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {/* Percentage demoted to a small secondary stat - no
-                        longer the dominant, discouraging first number on
-                        the card. */}
-                    <ProgressRing percent={termProgressPct} size={52} strokeWidth={5}>
-                      <span className="text-[11px] font-bold text-foreground">
-                        {termProgressPct}%
-                      </span>
-                    </ProgressRing>
-                    <div className="grid flex-1 grid-cols-3 gap-2 text-center">
-                      <div>
-                        <div className="text-sm font-bold text-primary">
-                          {semesterCourses.length}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">Courses</div>
+                <div className="flex items-center gap-4">
+                  <ProgressRing percent={termProgressPct} size={80} strokeWidth={7}>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-foreground">{termProgressPct}%</div>
+                    </div>
+                  </ProgressRing>
+                  <div className="grid flex-1 grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-base font-bold text-primary">
+                        {semesterCourses.length}
                       </div>
-                      <div>
-                        <div className="text-sm font-bold text-load-medium">
-                          {pendingTasks.length}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">Pending</div>
+                      <div className="text-[10px] text-muted-foreground">Courses</div>
+                    </div>
+                    <div>
+                      <div className="text-base font-bold text-load-medium">
+                        {pendingTasks.length}
                       </div>
-                      <div>
-                        <div className="text-sm font-bold text-load-low">{completedTasksCount}</div>
-                        <div className="text-[10px] text-muted-foreground">Done</div>
-                      </div>
+                      <div className="text-[10px] text-muted-foreground">Pending</div>
+                    </div>
+                    <div>
+                      <div className="text-base font-bold text-load-low">{completedTasksCount}</div>
+                      <div className="text-[10px] text-muted-foreground">Done</div>
                     </div>
                   </div>
                 </div>
