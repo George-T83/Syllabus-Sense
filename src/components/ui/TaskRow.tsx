@@ -261,21 +261,38 @@ function CardRow({
         <div className="flex items-center gap-1.5">
           {priority === 'high' && !completed && (
             <svg
-              className="h-2 w-2 shrink-0"
-              viewBox="0 0 12 12"
+              className="h-3.5 w-3.5 shrink-0"
+              viewBox="0 0 16 16"
               role="img"
               aria-label="High priority"
             >
               <title>High priority</title>
-              <path d="M6 1l5 9H1z" fill="hsl(var(--primary))" />
+              <path d="M8 1.5l7 12.5H1z" fill="hsl(0 84% 60%)" />
+              <rect x="7.25" y="6" width="1.5" height="4" rx="0.75" fill="white" />
+              <circle cx="8" cy="11.5" r="0.9" fill="white" />
             </svg>
           )}
           {priority === 'medium' && !completed && (
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/70"
-              title="Medium priority"
+            <svg
+              className="h-3.5 w-3.5 shrink-0"
+              viewBox="0 0 16 16"
+              role="img"
               aria-label="Medium priority"
-            />
+            >
+              <title>Medium priority</title>
+              <path d="M8 1.5l7 12.5H1z" fill="hsl(38 92% 50%)" />
+            </svg>
+          )}
+          {priority === 'low' && !completed && (
+            <svg
+              className="h-3 w-3 shrink-0"
+              viewBox="0 0 16 16"
+              role="img"
+              aria-label="Low priority"
+            >
+              <title>Low priority</title>
+              <circle cx="8" cy="8" r="6.5" fill="hsl(142 71% 40%)" />
+            </svg>
           )}
           <div
             className={cn(
