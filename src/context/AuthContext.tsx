@@ -9,6 +9,10 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   updateProfile,
+  updatePassword,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   User,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
@@ -22,6 +26,29 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<boolean>;
   updateDisplayName: (displayName: string) => Promise<boolean>;
+  /**
+   * Changes the signed-in user's password. Firebase treats this as a
+   * "sensitive" operation that requires a recently-issued ID token, so this
+   * re-authenticates with the current password via
+   * `EmailAuthProvider`/`reauthenticateWithCredential` immediately before
+   * calling `updatePassword` - without it, an account that signed in more
+   * than a few minutes ago gets `auth/requires-recent-login` instead of the
+   * password actually changing. Only meaningful for email/password
+   * accounts (`user.providerData` includes the `password` provider); the
+   * caller is expected to hide this control for Google-only accounts,
+   * which have no password here to change.
+   */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  /**
+   * Deletes the signed-in Firebase Auth account via `deleteUser`. Also a
+   * "sensitive" operation subject to the same recent-login requirement as
+   * `changePassword` - `currentPassword` is required for email/password
+   * accounts (re-authenticated the same way) and optional/unused for
+   * Google-auth accounts, where `deleteUser` alone succeeds if the session
+   * is fresh enough or otherwise surfaces `auth/requires-recent-login` for
+   * the caller to handle.
+   */
+  deleteAccount: (currentPassword?: string) => Promise<boolean>;
   clearError: () => void;
 }
 
@@ -43,6 +70,10 @@ function mapAuthError(err: unknown): string {
       return 'Enter a valid email address.';
     case 'auth/popup-closed-by-user':
       return 'Sign-in was cancelled.';
+    case 'auth/requires-recent-login':
+      return 'For your security, please sign in again before doing this.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait a moment and try again.';
     default:
       return err instanceof Error ? err.message : 'Something went wrong. Please try again.';
   }
@@ -99,6 +130,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(auth!.currentUser ? { ...auth!.currentUser } : null);
     });
 
+  const changePassword = (currentPassword: string, newPassword: string) =>
+    runAuthAction(async () => {
+      const current = auth!.currentUser;
+      if (!current?.email) {
+        throw new Error('No signed-in email/password account.');
+      }
+      const credential = EmailAuthProvider.credential(current.email, currentPassword);
+      await reauthenticateWithCredential(current, credential);
+      await updatePassword(current, newPassword);
+    });
+
+  const deleteAccount = (currentPassword?: string) =>
+    runAuthAction(async () => {
+      const current = auth!.currentUser;
+      if (!current) throw new Error('No signed-in user.');
+      if (currentPassword && current.email) {
+        const credential = EmailAuthProvider.credential(current.email, currentPassword);
+        await reauthenticateWithCredential(current, credential);
+      }
+      await deleteUser(current);
+    });
+
   const clearError = () => setError(null);
 
   return (
@@ -112,6 +165,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle,
         signOut,
         updateDisplayName,
+        changePassword,
+        deleteAccount,
         clearError,
       }}
     >
