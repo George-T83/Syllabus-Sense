@@ -7,14 +7,7 @@ import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
-import {
-  getWorkloadLevel,
-  WORKLOAD_LEVEL_LABELS,
-  WORKLOAD_CHIP_CLASS,
-  WORKLOAD_TEXT_CLASS,
-  toDateOnly,
-  formatDateISO,
-} from '@/lib/workload';
+import { getWorkloadLevel, WORKLOAD_LEVEL_LABELS, WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS, toDateOnly } from '@/lib/workload';
 import {
   computeSmartPlan,
   getLocalReferenceDate,
@@ -31,6 +24,19 @@ const dayDetailFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
 });
 
+/**
+ * Formats a `YYYY-MM-DD` planning key (`PlannedItem.startDate`, always a
+ * UTC-normalized date-only string - see lib/workload/dateUtils.ts) as local
+ * calendar text. Goes through `toDateOnly` and reads UTC getters back into a
+ * *local* Date's Y/M/D components rather than formatting the UTC-midnight
+ * Date directly, so a negative-UTC-offset viewer's Intl formatter can't roll
+ * it back a day - the same class of bug documented on `toDateOnly` itself.
+ */
+function formatPlanDateKey(dateKey: string): string {
+  const d = toDateOnly(dateKey);
+  return dueDateFormatter.format(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
 export function SmartPlanner() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
@@ -45,27 +51,29 @@ export function SmartPlanner() {
   const totalPlanned = plan.startToday.length + plan.startThisWeek.length + plan.startLater.length;
   const todayLoad = plan.weekLoad[0];
   const todayLevel = getWorkloadLevel(todayLoad.hours);
+  const hasOverdueBacklog = plan.overdueHours > 1e-9;
 
-  // Keyed the same way calculateDailyLoad keys plan.weekLoad (UTC-midnight
-  // ISO date), so a forecast day's key always finds the items actually due
-  // that day - reusing the workload engine's own date normalization instead
-  // of the calendar module's local-time one avoids an off-by-one across
-  // timezones.
-  const itemsByDueDate = useMemo(() => {
-    const map = new Map<string, ScheduleItem[]>();
-    for (const item of scheduleItems) {
-      const key = formatDateISO(toDateOnly(item.dueDate));
-      const existing = map.get(key);
-      if (existing) existing.push(item);
-      else map.set(key, [item]);
+  // PL-4: bucketed by RECOMMENDED START date (PlannedItem.startDate), the
+  // same concept every other section of this page ("Start Today" / "Start
+  // This Week" / "Later") is organized around - not by due date. Built from
+  // the plan's own already-computed buckets rather than re-deriving from
+  // scheduleItems, so a forecast tile's expanded panel can never disagree
+  // with which section a given item actually landed in above.
+  const itemsByStartDate = useMemo(() => {
+    const map = new Map<string, PlannedItem[]>();
+    const allPlanned = [...plan.startToday, ...plan.startThisWeek, ...plan.startLater];
+    for (const planned of allPlanned) {
+      const existing = map.get(planned.startDate);
+      if (existing) existing.push(planned);
+      else map.set(planned.startDate, [planned]);
     }
     return map;
-  }, [scheduleItems]);
+  }, [plan]);
 
   const [selectedForecastKey, setSelectedForecastKey] = useState<string | null>(null);
   const selectedForecastDay = plan.weekLoad.find((d) => d.key === selectedForecastKey);
   const selectedDayItems = selectedForecastKey
-    ? (itemsByDueDate.get(selectedForecastKey) ?? [])
+    ? (itemsByStartDate.get(selectedForecastKey) ?? [])
     : [];
 
   const handleToggleComplete = async (item: ScheduleItem) => {
@@ -93,14 +101,44 @@ export function SmartPlanner() {
             {WORKLOAD_LEVEL_LABELS[todayLevel]}
           </span>
         </div>
-        <div className="mb-5 flex items-end gap-2">
-          <span className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            {todayLoad.hours.toFixed(1)}
-          </span>
-          <span className="pb-1.5 text-base font-medium text-muted-foreground sm:text-lg">
-            effective hours
-          </span>
+        {/* PL-1: split into two figures instead of one. The old single
+            "Today's Load" number only ever summed items due today through
+            +6 days (weekLoad) - an overdue item's hours land on its own
+            PAST due date and never made it into this number, even though
+            the Overdue-badged rows sit directly underneath it. Showing the
+            backlog total alongside it (rather than folding it in) keeps the
+            "due today" figure meaningful on its own while making the
+            catch-up debt visible instead of silently dropped. */}
+        <div className="mb-1 flex flex-wrap items-end gap-x-6 gap-y-3">
+          <div className="flex items-end gap-2">
+            <span className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+              {todayLoad.hours.toFixed(1)}
+              <span className="text-lg font-semibold text-muted-foreground sm:text-xl">h</span>
+            </span>
+            <span className="pb-1.5 text-xs font-medium text-muted-foreground sm:text-sm">
+              due today
+            </span>
+          </div>
+          {hasOverdueBacklog && (
+            <div className="flex items-end gap-2">
+              <span className="text-2xl font-bold tracking-tight text-destructive sm:text-3xl">
+                {plan.overdueHours.toFixed(1)}
+                <span className="text-sm font-semibold text-destructive/70 sm:text-base">h</span>
+              </span>
+              <span className="pb-1 text-xs font-medium text-muted-foreground sm:text-sm">
+                overdue backlog
+              </span>
+            </div>
+          )}
         </div>
+        {/* VA-2: narrate the computation instead of leaving it as a bare
+            number - this is where the workload engine's actual
+            intelligence (type-weighted, progress-aware, stress-adjusted
+            hours - see lib/workload) lives, and nothing on screen said so. */}
+        <p className="mb-5 text-xs text-muted-foreground">
+          Calculated from your exams, projects, and readings - weighted by type and
+          progress, not just a headcount.
+        </p>
 
         {plan.startToday.length === 0 ? (
           <EmptyState
@@ -120,13 +158,15 @@ export function SmartPlanner() {
           />
         ) : (
           <div className="flex flex-col gap-2">
-            {plan.startToday.map(({ item, overloaded, overdue }) => (
+            {plan.startToday.map(({ item, startDate, overloaded, tight, overdue }) => (
               <PlannedTaskRow
                 key={item.id}
                 variant={state.preferences.taskRowVariant}
                 item={item}
+                startDate={startDate}
                 course={courses.find((c) => c.id === item.courseId)}
                 overloaded={overloaded}
+                tight={tight}
                 overdue={overdue}
                 onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
               />
@@ -183,22 +223,19 @@ export function SmartPlanner() {
               {dayDetailFormatter.format(selectedForecastDay.day)}
             </h3>
             {selectedDayItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nothing due this day.</p>
+              <p className="text-sm text-muted-foreground">Nothing recommended to start this day.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                {selectedDayItems.map((item) => (
-                  <TaskRow
+                {selectedDayItems.map(({ item, startDate, overloaded, tight, overdue }) => (
+                  <PlannedTaskRow
                     key={item.id}
                     variant={state.preferences.taskRowVariant}
-                    title={item.title}
-                    href={`/tasks/${item.id}`}
-                    type={item.type}
-                    courseCode={courses.find((c) => c.id === item.courseId)?.code ?? 'General'}
-                    courseColor={courses.find((c) => c.id === item.courseId)?.color}
-                    courseIcon={courses.find((c) => c.id === item.courseId)?.icon}
-                    completed={item.completed}
-                    progress={item.progress}
-                    priority={item.priority}
+                    item={item}
+                    startDate={startDate}
+                    course={courses.find((c) => c.id === item.courseId)}
+                    overloaded={overloaded}
+                    tight={tight}
+                    overdue={overdue}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                   />
                 ))}
@@ -232,19 +269,25 @@ export function SmartPlanner() {
 
 function PlannedTaskRow({
   item,
+  startDate,
   course,
   overloaded,
+  tight,
   overdue,
   onToggleComplete,
   variant,
 }: {
   item: PlannedItem['item'];
+  startDate: string;
   course: Course | undefined;
   overloaded: boolean;
+  tight: boolean;
   overdue: boolean;
   onToggleComplete?: () => void;
   variant?: 'card' | 'touch';
 }) {
+  const dueLabel = dueDateFormatter.format(new Date(item.dueDate));
+  const startLabel = formatPlanDateKey(startDate);
   return (
     <TaskRow
       variant={variant}
@@ -258,23 +301,38 @@ function PlannedTaskRow({
       progress={item.progress}
       priority={item.priority}
       onToggleComplete={onToggleComplete}
+      // PL-2: stacked (not side-by-side) so the trailing block's natural
+      // width is the widest SINGLE line, not badge+gap+date combined - this
+      // is what keeps the row within a 375px viewport without touching
+      // TaskRow.tsx's own `flex shrink-0` wrapper (owned by another agent
+      // this round). PL-3: prints the recommended start date - previously
+      // computed but discarded before reaching the screen - alongside the
+      // due date, both labeled, instead of only the due date.
       trailing={
-        <>
+        <div className="flex flex-col items-end gap-1 text-right">
           {overdue ? (
-            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+            <span className="whitespace-nowrap rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
               Overdue
             </span>
+          ) : overloaded ? (
+            <span className="whitespace-nowrap rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
+              Overloaded
+            </span>
           ) : (
-            overloaded && (
-              <span className="rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
-                Overloaded
+            tight && (
+              // PL-5: middle tier between a comfortable day and a genuinely
+              // overloaded one - styled with the 'high' load token
+              // (amber-ish), one step down in alarm from 'critical' (red).
+              <span className="whitespace-nowrap rounded-full bg-load-high/10 px-2 py-0.5 text-[10px] font-semibold text-load-high">
+                Tight
               </span>
             )
           )}
-          <span className="text-xs text-muted-foreground">
-            Due {dueDateFormatter.format(new Date(item.dueDate))}
+          <span className="whitespace-nowrap text-[11px] text-muted-foreground">
+            Start {startLabel}
           </span>
-        </>
+          <span className="whitespace-nowrap text-xs text-muted-foreground">Due {dueLabel}</span>
+        </div>
       }
     />
   );
@@ -299,12 +357,14 @@ function PlanSection({
     <Card className="rounded-2xl p-6">
       <h2 className="mb-3 text-sm font-semibold text-foreground">{title}</h2>
       <div className="flex flex-col gap-2">
-        {items.map(({ item, overloaded, overdue }) => (
+        {items.map(({ item, startDate, overloaded, tight, overdue }) => (
           <PlannedTaskRow
             key={item.id}
             item={item}
+            startDate={startDate}
             course={courses.find((c) => c.id === item.courseId)}
             overloaded={overloaded}
+            tight={tight}
             overdue={overdue}
             variant={variant}
             onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}

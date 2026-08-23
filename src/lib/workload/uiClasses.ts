@@ -30,6 +30,22 @@ export const WORKLOAD_CHIP_CLASS: Record<WorkloadLevel, string> = {
   critical: 'border-load-critical/30 bg-load-critical/10',
 };
 
+/**
+ * Quiet "prep window" indicator (CA-1): a thin colored underline, deliberately
+ * lighter-weight than WORKLOAD_TINT_CLASS's full-cell background wash. Use
+ * this for a day that only carries spread-out prep-time load (from an item
+ * due on a *different* day) so it reads as "lighter signal, not the real
+ * thing" next to a day something is actually due/scheduled on. Never apply
+ * both classes to the same cell - they're meant to be mutually exclusive
+ * ("due here" vs "prep window only"), not stacked.
+ */
+export const WORKLOAD_PREP_INDICATOR_CLASS: Record<WorkloadLevel, string> = {
+  low: '',
+  medium: 'border-b-2 border-load-medium/50',
+  high: 'border-b-2 border-load-high/60',
+  critical: 'border-b-2 border-load-critical/70',
+};
+
 /** Text color, for labels that need to read as the level's color. */
 export const WORKLOAD_TEXT_CLASS: Record<WorkloadLevel, string> = {
   low: 'text-load-low',

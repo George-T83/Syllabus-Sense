@@ -13,16 +13,18 @@ import { courseSwatch } from '@/lib/courseColors';
 import { clampProgress } from '@/lib/taskStatus';
 import { cn } from '@/lib/utils';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { ScheduleItem, AssignmentType } from '@/types/schedule';
+import type { ScheduleItem, AssignmentType, Priority } from '@/types/schedule';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
 type StatusFilter = 'all' | 'pending' | 'completed';
 /** What organizes the list into sections. 'date' buckets by due-date
- * proximity (Overdue/Today/This Week/Later), 'course' buckets by class,
- * 'status' buckets by Overdue/In Progress/Upcoming/Completed, 'flat' renders
- * one unsectioned list (today's original behavior). */
-type GroupBy = 'date' | 'course' | 'status' | 'flat';
+ * proximity (Overdue/Today/This Week/Later - the Later bucket is further
+ * split into month sub-headers, see monthSubGroups below), 'course' buckets
+ * by class, 'status' buckets by Overdue/In Progress/Upcoming/Completed,
+ * 'priority' buckets by High/Medium/Low, 'flat' renders one unsectioned
+ * list (today's original behavior). */
+type GroupBy = 'date' | 'course' | 'status' | 'priority' | 'flat';
 /** Ordering applied within each group (and across the whole list when
  * groupBy is 'flat'). Exposed as its own control mainly so a course group
  * can be re-ordered by status instead of just due date. */
@@ -41,6 +43,7 @@ const GROUP_BY_LABELS: Record<GroupBy, string> = {
   date: 'Due Date',
   course: 'Course',
   status: 'Status',
+  priority: 'Priority',
   flat: 'Flat',
 };
 
@@ -96,6 +99,56 @@ interface ItemGroup {
   courseColor?: string;
   dotClassName?: string;
   items: ScheduleItem[];
+  /** Month sub-headers nested inside this group (TA-2). Used only for the
+   * 'date' groupBy's Later bucket, which otherwise spans however many
+   * months of due dates exist as one undifferentiated wall - a due-next-
+   * week lab and a finals-week final would render as the exact same kind
+   * of row. When present, the UI renders these instead of `items` flat. */
+  monthSubGroups?: { key: string; label: string; items: ScheduleItem[] }[];
+}
+
+/** "September", or "September 2027" once the item's due date crosses into a
+ * different year than today - so a Later bucket spanning a year boundary
+ * (e.g. viewed in December) doesn't silently conflate next January with
+ * this one. */
+function monthSubGroupLabel(date: Date, today: Date): string {
+  const sameYear = date.getFullYear() === today.getFullYear();
+  const formatter = new Intl.DateTimeFormat(
+    'en-US',
+    sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' },
+  );
+  return formatter.format(date);
+}
+
+/** Chunks an already-sorted list of items into per-calendar-month buckets,
+ * ordered chronologically by month regardless of the within-group sort
+ * (priority/status sorts may otherwise interleave items across months). */
+function groupByMonth(
+  items: ScheduleItem[],
+  today: Date,
+): { key: string; label: string; items: ScheduleItem[] }[] {
+  const byMonth = new Map<string, ScheduleItem[]>();
+  for (const item of items) {
+    const due = new Date(item.dueDate);
+    const monthKey = `${due.getFullYear()}-${due.getMonth()}`;
+    const list = byMonth.get(monthKey);
+    if (list) list.push(item);
+    else byMonth.set(monthKey, [item]);
+  }
+  return Array.from(byMonth.entries())
+    .sort(([a], [b]) => {
+      const [aYear, aMonth] = a.split('-').map(Number);
+      const [bYear, bMonth] = b.split('-').map(Number);
+      return aYear !== bYear ? aYear - bYear : aMonth - bMonth;
+    })
+    .map(([monthKey, monthItems]) => {
+      const [year, month] = monthKey.split('-').map(Number);
+      return {
+        key: monthKey,
+        label: monthSubGroupLabel(new Date(year, month, 1), today),
+        items: monthItems,
+      };
+    });
 }
 
 export function PlannerView() {
@@ -160,6 +213,26 @@ export function PlannerView() {
           };
         })
         .sort((a, b) => (a.label ?? '').localeCompare(b.label ?? ''));
+    }
+
+    if (groupBy === 'priority') {
+      const buckets: Record<Priority, ScheduleItem[]> = { high: [], medium: [], low: [] };
+      for (const item of filteredItems) {
+        buckets[item.priority ?? 'medium'].push(item);
+      }
+      const order: { key: Priority; label: string; dot: string }[] = [
+        { key: 'high', label: 'High Priority', dot: 'bg-destructive' },
+        { key: 'medium', label: 'Medium Priority', dot: 'bg-load-medium' },
+        { key: 'low', label: 'Low Priority', dot: 'bg-load-low' },
+      ];
+      return order
+        .filter((g) => buckets[g.key].length > 0)
+        .map((g) => ({
+          key: g.key,
+          label: g.label,
+          dotClassName: g.dot,
+          items: sortedWithin(buckets[g.key]),
+        }));
     }
 
     if (groupBy === 'status') {
@@ -227,12 +300,19 @@ export function PlannerView() {
     ];
     return order
       .filter((g) => buckets[g.key].length > 0)
-      .map((g) => ({
-        key: g.key,
-        label: g.label,
-        dotClassName: g.dot,
-        items: sortedWithin(buckets[g.key]),
-      }));
+      .map((g) => {
+        const items = sortedWithin(buckets[g.key]);
+        return {
+          key: g.key,
+          label: g.label,
+          dotClassName: g.dot,
+          items,
+          // Later otherwise renders as one flat wall spanning however many
+          // months out the syllabus goes - split it into month sub-headers
+          // so it reads as a calendar-scale structure (TA-2).
+          monthSubGroups: g.key === 'later' && items.length > 0 ? groupByMonth(items, today) : undefined,
+        };
+      });
   }, [filteredItems, groupBy, withinSort, today, courses]);
 
   const handleToggleComplete = async (item: ScheduleItem) => {
@@ -268,6 +348,91 @@ export function PlannerView() {
 
   const selectClass =
     'rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+
+  // Factored out of the group-rendering loop so the same row (with its
+  // trailing Overdue/Due/Edit/Delete controls) can be rendered both for a
+  // group's flat item list and for each of a group's month sub-groups
+  // (TA-2's Later-bucket split).
+  const renderTaskRow = (item: ScheduleItem) => {
+    const course = courses.find((c) => c.id === item.courseId);
+    const overdue = isOverdue(item, today);
+    const isConfirmingThisDelete = confirmingDeleteId === item.id;
+    return (
+      <TaskRow
+        key={item.id}
+        variant={state.preferences.taskRowVariant}
+        title={item.title}
+        href={'/tasks/' + item.id}
+        type={item.type}
+        courseCode={course ? course.code : 'General'}
+        courseColor={course?.color}
+        courseIcon={course?.icon}
+        completed={item.completed}
+        progress={item.progress}
+        priority={item.priority}
+        gradeWeight={item.gradeWeight}
+        onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+        trailing={
+          <>
+            {overdue && (
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                Overdue
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              Due {dueDateFormatter.format(new Date(item.dueDate))}
+            </span>
+            {/* Edit/Delete: de-emphasized (not full-strength) for a completed
+             * task so finished work doesn't compete visually with
+             * active/urgent rows - see TA-5. Full opacity while a delete
+             * confirmation on THIS row is in flight, so that flow never
+             * gets harder to see/tap mid-confirm. */}
+            <span
+              className={cn(
+                'flex items-center gap-2',
+                item.completed &&
+                  !isConfirmingThisDelete &&
+                  'opacity-50 transition-opacity hover:opacity-100 focus-within:opacity-100',
+              )}
+            >
+              <button
+                onClick={() => setEditingItem(item)}
+                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+              >
+                Edit
+              </button>
+              {isConfirmingThisDelete ? (
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    onClick={() => handleDeleteTask(item)}
+                    className="font-semibold text-foreground hover:underline"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setConfirmingDeleteId(null)}
+                    className="text-muted-foreground hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                // Neutral/muted, not red - red is reserved for Overdue/
+                // urgency badges (TA-5), so this common, low-stakes action
+                // doesn't compete with the one badge that should stand out.
+                <button
+                  onClick={() => setConfirmingDeleteId(item.id)}
+                  className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                >
+                  Delete
+                </button>
+              )}
+            </span>
+          </>
+        }
+      />
+    );
+  };
 
   return (
     <>
@@ -414,69 +579,20 @@ export function PlannerView() {
                         </span>
                       </div>
                     )}
-                    <div className="flex flex-col gap-2">
-                      {group.items.map((item) => {
-                        const course = courses.find((c) => c.id === item.courseId);
-                        const overdue = isOverdue(item, today);
-                        return (
-                          <TaskRow
-                            key={item.id}
-                            variant={state.preferences.taskRowVariant}
-                            title={item.title}
-                            href={'/tasks/' + item.id}
-                            type={item.type}
-                            courseCode={course ? course.code : 'General'}
-                            courseColor={course?.color}
-                            courseIcon={course?.icon}
-                            completed={item.completed}
-                            progress={item.progress}
-                            priority={item.priority}
-                            onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
-                            trailing={
-                              <>
-                                {overdue && (
-                                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                                    Overdue
-                                  </span>
-                                )}
-                                <span className="text-xs text-muted-foreground">
-                                  Due {dueDateFormatter.format(new Date(item.dueDate))}
-                                </span>
-                                <button
-                                  onClick={() => setEditingItem(item)}
-                                  className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                                >
-                                  Edit
-                                </button>
-                                {confirmingDeleteId === item.id ? (
-                                  <div className="flex items-center gap-2 text-xs">
-                                    <button
-                                      onClick={() => handleDeleteTask(item)}
-                                      className="font-semibold text-destructive hover:underline"
-                                    >
-                                      Confirm
-                                    </button>
-                                    <button
-                                      onClick={() => setConfirmingDeleteId(null)}
-                                      className="text-muted-foreground hover:underline"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => setConfirmingDeleteId(item.id)}
-                                    className="text-xs font-semibold text-destructive hover:underline"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </>
-                            }
-                          />
-                        );
-                      })}
-                    </div>
+                    {group.monthSubGroups ? (
+                      <div className="space-y-4">
+                        {group.monthSubGroups.map((sub) => (
+                          <div key={sub.key}>
+                            <h4 className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              {sub.label}
+                            </h4>
+                            <div className="flex flex-col gap-2">{sub.items.map(renderTaskRow)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">{group.items.map(renderTaskRow)}</div>
+                    )}
                   </div>
                 );
               })}
