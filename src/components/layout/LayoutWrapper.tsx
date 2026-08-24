@@ -8,6 +8,7 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import MobileTabBar from './MobileTabBar';
 import FirestoreSync from './FirestoreSync';
+import OfflineBanner from './OfflineBanner';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         <AppStateProvider>
           <FirestoreSync />
           <div className="min-h-screen flex flex-col bg-background text-foreground">
+            <OfflineBanner />
             <Navbar />
             <div className="flex flex-1 pt-20">
               <Sidebar />
