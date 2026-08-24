@@ -2,6 +2,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 
 const setDocMock = vi.fn();
+const batchSetMock = vi.fn();
 const batchDeleteMock = vi.fn();
 const batchCommitMock = vi.fn();
 const getDocsMock = vi.fn();
@@ -16,10 +17,13 @@ vi.mock('@/lib/firebase/client', () => ({
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn((...args: unknown[]) => args.join('/')),
   collection: vi.fn((...args: unknown[]) => args.join('/')),
+  query: vi.fn((...args: unknown[]) => args),
+  where: vi.fn((...args: unknown[]) => args),
   getDocs: (...args: unknown[]) => getDocsMock(...args),
   setDoc: (...args: unknown[]) => setDocMock(...args),
   deleteDoc: (...args: unknown[]) => deleteDocMock(...args),
   writeBatch: vi.fn(() => ({
+    set: batchSetMock,
     delete: batchDeleteMock,
     commit: batchCommitMock,
   })),
@@ -34,8 +38,8 @@ import { createCourse, updateCourse, deleteCourse } from '@/lib/firestore/course
 import { deleteAllCourseSyllabi, deleteSyllabusUpload } from '@/lib/firestore/syllabi';
 import type { SyllabusUpload } from '@/types/syllabus';
 
-const course: Course = { id: 'c1', code: 'CS 101', title: 'Intro' };
-const otherCourse: Course = { id: 'c2', code: 'MA 101', title: 'Calc' };
+const course: Course = { id: 'c1', code: 'CS 101', title: 'Intro', term: 'Fall 2026' };
+const otherCourse: Course = { id: 'c2', code: 'MA 101', title: 'Calc', term: 'Fall 2026' };
 const relatedItem: ScheduleItem = {
   id: 'i1',
   courseId: 'c1',
@@ -49,6 +53,7 @@ const relatedContact: Contact = {
   courseId: 'c1',
   role: 'professor',
   fullName: 'Dr. Jane Smith',
+  term: 'Fall 2026',
   source: 'manual',
   approved: true,
 };
@@ -65,6 +70,7 @@ const mockSyllabus: SyllabusUpload = {
 describe('Firestore courses service', () => {
   beforeEach(() => {
     setDocMock.mockReset().mockResolvedValue(undefined);
+    batchSetMock.mockReset();
     batchDeleteMock.mockReset();
     batchCommitMock.mockReset().mockResolvedValue(undefined);
     getDocsMock.mockReset().mockResolvedValue({ docs: [] });
@@ -90,15 +96,65 @@ describe('Firestore courses service', () => {
     expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'REMOVE_COURSE', payload: course.id });
   });
 
-  it('updateCourse rolls back to the previous course on failure', async () => {
-    setDocMock.mockRejectedValueOnce(new Error('offline'));
+  it('updateCourse writes via setDoc when term is unchanged', async () => {
     const dispatch = vi.fn();
     const updated: Course = { ...course, title: 'Intro to CS' };
 
-    await expect(updateCourse('u1', course, updated, dispatch)).rejects.toThrow('offline');
+    await updateCourse('u1', course, updated, dispatch, [relatedContact]);
 
-    expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'UPDATE_COURSE', payload: updated });
-    expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'UPDATE_COURSE', payload: course });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_COURSE', payload: updated });
+    expect(setDocMock).toHaveBeenCalledTimes(1);
+    expect(batchCommitMock).not.toHaveBeenCalled();
+  });
+
+  it('updateCourse cascades term changes to related contacts via writeBatch and dispatches updates', async () => {
+    const dispatch = vi.fn();
+    const updated: Course = { ...course, term: 'Spring 2027' };
+
+    await updateCourse('u1', course, updated, dispatch, [relatedContact]);
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_COURSE', payload: updated });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_CONTACT',
+      payload: expect.objectContaining({ id: 'ct1', term: 'Spring 2027' }),
+    });
+    expect(batchSetMock).toHaveBeenCalledTimes(2); // 1 course + 1 contact
+    expect(batchCommitMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('updateCourse cascades term changes querying contacts if relatedContacts is not provided', async () => {
+    const dispatch = vi.fn();
+    const updated: Course = { ...course, term: 'Spring 2027' };
+    getDocsMock.mockResolvedValueOnce({
+      docs: [
+        {
+          data: () => relatedContact,
+        },
+      ],
+    });
+
+    await updateCourse('u1', course, updated, dispatch);
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_CONTACT',
+      payload: expect.objectContaining({ id: 'ct1', term: 'Spring 2027' }),
+    });
+    expect(batchSetMock).toHaveBeenCalledTimes(2);
+    expect(batchCommitMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('updateCourse rolls back course and contacts on failure', async () => {
+    batchCommitMock.mockRejectedValueOnce(new Error('offline'));
+    const dispatch = vi.fn();
+    const updated: Course = { ...course, term: 'Spring 2027' };
+
+    await expect(updateCourse('u1', course, updated, dispatch, [relatedContact])).rejects.toThrow(
+      'offline',
+    );
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_COURSE', payload: updated });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_COURSE', payload: course });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_CONTACT', payload: relatedContact });
   });
 
   it('deleteCourse batch-deletes the course, related schedule items, and related contacts', async () => {
