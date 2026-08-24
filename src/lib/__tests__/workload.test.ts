@@ -88,6 +88,24 @@ describe('#50 getBaseEffectiveHours', () => {
     expect(getBaseEffectiveHours(over)).toBe(0);
     expect(getBaseEffectiveHours(under)).toBeCloseTo(10 * ASSIGNMENT_TYPE_WEIGHT.assignment);
   });
+
+  it('safely handles zero-credit / zero-hour edge cases, NaN, and negative hours', () => {
+    const zeroHours = makeItem({ estimatedHours: 0 });
+    const nanHours = makeItem({ estimatedHours: Number.NaN });
+    const negativeHours = makeItem({ estimatedHours: -10 });
+    const infinityHours = makeItem({ estimatedHours: Number.POSITIVE_INFINITY });
+
+    expect(getBaseEffectiveHours(zeroHours)).toBe(0);
+    expect(getBaseEffectiveHours(nanHours)).toBe(0);
+    expect(getBaseEffectiveHours(negativeHours)).toBe(0);
+    expect(getBaseEffectiveHours(infinityHours)).toBe(0);
+  });
+
+  it('falls back to safe default weights and hours when item.type is unknown or invalid', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unknownTypeItem = makeItem({ type: 'unknown_type' as any, estimatedHours: undefined });
+    expect(getBaseEffectiveHours(unknownTypeItem)).toBe(2); // fallback 2h * 1.0 weight
+  });
 });
 
 describe('#52 applyStressFactor', () => {
@@ -223,6 +241,29 @@ describe('#53/#56 calculateDailyLoad edge cases', () => {
     const val = result.get(REFERENCE_DATE) ?? 0;
     expect(Number.isNaN(val)).toBe(false);
     expect(val).toBeGreaterThanOrEqual(0);
+  });
+
+  it('does not distort daily load when combining zero-credit and normal courses', () => {
+    const normalTask = makeItem({
+      id: 'norm-1',
+      dueDate: REFERENCE_DATE,
+      estimatedHours: 3,
+      type: 'assignment',
+    });
+    const zeroCreditTask1 = makeItem({ id: 'zero-1', dueDate: REFERENCE_DATE, estimatedHours: 0 });
+    const zeroCreditTask2 = makeItem({ id: 'zero-2', dueDate: REFERENCE_DATE, estimatedHours: -5 });
+    const zeroCreditTask3 = makeItem({
+      id: 'zero-3',
+      dueDate: REFERENCE_DATE,
+      estimatedHours: Number.NaN,
+    });
+
+    const result = calculateDailyLoad(
+      [normalTask, zeroCreditTask1, zeroCreditTask2, zeroCreditTask3],
+      REFERENCE_DATE,
+      { stressDisposition: 'moderate' },
+    );
+    expect(result.get(REFERENCE_DATE)).toBeCloseTo(3 * ASSIGNMENT_TYPE_WEIGHT.assignment);
   });
 });
 

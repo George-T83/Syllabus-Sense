@@ -36,6 +36,30 @@ export const DEFAULT_ESTIMATED_HOURS: Record<AssignmentType, number> = {
   other: 2,
 };
 
+/** Safe fallback weight when an assignment type is missing or unrecognized. */
+export const DEFAULT_ASSIGNMENT_TYPE_WEIGHT = 1.0;
+
+/** Safe fallback hours when an assignment type estimate is missing or unrecognized. */
+export const DEFAULT_FALLBACK_HOURS = 2;
+
+/**
+ * Returns the intrinsic cognitive weight for an assignment type, falling back safely
+ * to 1.0 for missing, unrecognized, or custom types to prevent NaN propagation.
+ */
+export function getAssignmentTypeWeight(type?: AssignmentType | string): number {
+  if (!type) return DEFAULT_ASSIGNMENT_TYPE_WEIGHT;
+  return ASSIGNMENT_TYPE_WEIGHT[type as AssignmentType] ?? DEFAULT_ASSIGNMENT_TYPE_WEIGHT;
+}
+
+/**
+ * Returns the fallback estimated hours for an assignment type, falling back safely
+ * to DEFAULT_FALLBACK_HOURS for unrecognized types.
+ */
+export function getDefaultEstimatedHours(type?: AssignmentType | string): number {
+  if (!type) return DEFAULT_FALLBACK_HOURS;
+  return DEFAULT_ESTIMATED_HOURS[type as AssignmentType] ?? DEFAULT_FALLBACK_HOURS;
+}
+
 /**
  * #52 Stress-factor coefficients derived from onboarding poll responses.
  *
