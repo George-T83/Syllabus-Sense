@@ -23,3 +23,16 @@ export function cn(
 
   return result.filter(Boolean).join(' ');
 }
+
+/** Normalizes a full name for matching the same person across records:
+ * case, punctuation, and surrounding whitespace shouldn't cause "Dr. Sarah
+ * Chen" and "sarah chen" to read as different people. No fuzzy-matching
+ * library - this catches the common real-world cases (titles, periods,
+ * extra whitespace) without over-engineering. Shared between syllabus
+ * contact-dedup matching and grouping the Contacts page by person. */
+export function normalizeContactName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .trim();
+}

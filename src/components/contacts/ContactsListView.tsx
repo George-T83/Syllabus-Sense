@@ -16,7 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import type { Contact, ContactRole, Course } from '@/types/schedule';
-import { cn } from '@/lib/utils';
+import { cn, normalizeContactName } from '@/lib/utils';
 
 const ROLE_LABEL: Record<ContactRole, string> = {
   professor: 'Professor',
@@ -110,32 +110,25 @@ export function ContactsListView() {
     return result;
   }, [contacts, search, effectiveTermFilter, courseById]);
 
-  // Grouped by course, in the same order courses appear in state.courses -
-  // any contact whose course was since deleted (shouldn't normally happen;
-  // REMOVE_COURSE also drops its contacts) still gets a group so it's never
-  // silently dropped from the list.
-  const groups = useMemo(() => {
-    const byCourse = new Map<string, Contact[]>();
+  // Grouped by person (normalized full name), not by course - the same
+  // professor teaching two courses gets one card, not two. Each Contact
+  // record is still course-scoped underneath (office hours/location can
+  // legitimately differ by course), so a group just collects that person's
+  // per-course records; the card lists every course from its own records.
+  // Sorted alphabetically since there's no course order to inherit anymore.
+  const personGroups = useMemo(() => {
+    const byPerson = new Map<string, Contact[]>();
     filteredContacts.forEach((c) => {
-      const list = byCourse.get(c.courseId) ?? [];
+      const key = normalizeContactName(c.fullName) || c.id;
+      const list = byPerson.get(key) ?? [];
       list.push(c);
-      byCourse.set(c.courseId, list);
+      byPerson.set(key, list);
     });
 
-    const ordered: { course: Course | null; courseId: string; contacts: Contact[] }[] = [];
-    courses.forEach((course) => {
-      const list = byCourse.get(course.id);
-      if (list?.length) {
-        ordered.push({ course, courseId: course.id, contacts: list });
-        byCourse.delete(course.id);
-      }
-    });
-    byCourse.forEach((list, courseId) => {
-      ordered.push({ course: null, courseId, contacts: list });
-    });
-
-    return ordered;
-  }, [filteredContacts, courses]);
+    return Array.from(byPerson.values())
+      .map((records) => ({ primary: records[0], records }))
+      .sort((a, b) => a.primary.fullName.localeCompare(b.primary.fullName));
+  }, [filteredContacts]);
 
   const openCreate = () => {
     setEditingContact(null);
@@ -260,7 +253,7 @@ export function ContactsListView() {
           </div>
         )}
 
-        {groups.length === 0 ? (
+        {personGroups.length === 0 ? (
           <Card className="rounded-2xl p-6">
             <EmptyState
               icon={
@@ -290,85 +283,98 @@ export function ContactsListView() {
             />
           </Card>
         ) : (
-          <div className="space-y-6">
-            {groups.map((group) => (
-              <div key={group.courseId} className="space-y-3">
-                <h2 className="text-sm font-semibold text-foreground">
-                  {courseLabel(group.course ?? undefined)}
-                </h2>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {group.contacts.map((contact) => (
-                    <Card key={contact.id} className="rounded-2xl p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <span
-                          className={cn(
-                            'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                            contact.role === 'professor'
-                              ? 'bg-primary/10 text-primary'
-                              : 'bg-accent text-muted-foreground',
-                          )}
-                        >
-                          {ROLE_LABEL[contact.role]}
-                        </span>
-                        <button
-                          onClick={() => openEdit(contact)}
-                          className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                        >
-                          Edit
-                        </button>
-                      </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {personGroups.map(({ primary, records }) => (
+              <Card
+                key={normalizeContactName(primary.fullName) || primary.id}
+                className="rounded-2xl p-4"
+              >
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                    primary.role === 'professor'
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-accent text-muted-foreground',
+                  )}
+                >
+                  {ROLE_LABEL[primary.role]}
+                </span>
 
-                      <div className="mt-2">
-                        <div className="font-semibold text-foreground">{contact.fullName}</div>
-                        {contact.title && (
-                          <div className="text-xs text-muted-foreground">{contact.title}</div>
-                        )}
-                      </div>
-
-                      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                        {contact.howToAddress && <div>Address as: {contact.howToAddress}</div>}
-                        {contact.email && (
-                          <a
-                            href={`mailto:${contact.email}`}
-                            className="block truncate text-primary hover:underline"
-                          >
-                            {contact.email}
-                          </a>
-                        )}
-                        {contact.officeHours && <div>Office hours: {contact.officeHours}</div>}
-                        {contact.officeLocation && <div>Office: {contact.officeLocation}</div>}
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-end">
-                        {confirmingDeleteId === contact.id ? (
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="text-muted-foreground">Delete this contact?</span>
-                            <button
-                              onClick={() => handleDelete(contact)}
-                              className="font-semibold text-destructive hover:underline"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => setConfirmingDeleteId(null)}
-                              className="text-muted-foreground hover:underline"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmingDeleteId(contact.id)}
-                            className="text-xs font-semibold text-destructive hover:underline"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
+                <div className="mt-2">
+                  <div className="font-semibold text-foreground">{primary.fullName}</div>
+                  {primary.title && (
+                    <div className="text-xs text-muted-foreground">{primary.title}</div>
+                  )}
                 </div>
-              </div>
+
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {primary.howToAddress && <div>Address as: {primary.howToAddress}</div>}
+                  {primary.email && (
+                    <a
+                      href={`mailto:${primary.email}`}
+                      className="block truncate text-primary hover:underline"
+                    >
+                      {primary.email}
+                    </a>
+                  )}
+                </div>
+
+                <div className="mt-3 space-y-2 border-t border-border pt-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {records.length === 1 ? 'Course' : 'Courses'}
+                  </span>
+                  <ul className="space-y-2">
+                    {records.map((record) => (
+                      <li key={record.id} className="text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-medium text-foreground">
+                            {courseLabel(courseById.get(record.courseId))}
+                          </span>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {confirmingDeleteId === record.id ? (
+                              <>
+                                <button
+                                  onClick={() => handleDelete(record)}
+                                  className="font-semibold text-destructive hover:underline"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => setConfirmingDeleteId(null)}
+                                  className="text-muted-foreground hover:underline"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => openEdit(record)}
+                                  className="font-semibold text-primary hover:underline"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => setConfirmingDeleteId(record.id)}
+                                  className="font-semibold text-destructive hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {(record.officeHours || record.officeLocation) && (
+                          <div className="mt-0.5 text-muted-foreground">
+                            {record.officeHours && <div>Office hours: {record.officeHours}</div>}
+                            {record.officeLocation && <div>Office: {record.officeLocation}</div>}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
             ))}
           </div>
         )}

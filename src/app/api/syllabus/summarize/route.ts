@@ -3,7 +3,6 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { adminStorage } from '@/lib/firebase/adminStorage';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
-import { checkAndIncrementExtractionCount } from '@/lib/ai/extractionRateLimit';
 import { COURSE_SUMMARY_SYSTEM_PROMPT, COURSE_SUMMARY_TOOL } from '@/lib/ai/courseSummaryTool';
 import { courseSummarySchema } from '@/types/courseSummary';
 
@@ -99,14 +98,6 @@ export async function POST(req: NextRequest) {
     if (!docxText) {
       return NextResponse.json({ error: 'That document appears to be empty.' }, { status: 400 });
     }
-  }
-
-  const rateLimit = await checkAndIncrementExtractionCount(user.uid);
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: "You've hit today's AI usage limit. Try again tomorrow." },
-      { status: 429 },
-    );
   }
 
   let anthropic;
