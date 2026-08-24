@@ -1,7 +1,9 @@
-import { doc, setDoc, writeBatch } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { collection, doc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { deleteObject, ref } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase/client';
 import type { AppAction } from '@/context/AppStateContext';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
+import type { SyllabusUpload } from '@/types/syllabus';
 
 function requireDb() {
   if (!db) throw new Error('Firestore is not configured.');
@@ -73,9 +75,9 @@ export async function updateCourse(
 }
 
 /**
- * Deletes a course, every schedule item, and every contact that belongs to it
- * in a single Firestore batch, matching the cascading behavior already baked
- * into the local REMOVE_COURSE reducer case.
+ * Deletes a course, every schedule item, every contact, and every syllabus upload
+ * that belongs to it in a single Firestore batch and cleans up Firebase Storage files,
+ * matching the cascading behavior already baked into the local REMOVE_COURSE reducer case.
  */
 export async function deleteCourse(
   userId: string,
@@ -95,7 +97,22 @@ export async function deleteCourse(
     relatedContacts.forEach((contact) => {
       batch.delete(doc(database, 'users', userId, 'contacts', contact.id));
     });
+
+    // Query and cascade delete all syllabus upload records in the subcollection
+    const syllabiSnap = await getDocs(
+      collection(database, 'users', userId, 'courses', course.id, 'syllabi'),
+    );
+    const storagePromises: Promise<void>[] = [];
+    syllabiSnap.docs.forEach((syllabusDoc) => {
+      batch.delete(syllabusDoc.ref);
+      const data = syllabusDoc.data() as Partial<SyllabusUpload>;
+      if (storage && data?.storagePath) {
+        storagePromises.push(deleteObject(ref(storage, data.storagePath)).catch(() => {}));
+      }
+    });
+
     await batch.commit();
+    await Promise.all(storagePromises);
   } catch (err) {
     dispatch({ type: 'ADD_COURSE', payload: course });
     relatedItems.forEach((item) => dispatch({ type: 'ADD_SCHEDULE_ITEM', payload: item }));
