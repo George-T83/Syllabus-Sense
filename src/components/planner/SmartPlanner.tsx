@@ -245,8 +245,10 @@ export function SmartPlanner() {
               <button
                 key={key}
                 onClick={() => setSelectedForecastKey((prev) => (prev === key ? null : key))}
+                aria-pressed={isSelected}
+                aria-label={`${dayDetailFormatter.format(day)} — ${hasLoad ? `${hours.toFixed(1)} hours, ${WORKLOAD_LEVEL_LABELS[level]} workload` : 'No workload'}`}
                 className={cn(
-                  'flex flex-col items-center gap-0.5 rounded-lg border p-1 text-left transition-all sm:gap-1 sm:rounded-xl sm:p-2.5',
+                  'flex flex-col items-center gap-0.5 rounded-lg border p-1 text-left transition-all sm:gap-1 sm:rounded-xl sm:p-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                   hasLoad ? WORKLOAD_CHIP_CLASS[level] : 'border-border bg-accent/40',
                   isSelected
                     ? 'ring-2 ring-primary ring-offset-2 ring-offset-card'

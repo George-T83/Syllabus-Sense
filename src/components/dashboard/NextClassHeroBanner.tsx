@@ -155,11 +155,11 @@ export function NextClassHeroBanner({
   onJoinMeeting,
 }: NextClassHeroBannerProps) {
   const [copied, setCopied] = useState(false);
-  const now = currentTime || new Date();
 
   const nextSession = useMemo(() => {
+    const now = currentTime || new Date();
     return findNextClassSession(courses, now);
-  }, [courses, now]);
+  }, [courses, currentTime]);
 
   const handleCopyLocation = (text: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
