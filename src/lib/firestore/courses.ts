@@ -1,7 +1,7 @@
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { AppAction } from '@/context/AppStateContext';
-import type { Course, ScheduleItem } from '@/types/schedule';
+import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 
 function requireDb() {
   if (!db) throw new Error('Firestore is not configured.');
@@ -73,15 +73,16 @@ export async function updateCourse(
 }
 
 /**
- * Deletes a course and every schedule item that belongs to it in a single
- * Firestore batch, matching the cascading behavior already baked into the
- * local REMOVE_COURSE reducer case.
+ * Deletes a course, every schedule item, and every contact that belongs to it
+ * in a single Firestore batch, matching the cascading behavior already baked
+ * into the local REMOVE_COURSE reducer case.
  */
 export async function deleteCourse(
   userId: string,
   course: Course,
   relatedItems: ScheduleItem[],
   dispatch: React.Dispatch<AppAction>,
+  relatedContacts: Contact[] = [],
 ): Promise<void> {
   dispatch({ type: 'REMOVE_COURSE', payload: course.id });
   try {
@@ -91,10 +92,16 @@ export async function deleteCourse(
     relatedItems.forEach((item) => {
       batch.delete(doc(database, 'users', userId, 'scheduleItems', item.id));
     });
+    relatedContacts.forEach((contact) => {
+      batch.delete(doc(database, 'users', userId, 'contacts', contact.id));
+    });
     await batch.commit();
   } catch (err) {
     dispatch({ type: 'ADD_COURSE', payload: course });
     relatedItems.forEach((item) => dispatch({ type: 'ADD_SCHEDULE_ITEM', payload: item }));
+    if (relatedContacts.length > 0) {
+      dispatch({ type: 'ADD_CONTACTS', payload: relatedContacts });
+    }
     throw err;
   }
 }

@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import type { Course, ScheduleItem } from '@/types/schedule';
+import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 
 const setDocMock = vi.fn();
 const batchDeleteMock = vi.fn();
@@ -27,6 +27,14 @@ const relatedItem: ScheduleItem = {
   type: 'assignment',
   dueDate: '2026-09-01T00:00:00.000Z',
   completed: false,
+};
+const relatedContact: Contact = {
+  id: 'ct1',
+  courseId: 'c1',
+  role: 'professor',
+  fullName: 'Dr. Jane Smith',
+  source: 'manual',
+  approved: true,
 };
 
 describe('Firestore courses service', () => {
@@ -65,23 +73,26 @@ describe('Firestore courses service', () => {
     expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'UPDATE_COURSE', payload: course });
   });
 
-  it('deleteCourse batch-deletes the course and all related schedule items', async () => {
+  it('deleteCourse batch-deletes the course, related schedule items, and related contacts', async () => {
     const dispatch = vi.fn();
-    await deleteCourse('u1', course, [relatedItem], dispatch);
+    await deleteCourse('u1', course, [relatedItem], dispatch, [relatedContact]);
 
     expect(dispatch).toHaveBeenCalledWith({ type: 'REMOVE_COURSE', payload: course.id });
-    expect(batchDeleteMock).toHaveBeenCalledTimes(2); // course + 1 related item
+    expect(batchDeleteMock).toHaveBeenCalledTimes(3); // course + 1 item + 1 contact
     expect(batchCommitMock).toHaveBeenCalledTimes(1);
   });
 
-  it('deleteCourse rolls back by re-adding the course and its items on failure', async () => {
+  it('deleteCourse rolls back by re-adding the course, items, and contacts on failure', async () => {
     batchCommitMock.mockRejectedValueOnce(new Error('denied'));
     const dispatch = vi.fn();
 
-    await expect(deleteCourse('u1', course, [relatedItem], dispatch)).rejects.toThrow('denied');
+    await expect(
+      deleteCourse('u1', course, [relatedItem], dispatch, [relatedContact]),
+    ).rejects.toThrow('denied');
 
     expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_COURSE', payload: course });
     expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_SCHEDULE_ITEM', payload: relatedItem });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_CONTACTS', payload: [relatedContact] });
   });
 
   it('deleteCourse never touches an unrelated course', async () => {

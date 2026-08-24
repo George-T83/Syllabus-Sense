@@ -253,7 +253,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleDeleteCourse = async () => {
     if (!user) return;
-    await deleteCourse(user.uid, course, items, dispatch);
+    await deleteCourse(user.uid, course, items, dispatch, courseContacts);
     router.push('/dashboard');
   };
 
