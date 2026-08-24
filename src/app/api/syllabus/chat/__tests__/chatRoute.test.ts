@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const mockVerifyToken = vi.fn();
@@ -16,7 +16,8 @@ vi.mock('@/lib/ai/anthropic', () => ({
   }),
 }));
 
-import { POST, generateOfflineSyllabusAnswer } from '../route';
+import { POST } from '../route';
+import { generateOfflineSyllabusAnswer } from '@/lib/syllabus/chatEngine';
 
 describe('AI Syllabus Chat Route (Item 35)', () => {
   beforeEach(() => {

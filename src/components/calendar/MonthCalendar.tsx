@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
@@ -17,6 +17,7 @@ import {
   isSameDay,
   sortItemsByUrgency,
   toDayKey,
+  parseDayKey,
   startOfDay,
 } from '@/lib/calendar/dates';
 import {
@@ -42,6 +43,15 @@ import { useModalA11y } from '@/hooks/useModalA11y';
 import type { AssignmentType, Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const FULL_WEEKDAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 const monthLabelFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const dayLabelFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -208,6 +218,27 @@ const TYPE_MOBILE_LABEL: Record<AssignmentType, string> = {
   other: 'OTHER',
 };
 
+function buildDayAriaLabel(
+  day: Date,
+  items: ScheduleItem[],
+  meetings: MeetingOccurrence[],
+  hours: number,
+  heatLevel: WorkloadLevel,
+): string {
+  const dateStr = dayLabelFormatter.format(day);
+  const parts: string[] = [dateStr];
+  if (items.length > 0) {
+    parts.push(`${items.length} ${items.length === 1 ? 'task' : 'tasks'}`);
+  }
+  if (meetings.length > 0) {
+    parts.push(`${meetings.length} ${meetings.length === 1 ? 'class' : 'classes'}`);
+  }
+  if (hours > 0) {
+    parts.push(`${hours.toFixed(1)}h load (${WORKLOAD_LEVEL_LABELS[heatLevel]})`);
+  }
+  return parts.join(', ');
+}
+
 type ViewMode = 'month' | 'week' | 'agenda';
 
 export function MonthCalendar() {
@@ -217,6 +248,8 @@ export function MonthCalendar() {
   const [viewMonth, setViewMonth] = useState(() => startOfDay(new Date()));
   const [weekAnchor, setWeekAnchor] = useState(() => startOfDay(new Date()));
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [focusedDateKey, setFocusedDateKey] = useState<string | null>(null);
+  const dayButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [hiddenCourseIds, setHiddenCourseIds] = useState<Set<string>>(new Set());
   const [showCompleted, setShowCompleted] = useState(true);
   const [showClasses, setShowClasses] = useState(true);
@@ -229,6 +262,13 @@ export function MonthCalendar() {
   const today = useMemo(() => startOfDay(new Date()), []);
   const itemsByDay = useMemo(() => groupItemsByDay(state.scheduleItems), [state.scheduleItems]);
   const grid = useMemo(() => getMonthGrid(viewMonth), [viewMonth]);
+  const weeks = useMemo(() => {
+    const rows: Date[][] = [];
+    for (let i = 0; i < grid.length; i += 7) {
+      rows.push(grid.slice(i, i + 7));
+    }
+    return rows;
+  }, [grid]);
   const weekDays = useMemo(() => getWeekDays(weekAnchor), [weekAnchor]);
 
   // The workload engine normalizes to UTC midnight internally (see
@@ -245,7 +285,8 @@ export function MonthCalendar() {
     [state.scheduleItems, workloadReferenceDate],
   );
 
-  const courseOf = (item: ScheduleItem) => state.courses.find((c) => c.id === item.courseId);
+  const courseOf = (item: ScheduleItem): Course | undefined =>
+    state.courses.find((c) => c.id === item.courseId);
 
   // #101: recurring class meetings are inherently term-bound (a Fall 2026
   // MWF pattern shouldn't keep rendering forever into Spring 2027), so they
@@ -370,20 +411,40 @@ export function MonthCalendar() {
   };
 
   // Arrow-key day-to-day navigation once a day is focused/selected, matching
-  // the roving-focus pattern real calendar widgets (Google Calendar,
-  // react-day-picker) use instead of forcing tab-through-42-cells.
+  // the WAI-ARIA roving-focus pattern across the 42 cells.
   const handleGridKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!selectedDay) return;
-    const deltaByKey: Record<string, number> = {
-      ArrowRight: 1,
-      ArrowLeft: -1,
-      ArrowDown: 7,
-      ArrowUp: -7,
-    };
-    const delta = deltaByKey[e.key];
-    if (delta === undefined) return;
-    e.preventDefault();
-    selectDay(addDays(selectedDay, delta));
+    const current = selectedDay ?? (focusedDateKey ? parseDayKey(focusedDateKey) : today);
+    let target: Date | null = null;
+
+    if (e.key === 'ArrowRight') {
+      target = addDays(current, 1);
+    } else if (e.key === 'ArrowLeft') {
+      target = addDays(current, -1);
+    } else if (e.key === 'ArrowDown') {
+      target = addDays(current, 7);
+    } else if (e.key === 'ArrowUp') {
+      target = addDays(current, -7);
+    } else if (e.key === 'Home') {
+      // First day of current week (Sunday)
+      target = addDays(current, -current.getDay());
+    } else if (e.key === 'End') {
+      // Last day of current week (Saturday)
+      target = addDays(current, 6 - current.getDay());
+    } else if (e.key === 'PageUp') {
+      target = addMonths(current, -1);
+    } else if (e.key === 'PageDown') {
+      target = addMonths(current, 1);
+    }
+
+    if (target) {
+      e.preventDefault();
+      const targetKey = toDayKey(target);
+      setFocusedDateKey(targetKey);
+      selectDay(target);
+      setTimeout(() => {
+        dayButtonRefs.current.get(targetKey)?.focus();
+      }, 0);
+    }
   };
 
   const agendaDays = useMemo(
@@ -663,123 +724,158 @@ export function MonthCalendar() {
 
         {viewMode === 'month' && (
           <>
-            <div className="grid grid-cols-7 gap-0.5 mb-1 sm:gap-1">
-              {WEEKDAY_LABELS.map((label) => (
-                <div
-                  key={label}
-                  className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground py-1"
-                >
-                  <span className="sm:hidden">{label.slice(0, 1)}</span>
-                  <span className="hidden sm:inline">{label}</span>
+            <div
+              role="grid"
+              aria-label={`Calendar ${monthLabelFormatter.format(viewMonth)}`}
+              className="space-y-0.5 sm:space-y-1"
+              onKeyDown={handleGridKeyDown}
+            >
+              <div role="row" className="grid grid-cols-7 gap-0.5 mb-1 sm:gap-1">
+                {WEEKDAY_LABELS.map((label, idx) => (
+                  <div
+                    key={label}
+                    role="columnheader"
+                    aria-label={FULL_WEEKDAY_NAMES[idx]}
+                    className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground py-1"
+                  >
+                    <span className="sm:hidden">{label.slice(0, 1)}</span>
+                    <span className="hidden sm:inline">{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {weeks.map((week, weekIdx) => (
+                <div key={weekIdx} role="row" className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                  {week.map((day) => {
+                    const dayKey = toDayKey(day);
+                    const dayItems = visibleDayItems(day);
+                    const dayMeetings = visibleMeetings(day);
+                    const inCurrentMonth = day.getMonth() === viewMonth.getMonth();
+                    const isToday = isSameDay(day, today);
+                    const isSelected = selectedDay !== null && isSameDay(day, selectedDay);
+                    const hours = dailyLoad.get(dayKey) ?? 0;
+                    const heatLevel = getWorkloadLevel(hours);
+                    // #CA-1: only a day something is literally due/scheduled on
+                    // gets the full "due here" tint. A day that merely picked up
+                    // some of an item's spread-out prep-time load (from
+                    // calculateDailyLoad distributing hours across the days
+                    // leading up to a *different* day's due date) gets the
+                    // quieter WORKLOAD_PREP_INDICATOR_CLASS treatment instead -
+                    // otherwise the heatmap shades empty days and a student who
+                    // clicks one expecting to see why stops trusting it.
+                    const dueHere = dayItems.length > 0 || dayMeetings.length > 0;
+                    const sortedItems = sortItemsByUrgency(dayItems, today);
+                    const visibleChips = sortedItems.slice(0, MAX_VISIBLE_CHIPS);
+                    const hiddenCount = sortedItems.length - visibleChips.length;
+                    const isFocused =
+                      focusedDateKey === dayKey ||
+                      (!focusedDateKey && (isSelected || (selectedDay === null && isToday)));
+                    const ariaLabel = buildDayAriaLabel(
+                      day,
+                      dayItems,
+                      dayMeetings,
+                      hours,
+                      heatLevel,
+                    );
+
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        ref={(el) => {
+                          if (el) dayButtonRefs.current.set(dayKey, el);
+                          else dayButtonRefs.current.delete(dayKey);
+                        }}
+                        role="gridcell"
+                        aria-selected={isSelected}
+                        aria-label={ariaLabel}
+                        tabIndex={isFocused ? 0 : -1}
+                        onClick={() => {
+                          setFocusedDateKey(dayKey);
+                          selectDay(day);
+                        }}
+                        className={cn(
+                          'min-h-[4rem] rounded-lg p-1 flex flex-col items-start gap-0.5 text-left transition-colors sm:min-h-[6.5rem] sm:rounded-xl sm:p-1.5 sm:gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                          inCurrentMonth ? 'hover:bg-accent' : 'opacity-40 hover:bg-accent/50',
+                          isSelected && 'ring-2 ring-primary',
+                          !isSelected &&
+                            inCurrentMonth &&
+                            (dueHere
+                              ? WORKLOAD_TINT_CLASS[heatLevel]
+                              : WORKLOAD_PREP_INDICATOR_CLASS[heatLevel]),
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex h-5 w-5 items-center justify-center rounded-full text-[10px] sm:h-6 sm:w-6 sm:text-xs',
+                            isToday
+                              ? 'bg-gradient-brand font-bold text-white shadow-card'
+                              : 'text-foreground',
+                          )}
+                        >
+                          {day.getDate()}
+                        </span>
+
+                        {dayMeetings.length > 0 && (
+                          <div className="flex w-full flex-wrap gap-0.5">
+                            {dayMeetings.slice(0, 6).map((m, i) => (
+                              <span
+                                key={`${m.course.id}-${i}`}
+                                className={cn(
+                                  'flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] text-white',
+                                  courseSwatch(m.course.color).className,
+                                )}
+                                style={courseSwatch(m.course.color).style}
+                                title={`${m.course.code} · ${formatTimeLabel(m.meeting.startTime)}`}
+                              >
+                                <GraduationCapIcon className="h-2 w-2" />
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex w-full flex-col gap-0.5">
+                          {visibleChips.map((item) => (
+                            <span
+                              key={item.id}
+                              className={cn(
+                                'flex w-full min-w-0 items-center gap-0.5 overflow-hidden rounded px-1 py-0.5 text-[9px] font-medium leading-tight text-white',
+                                courseSwatch(courseOf(item)?.color).className,
+                                item.completed && 'opacity-40 line-through',
+                              )}
+                              style={courseSwatch(courseOf(item)?.color).style}
+                              title={item.title}
+                            >
+                              {/* Hidden below sm: at mobile chip widths every
+                                  pixel goes to the type label (CA-3) - the icon
+                                  still fulfills the legend's promise (CA-2) at
+                                  sm+, where there's room for both. */}
+                              <FlagIcon className="hidden h-2 w-2 shrink-0 sm:block" />
+                              {/* #CA-3: mobile-width chips only fit a handful of
+                                  characters, so several similarly-titled items
+                                  ("Final Exam"/"Final Project"/...) all truncate
+                                  to the same illegible "Fina…". Leading with the
+                                  type keeps them distinguishable; the full title
+                                  is still shown at sm+ and always in the
+                                  day-detail panel below. */}
+                              <span className="min-w-0 truncate sm:hidden">
+                                {TYPE_MOBILE_LABEL[item.type]}
+                              </span>
+                              <span className="hidden min-w-0 truncate sm:inline">
+                                {item.title}
+                              </span>
+                            </span>
+                          ))}
+                          {hiddenCount > 0 && (
+                            <span className="text-[9px] font-semibold leading-none text-muted-foreground">
+                              +{hiddenCount} more
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-0.5 sm:gap-1" onKeyDown={handleGridKeyDown}>
-              {grid.map((day) => {
-                const dayItems = visibleDayItems(day);
-                const dayMeetings = visibleMeetings(day);
-                const inCurrentMonth = day.getMonth() === viewMonth.getMonth();
-                const isToday = isSameDay(day, today);
-                const isSelected = selectedDay !== null && isSameDay(day, selectedDay);
-                const hours = dailyLoad.get(toDayKey(day)) ?? 0;
-                const heatLevel = getWorkloadLevel(hours);
-                // #CA-1: only a day something is literally due/scheduled on
-                // gets the full "due here" tint. A day that merely picked up
-                // some of an item's spread-out prep-time load (from
-                // calculateDailyLoad distributing hours across the days
-                // leading up to a *different* day's due date) gets the
-                // quieter WORKLOAD_PREP_INDICATOR_CLASS treatment instead -
-                // otherwise the heatmap shades empty days and a student who
-                // clicks one expecting to see why stops trusting it.
-                const dueHere = dayItems.length > 0 || dayMeetings.length > 0;
-                const sortedItems = sortItemsByUrgency(dayItems, today);
-                const visibleChips = sortedItems.slice(0, MAX_VISIBLE_CHIPS);
-                const hiddenCount = sortedItems.length - visibleChips.length;
-
-                return (
-                  <button
-                    key={day.toISOString()}
-                    onClick={() => selectDay(day)}
-                    className={cn(
-                      'min-h-[4rem] rounded-lg p-1 flex flex-col items-start gap-0.5 text-left transition-colors sm:min-h-[6.5rem] sm:rounded-xl sm:p-1.5 sm:gap-1',
-                      inCurrentMonth ? 'hover:bg-accent' : 'opacity-40 hover:bg-accent/50',
-                      isSelected && 'ring-2 ring-primary',
-                      !isSelected &&
-                        inCurrentMonth &&
-                        (dueHere
-                          ? WORKLOAD_TINT_CLASS[heatLevel]
-                          : WORKLOAD_PREP_INDICATOR_CLASS[heatLevel]),
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex h-5 w-5 items-center justify-center rounded-full text-[10px] sm:h-6 sm:w-6 sm:text-xs',
-                        isToday
-                          ? 'bg-gradient-brand font-bold text-white shadow-card'
-                          : 'text-foreground',
-                      )}
-                    >
-                      {day.getDate()}
-                    </span>
-
-                    {dayMeetings.length > 0 && (
-                      <div className="flex w-full flex-wrap gap-0.5">
-                        {dayMeetings.slice(0, 6).map((m, i) => (
-                          <span
-                            key={`${m.course.id}-${i}`}
-                            className={cn(
-                              'flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] text-white',
-                              courseSwatch(m.course.color).className,
-                            )}
-                            style={courseSwatch(m.course.color).style}
-                            title={`${m.course.code} · ${formatTimeLabel(m.meeting.startTime)}`}
-                          >
-                            <GraduationCapIcon className="h-2 w-2" />
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex w-full flex-col gap-0.5">
-                      {visibleChips.map((item) => (
-                        <span
-                          key={item.id}
-                          className={cn(
-                            'flex w-full min-w-0 items-center gap-0.5 overflow-hidden rounded px-1 py-0.5 text-[9px] font-medium leading-tight text-white',
-                            courseSwatch(courseOf(item)?.color).className,
-                            item.completed && 'opacity-40 line-through',
-                          )}
-                          style={courseSwatch(courseOf(item)?.color).style}
-                          title={item.title}
-                        >
-                          {/* Hidden below sm: at mobile chip widths every
-                              pixel goes to the type label (CA-3) - the icon
-                              still fulfills the legend's promise (CA-2) at
-                              sm+, where there's room for both. */}
-                          <FlagIcon className="hidden h-2 w-2 shrink-0 sm:block" />
-                          {/* #CA-3: mobile-width chips only fit a handful of
-                              characters, so several similarly-titled items
-                              ("Final Exam"/"Final Project"/...) all truncate
-                              to the same illegible "Fina…". Leading with the
-                              type keeps them distinguishable; the full title
-                              is still shown at sm+ and always in the
-                              day-detail panel below. */}
-                          <span className="min-w-0 truncate sm:hidden">
-                            {TYPE_MOBILE_LABEL[item.type]}
-                          </span>
-                          <span className="hidden min-w-0 truncate sm:inline">{item.title}</span>
-                        </span>
-                      ))}
-                      {hiddenCount > 0 && (
-                        <span className="text-[9px] font-semibold leading-none text-muted-foreground">
-                          +{hiddenCount} more
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
             </div>
 
             <div className="mt-4 space-y-2.5 border-t border-border pt-4">
