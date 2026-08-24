@@ -11,15 +11,29 @@ import FirestoreSync from './FirestoreSync';
 import OfflineBanner from './OfflineBanner';
 import { SyllabusChatDrawer } from '@/components/syllabus/SyllabusChatDrawer';
 import { PomodoroTimer } from '@/components/focus/PomodoroTimer';
+import { usePlatformKey } from '@/hooks/usePlatformKey';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const modKey = usePlatformKey();
 
   useEffect(() => {
     // URL flag to open chat drawer directly for screenshot capture / deep linking
     if (typeof window !== 'undefined' && window.location.search.includes('chat=true')) {
       setIsChatOpen(true);
     }
+  }, []);
+
+  // Global Cmd+K / Ctrl+K → open AI Copilot chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsChatOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -52,7 +66,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               <span className="font-bold tracking-wide">AI Copilot</span>
-              <span className="hidden rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-mono text-white/90 sm:inline-block">Cmd+K</span>
+              <span className="hidden rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-mono text-white/90 sm:inline-block">{modKey}+K</span>
             </button>
 
             <SyllabusChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />

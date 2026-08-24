@@ -128,14 +128,32 @@ async function evalScript(socket, expression) {
 async function runCapturePipeline(wsUrl) {
   const socket = await connectWS(wsUrl);
 
+  // Hide the Next.js dev error overlay on every page load (shadow DOM inside <nextjs-portal>)
+  await sendCommand(socket, 'Page.addScriptToEvaluateOnNewDocument', {
+    source: `
+      (function() {
+        const style = document.createElement('style');
+        style.textContent = 'nextjs-portal { display: none !important; }';
+        document.documentElement.appendChild(style);
+        // Also observe for late-injected portals
+        const obs = new MutationObserver(() => {
+          document.querySelectorAll('nextjs-portal').forEach(el => {
+            el.style.setProperty('display', 'none', 'important');
+          });
+        });
+        obs.observe(document.documentElement, { childList: true, subtree: true });
+      })();
+    `
+  });
+
   const itemsToCapture = [
     {
       name: 'item-34-command-palette',
       route: 'http://localhost:3000/dashboard?mock=true&cmd=true',
       trigger: `
-        const btn = document.querySelector('button[aria-label*="Search"]') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Search') || b.innerText.includes('Cmd+K'));
+        const btn = document.querySelector('button[aria-label*="Search"]') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Search') || b.innerText.includes('Ctrl+P'));
         if (btn) btn.click();
-        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true }));
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', metaKey: true, ctrlKey: true, bubbles: true }));
       `,
       verifier: `!!document.querySelector('[role="dialog"]') || document.body.innerText.includes("Command Palette") || document.body.innerText.includes("Search tasks")`
     },
@@ -224,7 +242,10 @@ async function runCapturePipeline(wsUrl) {
   for (const item of itemsToCapture) {
     console.log(`\n📸 Capturing ${item.name} at ${item.route}`);
     await sendCommand(socket, 'Page.navigate', { url: item.route });
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
+    // Hard reload bypasses cache so stale dev-error overlays are gone
+    await sendCommand(socket, 'Page.reload', { ignoreCache: true });
+    await new Promise((r) => setTimeout(r, 1800));
 
     // Set mock_auth in localStorage
     await evalScript(socket, `localStorage.setItem('mock_auth', 'true')`);
@@ -234,6 +255,27 @@ async function runCapturePipeline(wsUrl) {
       await evalScript(socket, item.trigger);
       await new Promise((r) => setTimeout(r, 1200));
     }
+
+    // Dismiss any Next.js dev error overlay or red toast before capturing
+    await evalScript(socket, `
+      // Close Next.js built-in error overlay (dev mode)
+      try {
+        const overlay = document.querySelector('nextjs-portal');
+        if (overlay) overlay.remove();
+      } catch(e) {}
+      // Close any visible error toast buttons (e.g. "1 error ×")
+      document.querySelectorAll('button').forEach(btn => {
+        if (btn.innerText.includes('error') || btn.getAttribute('aria-label') === 'Close') {
+          const parent = btn.closest('[class*="fixed"], [class*="toast"], [class*="error"]');
+          if (parent) parent.remove();
+          else if (btn.innerText.trim() === '×' || btn.innerText.trim() === 'X') btn.click();
+        }
+      });
+      // Also hide shadow-dom error overlay if present
+      const devOverlay = document.getElementById('__next-build-watcher');
+      if (devOverlay) devOverlay.style.display = 'none';
+    `);
+    await new Promise((r) => setTimeout(r, 300));
 
     const verified = item.verifier ? await evalScript(socket, item.verifier) : true;
     console.log(`  Modal/Feature Verified Active (${item.name}):`, verified);

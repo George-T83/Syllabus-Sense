@@ -10,6 +10,7 @@ import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
 import { CommandPalette } from '@/components/common/CommandPalette';
+import { usePlatformKey } from '@/hooks/usePlatformKey';
 
 /** NV-3: how far ahead of "now" a pending item counts as "due soon" in the
  * notification bell's dropdown (as opposed to "overdue"). Purely a display
@@ -194,6 +195,7 @@ export default function Navbar({ onOpenChat }: { onOpenChat?: () => void }) {
   const [mounted, setMounted] = useState(false);
   const [openPanel, setOpenPanel] = useState<'search' | 'bell' | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const modKey = usePlatformKey();
 
   const handleSignOut = async () => {
     const success = await signOut();
@@ -239,7 +241,7 @@ export default function Navbar({ onOpenChat }: { onOpenChat?: () => void }) {
           <>
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
-              aria-label="Open command palette (Cmd+K)"
+              aria-label={`Open command palette (${modKey}+P)`}
               className="hidden md:inline-flex items-center gap-2 rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
             >
               <SearchIcon />
@@ -247,12 +249,12 @@ export default function Navbar({ onOpenChat }: { onOpenChat?: () => void }) {
                 Search courses, tasks...
               </span>
               <kbd className="rounded border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono">
-                ⌘K
+                {modKey}+P
               </kbd>
             </button>
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
-              aria-label="Search courses and tasks (Cmd+K)"
+              aria-label={`Search courses and tasks (${modKey}+P)`}
               className="md:hidden inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
             >
               <SearchIcon />

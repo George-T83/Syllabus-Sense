@@ -65,10 +65,10 @@ export function CommandPalette({
     setSelectedIndex(0);
   }, [isControlled, controlledOnClose]);
 
-  // Global hotkey: Cmd+K / Ctrl+K
+  // Global hotkey: Cmd+P / Ctrl+P
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         if (isOpen) {
           closePalette();
@@ -406,7 +406,7 @@ export function CommandPalette({
             aria-autocomplete="list"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command, course, task, or page (or ⌘K)..."
+            placeholder="Type a command, course, task, or page (or ⌘P)..."
             className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {query ? (
