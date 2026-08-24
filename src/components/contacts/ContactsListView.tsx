@@ -52,21 +52,33 @@ function courseLabel(course: Course | undefined): string {
   return `${course.code} — ${course.title}`;
 }
 
+import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmailDrafterModal';
+import { ContactShareModal } from '@/components/contacts/ContactShareModal';
+
 export function ContactsListView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const { contacts, courses } = state;
 
   const [search, setSearch] = useState('');
-  // Same "no explicit choice yet" / active-term-by-default pattern as
-  // CoursesListView (CO-2) - see that file for the full rationale. Contacts
-  // carry their own `term` (mirrored from the parent course at creation
-  // time), so filtering reads a contact's own field rather than joining
-  // back to its course on every render.
   const [termFilter, setTermFilter] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [drafterContact, setDrafterContact] = useState<Contact | null>(null);
+  const [shareContact, setShareContact] = useState<Contact | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && contacts.length > 0) {
+      if (window.location.search.includes('email=true')) {
+        setDrafterContact(contacts[0]);
+      }
+      if (window.location.search.includes('vcard=true') || window.location.search.includes('qr=true')) {
+        setShareContact(contacts[0]);
+      }
+    }
+  }, [contacts]);
+
 
   const courseById = useMemo(() => {
     const map = new Map<string, Course>();
@@ -349,6 +361,18 @@ export function ContactsListView() {
                             ) : (
                               <>
                                 <button
+                                  onClick={() => setDrafterContact(record)}
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
+                                >
+                                  Draft Email
+                                </button>
+                                <button
+                                  onClick={() => setShareContact(record)}
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
+                                >
+                                  vCard/QR
+                                </button>
+                                <button
                                   onClick={() => openEdit(record)}
                                   className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
                                 >
@@ -387,6 +411,19 @@ export function ContactsListView() {
         courses={courses}
         initialContact={editingContact}
       />
+      {drafterContact && (
+        <ProfessorEmailDrafterModal
+          contact={drafterContact}
+          onClose={() => setDrafterContact(null)}
+        />
+      )}
+      {shareContact && (
+        <ContactShareModal
+          isOpen={!!shareContact}
+          contact={shareContact}
+          onClose={() => setShareContact(null)}
+        />
+      )}
     </>
   );
 }

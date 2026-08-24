@@ -151,6 +151,8 @@ function groupByMonth(
     });
 }
 
+import { WorkloadOverviewDashboard } from '@/components/planner/WorkloadOverviewDashboard';
+
 export function PlannerView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
@@ -165,6 +167,7 @@ export function PlannerView() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   const today = useMemo(() => new Date(), []);
+
 
   const stats = useMemo(() => {
     const pending = scheduleItems.filter((i) => !i.completed);
@@ -438,6 +441,8 @@ export function PlannerView() {
   return (
     <>
       <div className="max-w-4xl space-y-6">
+        <WorkloadOverviewDashboard />
+
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Tasks</h1>
           <p className="text-sm text-muted-foreground mt-1">All your tasks, across every course.</p>
