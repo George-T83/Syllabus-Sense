@@ -75,7 +75,7 @@ export function ProfessorEmailDrafterModal({
   const [activeTemplate, setActiveTemplate] = useState<TemplateKey>('extension');
   const [copied, setCopied] = useState(false);
 
-  const addressAs = contact.howToAddress || `Professor ${contact.name.split(' ').slice(-1)[0]}`;
+  const addressAs = contact.howToAddress || `Professor ${(contact.fullName || '').split(' ').slice(-1)[0]}`;
   const assignmentName = scheduleItem?.title || '[Assignment Name]';
   const ctx: TemplateContext = { addressAs, courseCode, assignmentName };
 
@@ -110,7 +110,7 @@ export function ProfessorEmailDrafterModal({
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h2 id="email-drafter-title" className="text-base font-semibold text-foreground">
-              Draft Email to {contact.name}
+              Draft Email to {contact.fullName}
             </h2>
             {courseCode && (
               <p className="text-xs text-muted-foreground">{courseCode}</p>
