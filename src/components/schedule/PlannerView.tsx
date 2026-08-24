@@ -310,7 +310,8 @@ export function PlannerView() {
           // Later otherwise renders as one flat wall spanning however many
           // months out the syllabus goes - split it into month sub-headers
           // so it reads as a calendar-scale structure (TA-2).
-          monthSubGroups: g.key === 'later' && items.length > 0 ? groupByMonth(items, today) : undefined,
+          monthSubGroups:
+            g.key === 'later' && items.length > 0 ? groupByMonth(items, today) : undefined,
         };
       });
   }, [filteredItems, groupBy, withinSort, today, courses]);
@@ -586,7 +587,9 @@ export function PlannerView() {
                             <h4 className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                               {sub.label}
                             </h4>
-                            <div className="flex flex-col gap-2">{sub.items.map(renderTaskRow)}</div>
+                            <div className="flex flex-col gap-2">
+                              {sub.items.map(renderTaskRow)}
+                            </div>
                           </div>
                         ))}
                       </div>

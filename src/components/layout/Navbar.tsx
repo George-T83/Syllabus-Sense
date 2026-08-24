@@ -45,11 +45,7 @@ function BellIcon() {
  * "More" popover already uses elsewhere in the app. */
 function PopoverBackdrop({ onClose }: { onClose: () => void }) {
   return (
-    <div
-      className="fixed inset-0 z-[60] bg-transparent"
-      onClick={onClose}
-      aria-hidden="true"
-    />
+    <div className="fixed inset-0 z-[60] bg-transparent" onClick={onClose} aria-hidden="true" />
   );
 }
 
@@ -57,7 +53,8 @@ function useSearchResults(query: string) {
   const { state } = useAppState();
   return useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return { courses: [] as Course[], tasks: [] as { item: ScheduleItem; course?: Course }[] };
+    if (!q)
+      return { courses: [] as Course[], tasks: [] as { item: ScheduleItem; course?: Course }[] };
     const courseById = new Map(state.courses.map((c) => [c.id, c]));
     const courses = state.courses
       .filter((c) => c.title.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
@@ -103,7 +100,9 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
               Type to search your courses and tasks.
             </p>
           ) : !hasResults ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">No matches for &ldquo;{query}&rdquo;.</p>
+            <p className="px-4 py-3 text-sm text-muted-foreground">
+              No matches for &ldquo;{query}&rdquo;.
+            </p>
           ) : (
             <>
               {courses.length > 0 && (
@@ -138,7 +137,9 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
                     >
                       <span className="truncate">{item.title}</span>
                       {course && (
-                        <span className="shrink-0 text-xs text-muted-foreground">{course.code}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {course.code}
+                        </span>
                       )}
                     </Link>
                   ))}
@@ -228,7 +229,9 @@ function NotificationBell({
           >
             <div className="max-h-80 overflow-y-auto py-1">
               {!hasAny ? (
-                <p className="px-4 py-3 text-sm text-muted-foreground">Nothing overdue or due soon.</p>
+                <p className="px-4 py-3 text-sm text-muted-foreground">
+                  Nothing overdue or due soon.
+                </p>
               ) : (
                 <>
                   {overdue.length > 0 && (
@@ -246,7 +249,9 @@ function NotificationBell({
                         >
                           <span className="truncate">{item.title}</span>
                           {course && (
-                            <span className="shrink-0 text-xs text-muted-foreground">{course.code}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {course.code}
+                            </span>
                           )}
                         </Link>
                       ))}
@@ -267,7 +272,9 @@ function NotificationBell({
                         >
                           <span className="truncate">{item.title}</span>
                           {course && (
-                            <span className="shrink-0 text-xs text-muted-foreground">{course.code}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {course.code}
+                            </span>
                           )}
                         </Link>
                       ))}
