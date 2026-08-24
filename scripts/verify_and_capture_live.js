@@ -197,6 +197,21 @@ async function runCapturePipeline(wsUrl) {
         if (btn) btn.click();
       `,
       verifier: `document.body.innerText.includes("Bite-Sized Chunker") || document.body.innerText.includes("Academic Workload")`
+    },
+    {
+      name: 'item-47-semester-gpa-goal-radial',
+      route: 'http://localhost:3000/profile?mock=true',
+      verifier: `document.body.innerText.includes("GPA") || document.body.innerText.includes("Goal")`
+    },
+    {
+      name: 'item-48-attendance-policy-gauge',
+      route: 'http://localhost:3000/courses?mock=true',
+      verifier: `document.body.innerText.includes("Attendance") || document.body.innerText.includes("Absence")`
+    },
+    {
+      name: 'item-49-late-penalty-advisor',
+      route: 'http://localhost:3000/tasks?mock=true',
+      verifier: `document.body.innerText.includes("Late Penalty") || document.body.innerText.includes("Advisor")`
     }
   ];
 
