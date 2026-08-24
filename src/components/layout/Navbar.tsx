@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeProvider';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
-import type { Course, ScheduleItem } from '@/types/schedule';
+import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
+import { CommandPalette } from '@/components/common/CommandPalette';
 
 /** NV-3: how far ahead of "now" a pending item counts as "due soon" in the
  * notification bell's dropdown (as opposed to "overdue"). Purely a display
@@ -46,110 +47,6 @@ function BellIcon() {
 function PopoverBackdrop({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[60] bg-transparent" onClick={onClose} aria-hidden="true" />
-  );
-}
-
-function useSearchResults(query: string) {
-  const { state } = useAppState();
-  return useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q)
-      return { courses: [] as Course[], tasks: [] as { item: ScheduleItem; course?: Course }[] };
-    const courseById = new Map(state.courses.map((c) => [c.id, c]));
-    const courses = state.courses
-      .filter((c) => c.title.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
-      .slice(0, 6);
-    const tasks = state.scheduleItems
-      .filter((item) => item.title.toLowerCase().includes(q))
-      .slice(0, 6)
-      .map((item) => ({ item, course: courseById.get(item.courseId) }));
-    return { courses, tasks };
-  }, [query, state.courses, state.scheduleItems]);
-}
-
-/** NV-3 (1/2): a lightweight, real search over the user's own courses and
- * tasks - client-side substring match against AppState, no backend call.
- * Not a command palette; just a working filtered list of clickable links. */
-function SearchPanel({ onClose }: { onClose: () => void }) {
-  const [query, setQuery] = useState('');
-  const { courses, tasks } = useSearchResults(query);
-  const hasResults = courses.length > 0 || tasks.length > 0;
-
-  return (
-    <>
-      <PopoverBackdrop onClose={onClose} />
-      <div
-        role="dialog"
-        aria-label="Search courses and tasks"
-        className="absolute right-0 top-full z-[61] mt-2 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-glass border border-border/40 bg-card glass shadow-glass"
-      >
-        <div className="border-b border-border/40 p-3">
-          <input
-            autoFocus
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search courses and tasks…"
-            aria-label="Search courses and tasks"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div className="max-h-80 overflow-y-auto py-1">
-          {query.trim() === '' ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">
-              Type to search your courses and tasks.
-            </p>
-          ) : !hasResults ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">
-              No matches for &ldquo;{query}&rdquo;.
-            </p>
-          ) : (
-            <>
-              {courses.length > 0 && (
-                <div>
-                  <p className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Courses
-                  </p>
-                  {courses.map((course) => (
-                    <Link
-                      key={course.id}
-                      href={`/courses/${course.id}`}
-                      onClick={onClose}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <span className="font-medium">{course.code}</span>
-                      <span className="truncate text-muted-foreground">{course.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {tasks.length > 0 && (
-                <div>
-                  <p className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Tasks
-                  </p>
-                  {tasks.map(({ item, course }) => (
-                    <Link
-                      key={item.id}
-                      href={`/tasks/${item.id}`}
-                      onClick={onClose}
-                      className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <span className="truncate">{item.title}</span>
-                      {course && (
-                        <span className="shrink-0 text-xs text-muted-foreground">
-                          {course.code}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </>
   );
 }
 
@@ -297,6 +194,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   // NV-3: mutually exclusive so opening one popover closes the other.
   const [openPanel, setOpenPanel] = useState<'search' | 'bell' | null>(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   const handleSignOut = async () => {
     const success = await signOut();
@@ -323,18 +221,33 @@ export default function Navbar() {
       <div className="flex items-center gap-2 sm:gap-4">
         {mounted && user && <TermSwitcher />}
         {mounted && user && (
-          <div className="relative">
+          <>
             <button
-              onClick={() => setOpenPanel((p) => (p === 'search' ? null : 'search'))}
-              aria-label="Search courses and tasks"
-              aria-haspopup="dialog"
-              aria-expanded={openPanel === 'search'}
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              aria-label="Open command palette (Cmd+K)"
+              className="hidden md:inline-flex items-center gap-2 rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+            >
+              <SearchIcon />
+              <span className="truncate max-w-[140px] lg:max-w-[200px]">
+                Search courses, tasks...
+              </span>
+              <kbd className="rounded border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono">
+                ⌘K
+              </kbd>
+            </button>
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              aria-label="Search courses and tasks (Cmd+K)"
+              className="md:hidden inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
             >
               <SearchIcon />
             </button>
-            {openPanel === 'search' && <SearchPanel onClose={() => setOpenPanel(null)} />}
-          </div>
+            <CommandPalette
+              isOpen={isCommandPaletteOpen}
+              onClose={() => setIsCommandPaletteOpen(false)}
+              onOpen={() => setIsCommandPaletteOpen(true)}
+            />
+          </>
         )}
         {mounted && user && (
           <NotificationBell
