@@ -160,9 +160,13 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
         onClick={() => setVisible(true)}
         aria-label="Open Pomodoro focus timer (Alt+P)"
         title="Focus Timer (Alt+P)"
-        className="fixed bottom-24 right-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card shadow-lg transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:bottom-6"
+        className="fixed bottom-20 left-5 z-40 flex items-center gap-2 rounded-full border border-border bg-card/95 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-foreground shadow-lg transition-all duration-300 hover:scale-105 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:bottom-6 md:left-6"
       >
-        <span className="text-lg" aria-hidden>🍅</span>
+        <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+        <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="hidden sm:inline-block">Focus Timer</span>
       </button>
     );
   }
@@ -171,7 +175,7 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
     <div
       role="dialog"
       aria-label="Pomodoro focus timer"
-      className="fixed bottom-24 right-4 z-50 flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl w-52 sm:bottom-6"
+      className="fixed bottom-20 left-5 z-50 flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl w-52 md:bottom-6 md:left-6"
     >
       {/* Header */}
       <div className="flex w-full items-center justify-between">

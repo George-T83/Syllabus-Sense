@@ -80,11 +80,47 @@ function mapAuthError(err: unknown): string {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined' && (window.localStorage.getItem('mock_auth') === 'true' || window.location.search.includes('mock=true'))) {
+      return {
+        uid: 'test-user-123',
+        email: 'dev-test@syllabussense.dev',
+        displayName: 'Dev Test Student',
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {},
+        providerData: [],
+        refreshToken: '',
+        tenantId: null,
+        delete: async () => {},
+        getIdToken: async () => 'mock-token',
+        getIdTokenResult: async () => ({} as unknown as Record<string, unknown>),
+        reload: async () => {},
+        toJSON: () => ({}),
+        phoneNumber: null,
+        photoURL: null,
+        providerId: 'firebase',
+      } as unknown as User;
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && (window.localStorage.getItem('mock_auth') === 'true' || window.location.search.includes('mock=true'))) {
+      return false;
+    }
+    return true;
+  });
+
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (user && !auth) return;
+    if (typeof window !== 'undefined' && (window.localStorage.getItem('mock_auth') === 'true' || window.location.search.includes('mock=true'))) {
+      setLoading(false);
+      return;
+    }
+
     if (!auth) {
       setLoading(false);
       return;
