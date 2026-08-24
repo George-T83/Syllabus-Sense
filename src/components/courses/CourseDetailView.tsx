@@ -204,8 +204,10 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [editContact, setEditContact] = useState<ContactFormState>(EMPTY_CONTACT_FORM);
 
-  const [objectivesEditing, setObjectivesEditing] = useState(false);
-  const [objectivesDraft, setObjectivesDraft] = useState('');
+  const [editingObjectiveIndex, setEditingObjectiveIndex] = useState<number | null>(null);
+  const [objectiveDraft, setObjectiveDraft] = useState('');
+  const [addingObjective, setAddingObjective] = useState(false);
+  const [newObjectiveDraft, setNewObjectiveDraft] = useState('');
 
   const course = state.courses.find((c) => c.id === courseId);
   const items = state.scheduleItems
@@ -377,24 +379,57 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     setEditingContactId(null);
   };
 
-  const handleStartEditObjectives = () => {
-    setObjectivesDraft((course.learningObjectives ?? []).join('\n'));
-    setObjectivesEditing(true);
+  const handleStartEditObjective = (index: number) => {
+    setObjectiveDraft(course.learningObjectives?.[index] ?? '');
+    setEditingObjectiveIndex(index);
   };
 
-  const handleSaveObjectives = async () => {
+  const handleCommitObjectiveEdit = async (index: number) => {
     if (!user) return;
-    const parsed = objectivesDraft
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const current = [...(course.learningObjectives ?? [])];
+    const trimmed = objectiveDraft.trim();
+    if (trimmed) {
+      current[index] = trimmed;
+    } else {
+      current.splice(index, 1);
+    }
     await updateCourse(
       user.uid,
       course,
-      { ...course, learningObjectives: parsed, learningObjectivesApproved: true },
+      { ...course, learningObjectives: current, learningObjectivesApproved: true },
       dispatch,
     );
-    setObjectivesEditing(false);
+    setEditingObjectiveIndex(null);
+  };
+
+  const handleDeleteObjective = async (index: number) => {
+    if (!user) return;
+    const current = [...(course.learningObjectives ?? [])];
+    current.splice(index, 1);
+    await updateCourse(
+      user.uid,
+      course,
+      { ...course, learningObjectives: current, learningObjectivesApproved: true },
+      dispatch,
+    );
+  };
+
+  const handleAddObjective = async () => {
+    if (!user) return;
+    const trimmed = newObjectiveDraft.trim();
+    if (!trimmed) {
+      setAddingObjective(false);
+      return;
+    }
+    const current = [...(course.learningObjectives ?? []), trimmed];
+    await updateCourse(
+      user.uid,
+      course,
+      { ...course, learningObjectives: current, learningObjectivesApproved: true },
+      dispatch,
+    );
+    setNewObjectiveDraft('');
+    setAddingObjective(false);
   };
 
   const handleExportICS = () => {
@@ -720,56 +755,171 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 </span>
               )}
             </div>
-            {!objectivesEditing && (
+            {!addingObjective && (
               <button
-                onClick={handleStartEditObjectives}
+                onClick={() => setAddingObjective(true)}
                 className="shrink-0 text-xs font-semibold text-primary hover:underline"
               >
-                {course.learningObjectives && course.learningObjectives.length > 0
-                  ? 'Edit'
-                  : '+ Add'}
+                + Add objective
               </button>
             )}
           </div>
 
-          {objectivesEditing ? (
-            <div className="space-y-3">
-              <textarea
-                value={objectivesDraft}
-                onChange={(e) => setObjectivesDraft(e.target.value)}
-                rows={6}
-                placeholder={'One objective per line, e.g.\n**Analyze** primary sources for bias'}
-                className={inputClass}
+          {course.learningObjectives && course.learningObjectives.length > 0 ? (
+            <ul className="space-y-2.5">
+              {course.learningObjectives.map((objective, i) =>
+                editingObjectiveIndex === i ? (
+                  <li key={i} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={objectiveDraft}
+                      onChange={(e) => setObjectiveDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCommitObjectiveEdit(i);
+                        if (e.key === 'Escape') setEditingObjectiveIndex(null);
+                      }}
+                      className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCommitObjectiveEdit(i)}
+                      className="rounded p-1 text-primary hover:bg-primary/10"
+                      aria-label="Save this objective"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4.5 12.75l6 6 9-13.5"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingObjectiveIndex(null)}
+                      className="rounded p-1 text-muted-foreground hover:bg-muted"
+                      aria-label="Cancel editing"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </li>
+                ) : (
+                  <li
+                    key={i}
+                    className="group flex items-start justify-between gap-3 text-sm text-foreground"
+                  >
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span className="leading-relaxed break-words">
+                        {renderInlineBold(objective)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditObjective(i)}
+                        className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+                        aria-label="Edit objective"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteObjective(i)}
+                        className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Delete objective"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </li>
+                ),
+              )}
+            </ul>
+          ) : (
+            !addingObjective && (
+              <p className="text-sm text-muted-foreground">No learning objectives yet.</p>
+            )
+          )}
+
+          {addingObjective && (
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <input
+                type="text"
+                value={newObjectiveDraft}
+                onChange={(e) => setNewObjectiveDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddObjective();
+                  if (e.key === 'Escape') setAddingObjective(false);
+                }}
+                placeholder="e.g. **Design** multi-tier web applications"
+                className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                One objective per line. Use **bold** for emphasis.
+                Use **bold** for emphasis. Press Enter to save.
               </p>
               <div className="flex items-center justify-end gap-2">
                 <button
-                  onClick={() => setObjectivesEditing(false)}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                  type="button"
+                  onClick={() => setAddingObjective(false)}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleSaveObjectives}
-                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                  type="button"
+                  onClick={handleAddObjective}
+                  disabled={!newObjectiveDraft.trim()}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
                 >
-                  Save
+                  Add
                 </button>
               </div>
             </div>
-          ) : course.learningObjectives && course.learningObjectives.length > 0 ? (
-            <ul className="space-y-2">
-              {course.learningObjectives.map((objective, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                  <span className="leading-relaxed">{renderInlineBold(objective)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">No learning objectives yet.</p>
           )}
         </Card>
 
