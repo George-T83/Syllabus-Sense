@@ -18,6 +18,7 @@ import {
   getWorkloadLevelLabel,
   getWorkloadBadgeTokens,
 } from '@/lib/workload';
+import { computeSmartPlan } from '@/lib/planner/computeSmartPlan';
 
 const REFERENCE_DATE = '2026-08-16'; // fixed "today" for deterministic tests
 
@@ -449,3 +450,56 @@ describe('toDateOnly - real ScheduleItem.dueDate values (regression)', () => {
     expect(dailyLoad.get('2026-08-21')).toBeGreaterThan(0);
   });
 });
+
+describe('Item 08: Workload Runway Exhaustion & Overdue Backlog Separation', () => {
+  it('correctly reports runwayDays, deficitHours, and runwayExhausted on future overloaded tasks', () => {
+    // 100-hour assignment due in 2 days has insufficient runway
+    const hugeTask = makeItem({
+      id: 'huge-1',
+      dueDate: '2026-08-18',
+      estimatedHours: 100,
+    });
+    const rec = recommendStudyStartDate(hugeTask, REFERENCE_DATE);
+    expect(rec.runwayDays).toBe(3); // Aug 16, 17, 18
+    expect(rec.runwayExhausted).toBe(true);
+    expect(rec.deficitHours).toBeGreaterThan(0);
+    expect(rec.isOverdue).toBe(false);
+  });
+
+  it('separates overdue backlog items from prospective study start buckets in computeSmartPlan', () => {
+    const overdueTask = makeItem({
+      id: 'overdue-1',
+      dueDate: '2026-08-10', // In the past relative to Aug 16
+      estimatedHours: 4,
+      completed: false,
+    });
+    const todayTask = makeItem({
+      id: 'today-1',
+      dueDate: '2026-08-16',
+      estimatedHours: 2,
+      completed: false,
+    });
+    const futureTask = makeItem({
+      id: 'future-1',
+      dueDate: '2026-08-20',
+      estimatedHours: 3,
+      completed: false,
+    });
+
+    const plan = computeSmartPlan(
+      [overdueTask, todayTask, futureTask],
+      toDateOnly(REFERENCE_DATE),
+    );
+
+    // Overdue items must NOT pollute startToday or prospective buckets
+    expect(plan.overdueItems.length).toBe(1);
+    expect(plan.overdueItems[0].item.id).toBe('overdue-1');
+    expect(plan.startToday.some((p) => p.item.id === 'overdue-1')).toBe(false);
+    expect(plan.overdueHours).toBeGreaterThan(0);
+
+    // Prospective tasks should be in startToday / startThisWeek
+    expect(plan.startToday.some((p) => p.item.id === 'today-1')).toBe(true);
+    expect(plan.startThisWeek.some((p) => p.item.id === 'future-1')).toBe(true);
+  });
+});
+
