@@ -143,10 +143,23 @@ export const PHASE_TEMPLATES: Record<ChunkableType, string[]> = {
   ],
 };
 
-export function toLocalDateStr(d: Date): string {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+export function parseDateString(input: Date | string): Date {
+  if (input instanceof Date) return input;
+  if (!input) return new Date();
+  if (typeof input === 'string' && input.length >= 10 && input.includes('-')) {
+    const parts = input.slice(0, 10).split('-').map(Number);
+    if (parts.length === 3 && !parts.some(isNaN)) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+  }
+  return new Date(input);
+}
+
+export function toLocalDateStr(d: Date | string): string {
+  const dateObj = parseDateString(d);
+  const yyyy = dateObj.getFullYear();
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const dd = String(dateObj.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
@@ -244,7 +257,7 @@ export function calculateWorkloadBreakdown(
   customChunks: ProjectChunk[] = [],
   referenceDate: Date | string = new Date()
 ): WorkloadBreakdown {
-  const refDate = typeof referenceDate === 'string' ? new Date(referenceDate) : (referenceDate || new Date());
+  const refDate = parseDateString(referenceDate);
   const refYear = refDate.getFullYear();
   const refMonth = refDate.getMonth();
   const refDay = refDate.getDate();
@@ -276,7 +289,7 @@ export function calculateWorkloadBreakdown(
   // Aggregate schedule items
   for (const item of scheduleItems) {
     if (!item.dueDate) continue;
-    const itemDate = new Date(item.dueDate);
+    const itemDate = parseDateString(item.dueDate);
     const dateStr = toLocalDateStr(itemDate);
     const duration = item.estimatedHours ? Math.round(item.estimatedHours * 60) : (item.type === 'exam' ? 120 : 60);
 
