@@ -24,7 +24,7 @@ describe('ContactShareModal (Item 45)', () => {
         courseTitle="Intro to Computer Science"
         isOpen={true}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByRole('dialog')).toBeDefined();
@@ -41,7 +41,7 @@ describe('ContactShareModal (Item 45)', () => {
         courseCode="CS 101"
         isOpen={true}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     const vcardTab = screen.getByTestId('tab-vcard-text');
@@ -60,7 +60,7 @@ describe('ContactShareModal (Item 45)', () => {
         courseCode="CS 101"
         isOpen={true}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     const emailBtn = screen.getByTestId('email-contact-btn');
@@ -76,7 +76,7 @@ describe('ContactShareModal (Item 45)', () => {
         courseCode="CS 101"
         isOpen={true}
         onClose={onClose}
-      />
+      />,
     );
 
     const closeBtn = screen.getByLabelText(/Close share modal/i);
@@ -92,7 +92,7 @@ describe('ContactShareModal (Item 45)', () => {
         courseCode="CS 101"
         isOpen={false}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(container.firstChild).toBeNull();

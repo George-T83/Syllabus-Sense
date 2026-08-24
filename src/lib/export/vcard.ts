@@ -51,11 +51,7 @@ export function parseStructuredName(fullName: string): {
 /**
  * Generates an RFC 2426 / vCard 3.0 formatted string for a course contact.
  */
-export function generateVCard(
-  contact: Contact,
-  courseCode?: string,
-  courseTitle?: string
-): string {
+export function generateVCard(contact: Contact, courseCode?: string, courseTitle?: string): string {
   const { familyName, givenName, prefix } = parseStructuredName(contact.fullName);
 
   const lines: string[] = [
@@ -112,7 +108,7 @@ export function generateVCard(
 export function generateVCardDataUrl(
   contact: Contact,
   courseCode?: string,
-  courseTitle?: string
+  courseTitle?: string,
 ): string {
   const vcardText = generateVCard(contact, courseCode, courseTitle);
   return `data:text/vcard;charset=utf-8,${encodeURIComponent(vcardText)}`;
@@ -124,7 +120,7 @@ export function generateVCardDataUrl(
 export function downloadVCardFile(
   contact: Contact,
   courseCode?: string,
-  courseTitle?: string
+  courseTitle?: string,
 ): void {
   if (typeof document === 'undefined') return;
 
@@ -157,13 +153,7 @@ export function generateContactQrMatrix(payload: string): boolean[][] {
   const drawFinderPattern = (startRow: number, startCol: number) => {
     for (let r = 0; r < 7; r++) {
       for (let c = 0; c < 7; c++) {
-        if (
-          r === 0 ||
-          r === 6 ||
-          c === 0 ||
-          c === 6 ||
-          (r >= 2 && r <= 4 && c >= 2 && c <= 4)
-        ) {
+        if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
           matrix[startRow + r][startCol + c] = true;
         }
       }
@@ -201,7 +191,12 @@ export function generateContactQrMatrix(payload: string): boolean[][] {
 
       if (!inTopLeft && !inTopRight && !inBottomLeft && !inTiming) {
         // Hash combination logic
-        const val = ((hash >> (bitIndex % 31)) ^ (r * 7 + c * 13) ^ (payload.charCodeAt(bitIndex % payload.length) || 0)) % 2 !== 0;
+        const val =
+          ((hash >> (bitIndex % 31)) ^
+            (r * 7 + c * 13) ^
+            (payload.charCodeAt(bitIndex % payload.length) || 0)) %
+            2 !==
+          0;
         matrix[r][c] = val;
         bitIndex++;
       }

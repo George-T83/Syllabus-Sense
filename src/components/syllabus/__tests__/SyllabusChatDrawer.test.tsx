@@ -52,7 +52,7 @@ function renderWithProviders(ui: React.ReactElement, stateOverrides: Partial<App
   return render(
     <ThemeProvider>
       <AppStateProvider initialState={initialState as AppState}>{ui}</AppStateProvider>
-    </ThemeProvider>
+    </ThemeProvider>,
   );
 }
 
@@ -84,12 +84,14 @@ describe('SyllabusChatDrawer (Item 35)', () => {
             citations: ['[CS 301 Syllabus § Late Policy]'],
             suggestions: ['What is the attendance policy?'],
           }),
-      })
+      }),
     );
   });
 
   it('renders nothing when isOpen is false', () => {
-    const { container } = renderWithProviders(<SyllabusChatDrawer isOpen={false} onClose={vi.fn()} />);
+    const { container } = renderWithProviders(
+      <SyllabusChatDrawer isOpen={false} onClose={vi.fn()} />,
+    );
     expect(container.firstChild).toBeNull();
   });
 

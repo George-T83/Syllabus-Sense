@@ -27,11 +27,7 @@ const STARTER_PROMPTS = [
   'Is attendance mandatory?',
 ];
 
-export function SyllabusChatDrawer({
-  isOpen,
-  onClose,
-  initialCourseId,
-}: SyllabusChatDrawerProps) {
+export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: SyllabusChatDrawerProps) {
   const { state } = useAppState();
   const { user } = useAuth();
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourseId || '');
@@ -86,72 +82,75 @@ export function SyllabusChatDrawer({
 
   const selectedCourse: Course | undefined = state.courses.find((c) => c.id === selectedCourseId);
 
-  const sendMessage = useCallback(async (queryText: string) => {
-    const trimmed = queryText.trim();
-    if (!trimmed || isLoading) return;
+  const sendMessage = useCallback(
+    async (queryText: string) => {
+      const trimmed = queryText.trim();
+      if (!trimmed || isLoading) return;
 
-    const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      sender: 'user',
-      text: trimmed,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInputQuery('');
-    setIsLoading(true);
-
-    try {
-      const token = user ? await user.getIdToken().catch(() => null) : null;
-      const res = await fetch('/api/syllabus/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          message: trimmed,
-          courseId: selectedCourse?.id,
-          courseCode: selectedCourse?.code,
-          courseTitle: selectedCourse?.title,
-          instructor: selectedCourse?.instructor,
-          location: selectedCourse?.meetingTimes?.[0]?.location,
-          notes: selectedCourse?.notes,
-          materials: selectedCourse?.materials,
-          learningObjectives: selectedCourse?.learningObjectives,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Chat API error: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      const assistantMessage: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        sender: 'assistant',
-        text: data.reply || 'Here is the relevant syllabus information.',
-        citations: data.citations || [],
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        sender: 'user',
+        text: trimmed,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      console.error('Failed to query syllabus chat:', err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai-err-${Date.now()}`,
+      setMessages((prev) => [...prev, userMessage]);
+      setInputQuery('');
+      setIsLoading(true);
+
+      try {
+        const token = user ? await user.getIdToken().catch(() => null) : null;
+        const res = await fetch('/api/syllabus/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            message: trimmed,
+            courseId: selectedCourse?.id,
+            courseCode: selectedCourse?.code,
+            courseTitle: selectedCourse?.title,
+            instructor: selectedCourse?.instructor,
+            location: selectedCourse?.meetingTimes?.[0]?.location,
+            notes: selectedCourse?.notes,
+            materials: selectedCourse?.materials,
+            learningObjectives: selectedCourse?.learningObjectives,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Chat API error: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        const assistantMessage: ChatMessage = {
+          id: `ai-${Date.now()}`,
           sender: 'assistant',
-          text: `I had trouble connecting to the server, but according to **${selectedCourse?.code || 'your course'}** standards: deadlines are strict, office hours are weekly, and attendance is recommended. Please check the course page for full details.`,
-          citations: [`[${selectedCourse?.code || 'Course'} Overview]`],
+          text: data.reply || 'Here is the relevant syllabus information.',
+          citations: data.citations || [],
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, user, selectedCourse]);
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+      } catch (err) {
+        console.error('Failed to query syllabus chat:', err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-err-${Date.now()}`,
+            sender: 'assistant',
+            text: `I had trouble connecting to the server, but according to **${selectedCourse?.code || 'your course'}** standards: deadlines are strict, office hours are weekly, and attendance is recommended. Please check the course page for full details.`,
+            citations: [`[${selectedCourse?.code || 'Course'} Overview]`],
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, user, selectedCourse],
+  );
 
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
@@ -175,7 +174,11 @@ export function SyllabusChatDrawer({
     const parts = content.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+        return (
+          <strong key={i} className="font-semibold text-foreground">
+            {part.slice(2, -2)}
+          </strong>
+        );
       }
       return <span key={i}>{part}</span>;
     });
@@ -195,13 +198,22 @@ export function SyllabusChatDrawer({
     >
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-6 sm:pl-10">
         <aside className="w-screen max-w-md md:max-w-lg border-l border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
-          
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
               </div>
               <div>
@@ -211,7 +223,9 @@ export function SyllabusChatDrawer({
                     Beta
                   </span>
                 </h2>
-                <p className="text-xs text-muted-foreground">Instant policy, grade & schedule advisor</p>
+                <p className="text-xs text-muted-foreground">
+                  Instant policy, grade & schedule advisor
+                </p>
               </div>
             </div>
 
@@ -222,8 +236,18 @@ export function SyllabusChatDrawer({
                 aria-label="Clear conversation"
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
               <button
@@ -231,7 +255,13 @@ export function SyllabusChatDrawer({
                 aria-label="Close AI Copilot drawer"
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -256,11 +286,7 @@ export function SyllabusChatDrawer({
           </div>
 
           {/* Chat Messages Area */}
-          <div
-            className="flex-1 overflow-y-auto p-4 space-y-4"
-            aria-live="polite"
-            role="log"
-          >
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-live="polite" role="log">
             {messages.map((msg) => {
               const isUser = msg.sender === 'user';
               return (
@@ -358,7 +384,13 @@ export function SyllabusChatDrawer({
               aria-label="Send query to AI Copilot"
               className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 shadow-sm"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>

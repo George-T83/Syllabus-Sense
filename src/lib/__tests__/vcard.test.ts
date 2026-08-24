@@ -10,7 +10,7 @@ import type { Contact } from '@/types/schedule';
 describe('vCard Export & QR Matrix Utility (Item 45)', () => {
   it('escapes reserved vCard characters like semicolons, commas, and newlines', () => {
     expect(escapeVCardValue('Smith, Jr.; Ph.D.\nOffice 201')).toBe(
-      'Smith\\, Jr.\\; Ph.D.\\nOffice 201'
+      'Smith\\, Jr.\\; Ph.D.\\nOffice 201',
     );
   });
 
@@ -55,7 +55,9 @@ describe('vCard Export & QR Matrix Utility (Item 45)', () => {
     expect(vcard).toContain('ORG:MATH 301 - Calculus III');
     expect(vcard).toContain('EMAIL;TYPE=INTERNET,WORK:kjohnson@university.edu');
     expect(vcard).toContain('ADR;TYPE=WORK:;;Math Building 402;;;;');
-    expect(vcard).toContain('NOTE:Address as: Dr. Johnson\\nOffice Hours: Mon/Wed 1:00-3:00 PM\\nCourse: MATH 301');
+    expect(vcard).toContain(
+      'NOTE:Address as: Dr. Johnson\\nOffice Hours: Mon/Wed 1:00-3:00 PM\\nCourse: MATH 301',
+    );
     expect(vcard).toContain('END:VCARD');
   });
 
