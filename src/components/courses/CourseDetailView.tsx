@@ -29,7 +29,7 @@ import { courseSwatch } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { ScheduleItem, Contact, ContactRole } from '@/types/schedule';
+import type { Course, ScheduleItem, Contact, ContactRole } from '@/types/schedule';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
