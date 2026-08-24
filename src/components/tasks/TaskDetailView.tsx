@@ -22,7 +22,11 @@ const shortDueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short',
 /** Plain-English sentence comparing `item`'s grade weight to the rest of
  * its course, so "worth 25%" comes with a sense of scale instead of a bare
  * number. Only ever called once item.gradeWeight is known to be set. */
-function describeGradeImpact(item: ScheduleItem, courseItems: ScheduleItem[], courseLabel: string): string {
+function describeGradeImpact(
+  item: ScheduleItem,
+  courseItems: ScheduleItem[],
+  courseLabel: string,
+): string {
   const weightedOthers = courseItems.filter((i) => i.id !== item.id && i.gradeWeight != null);
   if (weightedOthers.length === 0) {
     return `Worth ${item.gradeWeight}% of your grade in ${courseLabel} - no other item's weight is on record yet, so there's nothing to compare it to.`;
@@ -31,7 +35,9 @@ function describeGradeImpact(item: ScheduleItem, courseItems: ScheduleItem[], co
   if ((item.gradeWeight ?? 0) >= maxOtherWeight) {
     return `This is your highest-weighted item in ${courseLabel}.`;
   }
-  const higherCount = weightedOthers.filter((i) => (i.gradeWeight ?? 0) > (item.gradeWeight ?? 0)).length;
+  const higherCount = weightedOthers.filter(
+    (i) => (i.gradeWeight ?? 0) > (item.gradeWeight ?? 0),
+  ).length;
   return `${higherCount} other item${higherCount === 1 ? '' : 's'} in ${courseLabel} ${
     higherCount === 1 ? 'is' : 'are'
   } weighted higher than this.`;
@@ -535,7 +541,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 p-6 text-sm">
+          <dl className="grid grid-cols-2 gap-4 p-6 text-sm">
             <div>
               <dt className="text-xs text-muted-foreground">Due</dt>
               <dd className="mt-0.5 font-medium text-foreground">
@@ -543,14 +549,16 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
               </dd>
             </div>
             <div>
-              <label htmlFor="task-estimated-hours" className="text-xs text-muted-foreground">
-                Estimated effort
-              </label>
+              <dt>
+                <label htmlFor="task-estimated-hours" className="text-xs text-muted-foreground">
+                  Estimated effort
+                </label>
+              </dt>
               {/* Always editable, not just displayed - the first estimate is
                * often a guess, and a special case (a longer reading than
                * usual, a group project that fell through) should be a
                * two-second fix, not a trip through the full edit form. */}
-              <div className="mt-0.5 flex items-center gap-1">
+              <dd className="mt-0.5 flex items-center gap-1">
                 <input
                   id="task-estimated-hours"
                   type="number"
@@ -564,17 +572,19 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
                   className="w-14 rounded-md border border-transparent bg-transparent font-medium text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:border-border focus:bg-card focus:px-1.5 focus:py-0.5 focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed"
                 />
                 <span className="text-sm font-medium text-muted-foreground">h</span>
-              </div>
+              </dd>
             </div>
-          </div>
+          </dl>
 
           <GradeImpactPanel item={item} course={course} courseItems={courseItems} />
 
           {item.notes && (
-            <div className="p-6">
-              <dt className="text-xs text-muted-foreground">Notes</dt>
-              <dd className="mt-1 whitespace-pre-wrap text-sm text-foreground">{item.notes}</dd>
-            </div>
+            <dl className="p-6">
+              <div>
+                <dt className="text-xs text-muted-foreground">Notes</dt>
+                <dd className="mt-1 whitespace-pre-wrap text-sm text-foreground">{item.notes}</dd>
+              </div>
+            </dl>
           )}
 
           <div className="flex flex-wrap items-center gap-2 p-6">

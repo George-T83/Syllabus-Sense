@@ -12,6 +12,11 @@ import {
   toDateOnly,
   formatDateISO,
   WORKLOAD_LEVEL_THRESHOLDS,
+  WORKLOAD_LEVEL_LABELS,
+  WORKLOAD_LEVEL_SEVERITY_LABELS,
+  WORKLOAD_LEVEL_DESCRIPTIONS,
+  getWorkloadLevelLabel,
+  getWorkloadBadgeTokens,
 } from '@/lib/workload';
 
 const REFERENCE_DATE = '2026-08-16'; // fixed "today" for deterministic tests
@@ -292,6 +297,42 @@ describe('#54 getWorkloadLevel thresholds', () => {
     const levels = ['low', 'medium', 'high', 'critical'];
     expect(levels).toContain(getWorkloadLevel(-5));
     expect(levels).toContain(getWorkloadLevel(1000));
+  });
+});
+
+describe('Item 06: semantic labels and unified badge tokens alignment', () => {
+  it('provides consistent human-readable and severity labels across all workload tiers', () => {
+    expect(WORKLOAD_LEVEL_LABELS.low).toBe('Low');
+    expect(WORKLOAD_LEVEL_LABELS.medium).toBe('Medium');
+    expect(WORKLOAD_LEVEL_LABELS.high).toBe('High');
+    expect(WORKLOAD_LEVEL_LABELS.critical).toBe('Extreme');
+
+    expect(WORKLOAD_LEVEL_SEVERITY_LABELS.critical).toBe('Critical');
+    expect(getWorkloadLevelLabel('critical', 'extreme')).toBe('Extreme');
+    expect(getWorkloadLevelLabel('critical', 'critical')).toBe('Critical');
+    expect(getWorkloadLevelLabel('low')).toBe('Low');
+  });
+
+  it('provides descriptive explanations for cognitive load tiers', () => {
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.low).toContain('Comfortable');
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.medium).toContain('Manageable');
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.high).toContain('Heavy');
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.critical).toContain('Intense');
+  });
+
+  it('returns unified badge tokens with chip, text, swatch, tint, and badge classes', () => {
+    const lowTokens = getWorkloadBadgeTokens('low');
+    expect(lowTokens.label).toBe('Low');
+    expect(lowTokens.badgeClass).toContain('text-load-low');
+    expect(lowTokens.chipClass).toContain('bg-load-low/10');
+    expect(lowTokens.swatchClass).toContain('bg-load-low');
+
+    const criticalSolid = getWorkloadBadgeTokens('critical', {
+      solid: true,
+      labelVariant: 'critical',
+    });
+    expect(criticalSolid.label).toBe('Critical');
+    expect(criticalSolid.badgeClass).toContain('bg-load-critical text-white');
   });
 });
 
