@@ -191,7 +191,7 @@ export function ContactsListView() {
   };
 
   const selectClass =
-    'rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+    'rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
 
   return (
     <>
@@ -213,7 +213,7 @@ export function ContactsListView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or course..."
-            className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           />
           <select
             value={effectiveTermFilter}
@@ -237,7 +237,7 @@ export function ContactsListView() {
         </div>
 
         {hiddenByTermCount > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-foreground">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-foreground min-h-[44px]">
             <span>
               Showing <span className="font-semibold">{effectiveTermFilter}</span> ·{' '}
               {hiddenByTermCount} more {hiddenByTermCount === 1 ? 'contact' : 'contacts'} in other
@@ -246,7 +246,7 @@ export function ContactsListView() {
             <button
               type="button"
               onClick={() => setTermFilter('all')}
-              className="font-semibold text-primary hover:underline"
+              className="inline-flex min-h-[44px] items-center px-1 font-semibold text-primary hover:underline"
             >
               View all terms
             </button>
@@ -335,13 +335,13 @@ export function ContactsListView() {
                               <>
                                 <button
                                   onClick={() => handleDelete(record)}
-                                  className="font-semibold text-destructive hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-destructive hover:underline"
                                 >
                                   Confirm
                                 </button>
                                 <button
                                   onClick={() => setConfirmingDeleteId(null)}
-                                  className="text-muted-foreground hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 text-muted-foreground hover:underline"
                                 >
                                   Cancel
                                 </button>
@@ -350,13 +350,13 @@ export function ContactsListView() {
                               <>
                                 <button
                                   onClick={() => openEdit(record)}
-                                  className="font-semibold text-primary hover:underline"
+                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => setConfirmingDeleteId(record.id)}
-                                  className="font-semibold text-destructive hover:underline"
+                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 font-semibold text-destructive hover:underline"
                                 >
                                   Delete
                                 </button>
@@ -540,7 +540,7 @@ function ContactFormModal({
                       type="button"
                       onClick={() => setValues((s) => ({ ...s, role }))}
                       className={cn(
-                        'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                        'inline-flex min-h-[44px] items-center justify-center rounded-lg border px-4 py-2 text-xs font-medium transition-colors',
                         values.role === role
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border text-muted-foreground hover:bg-accent',
@@ -600,14 +600,14 @@ function ContactFormModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : initialContact ? 'Save Changes' : 'Add Contact'}
               </button>

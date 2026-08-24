@@ -206,12 +206,12 @@ function NotificationBell({
         aria-label={overdueCount > 0 ? `Notifications, ${overdueCount} overdue` : 'Notifications'}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="relative p-2 rounded-md hover:bg-accent text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+        className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
       >
         <BellIcon />
         {overdueCount > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground"
+            className="absolute top-1 right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground"
             aria-hidden="true"
           >
             {overdueCount > 9 ? '9+' : overdueCount}
@@ -322,7 +322,7 @@ export default function Navbar() {
               aria-label="Search courses and tasks"
               aria-haspopup="dialog"
               aria-expanded={openPanel === 'search'}
-              className="p-2 rounded-md hover:bg-accent text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
             >
               <SearchIcon />
             </button>
@@ -339,14 +339,14 @@ export default function Navbar() {
         {mounted && user && (
           <Link
             href="/profile"
-            className="hidden sm:block text-sm font-medium text-foreground hover:text-primary transition-colors"
+            className="hidden sm:inline-flex min-h-[44px] items-center text-sm font-medium text-foreground hover:text-primary transition-colors px-1"
           >
             Hi, {user.displayName || user.email?.split('@')[0] || 'there'}
           </Link>
         )}
         {!mounted ? (
           <button
-            className="p-2 rounded-md hover:bg-accent text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background opacity-0"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground opacity-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
             aria-hidden="true"
             disabled
           >
@@ -355,7 +355,7 @@ export default function Navbar() {
         ) : (
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-md hover:bg-accent text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
             aria-label={resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           >
             {resolvedTheme === 'dark' ? (
@@ -391,7 +391,7 @@ export default function Navbar() {
         )}
         <button
           onClick={handleSignOut}
-          className="p-2 rounded-md hover:bg-accent text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
           aria-label="Sign out"
           title="Sign out"
         >

@@ -347,7 +347,7 @@ export function PlannerView() {
   };
 
   const selectClass =
-    'rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+    'rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
 
   // Factored out of the group-rendering loop so the same row (with its
   // trailing Overdue/Due/Edit/Delete controls) can be rendered both for a
@@ -397,7 +397,7 @@ export function PlannerView() {
             >
               <button
                 onClick={() => setEditingItem(item)}
-                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               >
                 Edit
               </button>
@@ -405,13 +405,13 @@ export function PlannerView() {
                 <div className="flex items-center gap-2 text-xs">
                   <button
                     onClick={() => handleDeleteTask(item)}
-                    className="font-semibold text-foreground hover:underline"
+                    className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-foreground hover:underline"
                   >
                     Confirm
                   </button>
                   <button
                     onClick={() => setConfirmingDeleteId(null)}
-                    className="text-muted-foreground hover:underline"
+                    className="inline-flex min-h-[44px] items-center justify-center px-2 text-muted-foreground hover:underline"
                   >
                     Cancel
                   </button>
@@ -422,7 +422,7 @@ export function PlannerView() {
                 // doesn't compete with the one badge that should stand out.
                 <button
                   onClick={() => setConfirmingDeleteId(item.id)}
-                  className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
                 >
                   Delete
                 </button>

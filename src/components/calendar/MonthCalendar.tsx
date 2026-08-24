@@ -403,11 +403,11 @@ export function MonthCalendar() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={handleExportICS}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-2.5"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:px-3"
               title="Download visible items as a .ics file"
             >
               <svg
-                className="h-3.5 w-3.5"
+                className="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -427,9 +427,9 @@ export function MonthCalendar() {
                   key={mode}
                   onClick={() => setViewMode(mode)}
                   className={cn(
-                    'rounded-md px-2.5 py-1 capitalize transition-colors',
+                    'inline-flex min-h-[44px] items-center justify-center rounded-md px-3 py-1.5 capitalize transition-colors',
                     viewMode === mode
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-primary font-semibold text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
@@ -925,10 +925,10 @@ function PeriodNav({
       <button
         onClick={onPrev}
         aria-label={prevLabel}
-        className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <svg
-          className="h-3.5 w-3.5"
+          className="h-4 w-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -939,17 +939,17 @@ function PeriodNav({
       </button>
       <button
         onClick={onToday}
-        className="rounded-md px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+        className="inline-flex min-h-[44px] items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
       >
         Today
       </button>
       <button
         onClick={onNext}
         aria-label={nextLabel}
-        className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <svg
-          className="h-3.5 w-3.5"
+          className="h-4 w-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
