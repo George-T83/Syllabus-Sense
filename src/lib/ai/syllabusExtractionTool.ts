@@ -23,7 +23,11 @@ export const SYLLABUS_EXTRACTION_TOOL: Anthropic.Tool = {
         additionalProperties: false,
         required: ['code', 'title', 'meetingTimes', 'materials', 'skipDates'],
         properties: {
-          code: { type: 'string', description: 'e.g. "CSCI 213"' },
+          code: {
+            type: 'string',
+            description:
+              'e.g. "CSCI 213" - always insert a space between the subject prefix and the course number, even if the syllabus itself writes it without one (e.g. "CSCI213" in the source becomes "CSCI 213" here).',
+          },
           title: { type: 'string', description: 'e.g. "Computer Science I"' },
           instructor: { type: ['string', 'null'] },
           term: { type: ['string', 'null'], description: 'e.g. "Spring 2026"' },
@@ -193,4 +197,5 @@ export const SYLLABUS_EXTRACTION_SYSTEM_PROMPT = `You are an expert academic pla
 11. Always propose suggestedFileName: a short, human-readable name built from the real course code and term (e.g. "PSYC 220 - Spring 2026 Syllabus"), not a restatement of the uploaded file's own name.
 12. Always propose suggestedIcon: pick the preset that best matches the course's actual subject (see the tool schema's enum for what each icon represents) - another starting point the student can change, not a final answer.
 13. Extract every professor and TA named in the syllabus into contacts, with whatever details are actually stated (title, how to address them, email, office hours, office location) - leave a field null rather than guessing it, and never invent a TA who is not named anywhere.
-14. Extract learningObjectives only when the syllabus has an actual "Learning Objectives," "Course Outcomes," or equivalent section - copy them as detailed, individual bullet entries. Do not synthesize objectives from the course description or title if no such section exists; leave the array empty instead.`;
+14. Extract learningObjectives only when the syllabus has an actual "Learning Objectives," "Course Outcomes," or equivalent section - copy them as detailed, individual bullet entries. Do not synthesize objectives from the course description or title if no such section exists; leave the array empty instead.
+15. Always format course.code with a space between the subject prefix and the course number (e.g. "CSCI 213", "ECON 201"), even when the syllabus itself writes it without one (e.g. "CSCI213").`;

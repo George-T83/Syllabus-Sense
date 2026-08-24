@@ -120,7 +120,7 @@ export const syllabusExtractionSchema = z.object({
   /** Things the parser noticed but couldn't confidently extract, in plain
    * language for the review screen, e.g. "Exam dates aren't in this
    * syllabus - your professor posts them on Blackboard." */
-  unresolved: z.array(z.string().max(300)).default([]),
+  unresolved: z.array(z.string().max(1000)).default([]),
 });
 
 export type ExtractedMeetingTime = z.infer<typeof extractedMeetingTimeSchema>;

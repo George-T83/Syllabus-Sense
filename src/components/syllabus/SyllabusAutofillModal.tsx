@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { COURSE_COLOR_PRESETS, courseSwatch, pickSuggestedCourseColor } from '@/lib/courseColors';
 import { COURSE_ICON_PRESETS, pickSuggestedCourseIcon } from '@/lib/courseIcons';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
-import { cn } from '@/lib/utils';
+import { cn, normalizeContactName } from '@/lib/utils';
 import type {
   ExtractedMeetingTime,
   ExtractedScheduleItem,
@@ -116,18 +116,6 @@ interface DraftContact {
   /** Per-field approval - only meaningful for keys in `fields`, defaults to
    * checked/true (absence in Contact['fieldApprovals'] means approved). */
   fieldApproved: Partial<Record<ContactFieldKey, boolean>>;
-}
-
-/** Normalizes a full name for dedup matching: case, punctuation, and
- * surrounding whitespace shouldn't cause "Dr. Sarah Chen" and "sarah chen"
- * to read as different people. No fuzzy-matching library - the finding only
- * asks for "likely match", and this catches the common real-world cases
- * (titles, periods, extra whitespace) without over-engineering. */
-function normalizeContactName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z\s]/g, '')
-    .trim();
 }
 
 /** Finds an existing contact (regardless of which course it's attached to -
@@ -384,6 +372,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
    * once populated even as its content is edited). */
   const [hasLearningObjectives, setHasLearningObjectives] = useState(false);
   const [learningObjectivesApproved, setLearningObjectivesApproved] = useState(true);
+  /** Index into `learningObjectivesLines` currently open for editing, or
+   * null when every objective is just static text with a pencil button. */
+  const [editingObjectiveIndex, setEditingObjectiveIndex] = useState<number | null>(null);
+  const [objectiveDraft, setObjectiveDraft] = useState('');
   const [contactDrafts, setContactDrafts] = useState<DraftContact[]>([]);
   /** Set once the course + schedule items have actually been persisted, so
    * a later contacts-save failure can keep the modal open to show that
@@ -643,6 +635,25 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
+
+  const startEditingObjective = (index: number) => {
+    setObjectiveDraft(learningObjectivesLines[index] ?? '');
+    setEditingObjectiveIndex(index);
+  };
+
+  // A blank commit removes that objective rather than saving an empty
+  // bullet - editing down to nothing is how a student deletes one.
+  const commitObjectiveEdit = (index: number) => {
+    const nextLines = [...learningObjectivesLines];
+    const trimmed = objectiveDraft.trim();
+    if (trimmed) {
+      nextLines[index] = trimmed;
+    } else {
+      nextLines.splice(index, 1);
+    }
+    setLearningObjectivesText(nextLines.join('\n'));
+    setEditingObjectiveIndex(null);
+  };
 
   const approvedCount = items.filter((i) => i.approved).length;
   // Counts for the VA-3 post-extraction summary chip: high-stakes uses the
@@ -1302,7 +1313,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                             d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s4.332.477 5.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                           />
                         </svg>
-                        Learning objectives
+                        Learning Objectives
                       </h3>
                       <label className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                         <input
@@ -1316,33 +1327,101 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     </div>
                     {learningObjectivesLines.length > 0 && (
                       <ul className="space-y-1 text-xs text-foreground">
-                        {learningObjectivesLines.map((line, i) => (
-                          <li key={i} className="flex gap-1.5">
-                            <span className="text-primary">&bull;</span>
-                            <span>{renderInlineMarkdown(line)}</span>
-                          </li>
-                        ))}
+                        {learningObjectivesLines.map((line, i) =>
+                          editingObjectiveIndex === i ? (
+                            <li key={i} className="flex items-start gap-1.5">
+                              <span className="mt-1 text-primary">&bull;</span>
+                              <textarea
+                                autoFocus
+                                value={objectiveDraft}
+                                onChange={(e) => setObjectiveDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    commitObjectiveEdit(i);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingObjectiveIndex(null);
+                                  }
+                                }}
+                                rows={2}
+                                className="max-h-32 flex-1 resize-y overflow-y-auto rounded-lg border border-primary bg-card px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              />
+                              <div className="flex shrink-0 flex-col gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => commitObjectiveEdit(i)}
+                                  className="rounded p-0.5 text-primary hover:bg-primary/10"
+                                  aria-label="Save this objective"
+                                >
+                                  <svg
+                                    className="h-3.5 w-3.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M4.5 12.75l6 6 9-13.5"
+                                    />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingObjectiveIndex(null)}
+                                  className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                                  aria-label="Cancel editing this objective"
+                                >
+                                  <svg
+                                    className="h-3.5 w-3.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            </li>
+                          ) : (
+                            <li key={i} className="flex items-start gap-1.5">
+                              <span className="text-primary">&bull;</span>
+                              <span className="flex-1">{renderInlineMarkdown(line)}</span>
+                              <button
+                                type="button"
+                                onClick={() => startEditingObjective(i)}
+                                className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                                aria-label="Edit this objective"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
+                                  />
+                                </svg>
+                              </button>
+                            </li>
+                          ),
+                        )}
                       </ul>
                     )}
-                    <div className="space-y-1">
-                      <label
-                        htmlFor="autofill-learning-objectives"
-                        className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-                      >
-                        Edit &mdash; one per line
-                      </label>
-                      <textarea
-                        id="autofill-learning-objectives"
-                        value={learningObjectivesText}
-                        onChange={(e) => setLearningObjectivesText(e.target.value)}
-                        rows={4}
-                        placeholder="One objective per line"
-                        className="w-full resize-none rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Uncheck &quot;Save to course&quot; to skip saving these for now without losing
-                      what Claude found.
+                      Click the pencil to edit an objective, or clear its text to remove it. Uncheck
+                      &quot;Save to course&quot; to skip saving these for now without losing what
+                      Claude found.
                     </p>
                   </section>
                 )}

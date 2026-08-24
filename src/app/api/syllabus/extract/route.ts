@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
-import { checkAndIncrementExtractionCount } from '@/lib/ai/extractionRateLimit';
 import {
   SYLLABUS_EXTRACTION_SYSTEM_PROMPT,
   SYLLABUS_EXTRACTION_TOOL,
@@ -68,14 +67,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'That file is not a valid PDF or Word (.docx) document.' },
       { status: 400 },
-    );
-  }
-
-  const rateLimit = await checkAndIncrementExtractionCount(user.uid);
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: "You've hit today's syllabus upload limit. Try again tomorrow." },
-      { status: 429 },
     );
   }
 
@@ -171,6 +162,10 @@ export async function POST(req: NextRequest) {
       { status: 502 },
     );
   }
+
+  // Guarantee the "CSCI 213" spacing the prompt asks for even if the model
+  // copies a source syllabus's unspaced code (e.g. "CSCI213") verbatim.
+  parsed.data.course.code = parsed.data.course.code.replace(/^([A-Za-z]+)(\d)/, '$1 $2');
 
   return NextResponse.json({ result: parsed.data });
 }
