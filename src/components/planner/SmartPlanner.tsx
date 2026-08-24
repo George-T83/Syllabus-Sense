@@ -48,7 +48,11 @@ export function SmartPlanner() {
     [scheduleItems, referenceDate],
   );
 
-  const totalPlanned = plan.startToday.length + plan.startThisWeek.length + plan.startLater.length;
+  const totalPlanned =
+    plan.startToday.length +
+    plan.startThisWeek.length +
+    plan.startLater.length +
+    plan.overdueItems.length;
   const todayLoad = plan.weekLoad[0];
   const todayLevel = getWorkloadLevel(todayLoad.hours);
   const hasOverdueBacklog = plan.overdueHours > 1e-9;
@@ -61,7 +65,12 @@ export function SmartPlanner() {
   // with which section a given item actually landed in above.
   const itemsByStartDate = useMemo(() => {
     const map = new Map<string, PlannedItem[]>();
-    const allPlanned = [...plan.startToday, ...plan.startThisWeek, ...plan.startLater];
+    const allPlanned = [
+      ...plan.startToday,
+      ...plan.startThisWeek,
+      ...plan.startLater,
+      ...plan.overdueItems,
+    ];
     for (const planned of allPlanned) {
       const existing = map.get(planned.startDate);
       if (existing) existing.push(planned);
@@ -91,15 +100,22 @@ export function SmartPlanner() {
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Today&apos;s Load
           </span>
-          <span
-            className={cn(
-              'rounded-full border px-2.5 py-1 text-xs font-semibold',
-              WORKLOAD_CHIP_CLASS[todayLevel],
-              WORKLOAD_TEXT_CLASS[todayLevel],
+          <div className="flex flex-wrap items-center gap-2">
+            {plan.runwayExhaustedCount > 0 && (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                {plan.runwayExhaustedCount} Runway Exhausted
+              </span>
             )}
-          >
-            {WORKLOAD_LEVEL_LABELS[todayLevel]}
-          </span>
+            <span
+              className={cn(
+                'rounded-full border px-2.5 py-1 text-xs font-semibold',
+                WORKLOAD_CHIP_CLASS[todayLevel],
+                WORKLOAD_TEXT_CLASS[todayLevel],
+              )}
+            >
+              {WORKLOAD_LEVEL_LABELS[todayLevel]}
+            </span>
+          </div>
         </div>
         {/* PL-1: split into two figures instead of one. The old single
             "Today's Load" number only ever summed items due today through
@@ -174,6 +190,45 @@ export function SmartPlanner() {
           </div>
         )}
       </Card>
+
+      {/* Dedicated Overdue Backlog Section */}
+      {plan.overdueItems.length > 0 && (
+        <Card className="rounded-2xl border-destructive/30 bg-destructive/5 p-4 sm:p-6">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground">
+                !
+              </span>
+              <h2 className="text-sm font-semibold text-destructive">
+                Overdue Backlog ({plan.overdueItems.length}{' '}
+                {plan.overdueItems.length === 1 ? 'item' : 'items'})
+              </h2>
+            </div>
+            <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
+              {plan.overdueHours.toFixed(1)}h backlog debt
+            </span>
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Past-due deliverables are separated from prospective 7-day runway planning. Complete or
+            reschedule these items to clear debt.
+          </p>
+          <div className="flex flex-col gap-2">
+            {plan.overdueItems.map(({ item, startDate, overloaded, tight, overdue }) => (
+              <PlannedTaskRow
+                key={item.id}
+                item={item}
+                startDate={startDate}
+                course={courses.find((c) => c.id === item.courseId)}
+                overloaded={overloaded}
+                tight={tight}
+                overdue={overdue}
+                variant={state.preferences.taskRowVariant}
+                onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+              />
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card className="rounded-2xl p-4 sm:p-6">
         <h2 className="mb-4 text-base font-semibold text-foreground">7-Day Forecast</h2>
@@ -302,12 +357,8 @@ function PlannedTaskRow({
       priority={item.priority}
       onToggleComplete={onToggleComplete}
       // PL-2: stacked (not side-by-side) so the trailing block's natural
-      // width is the widest SINGLE line, not badge+gap+date combined - this
-      // is what keeps the row within a 375px viewport without touching
-      // TaskRow.tsx's own `flex shrink-0` wrapper (owned by another agent
-      // this round). PL-3: prints the recommended start date - previously
-      // computed but discarded before reaching the screen - alongside the
-      // due date, both labeled, instead of only the due date.
+      // width is the widest SINGLE line, not badge+gap+date combined.
+      // PL-3: prints the recommended start date alongside the due date.
       trailing={
         <div className="flex flex-col items-end gap-1 text-right">
           {overdue ? (
@@ -315,14 +366,11 @@ function PlannedTaskRow({
               Overdue
             </span>
           ) : overloaded ? (
-            <span className="whitespace-nowrap rounded-full bg-load-critical/10 px-2 py-0.5 text-[10px] font-semibold text-load-critical">
-              Overloaded
+            <span className="whitespace-nowrap rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+              Runway Exhausted
             </span>
           ) : (
             tight && (
-              // PL-5: middle tier between a comfortable day and a genuinely
-              // overloaded one - styled with the 'high' load token
-              // (amber-ish), one step down in alarm from 'critical' (red).
               <span className="whitespace-nowrap rounded-full bg-load-high/10 px-2 py-0.5 text-[10px] font-semibold text-load-high">
                 Tight
               </span>
@@ -374,3 +422,4 @@ function PlanSection({
     </Card>
   );
 }
+
