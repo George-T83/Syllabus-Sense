@@ -17,32 +17,32 @@ import AppRootLoading from '@/app/(app)/loading';
 describe('Skeleton Components & Route Loading Skeletons (Item 28)', () => {
   describe('Skeleton Base Component', () => {
     it('renders accessible status role and aria-busy attributes', () => {
-      const { container } = render(<Skeleton data-testid="skeleton-test" />);
+      render(<Skeleton data-testid="skeleton-test" />);
       const skeleton = screen.getByTestId('skeleton-test');
 
-      expect(skeleton).toBeInTheDocument();
+      expect(skeleton).toBeDefined();
       expect(skeleton.getAttribute('role')).toBe('status');
       expect(skeleton.getAttribute('aria-busy')).toBe('true');
-      expect(skeleton).toHaveClass('animate-pulse');
-      expect(skeleton).toHaveClass('rounded-xl');
+      expect(skeleton.classList.contains('animate-pulse')).toBe(true);
+      expect(skeleton.classList.contains('rounded-xl')).toBe(true);
     });
 
     it('renders circular variant with full rounded styles', () => {
-      const { container } = render(
+      render(
         <Skeleton variant="circular" width={48} height={48} data-testid="circle-skel" />
       );
       const circle = screen.getByTestId('circle-skel');
-      expect(circle).toHaveClass('rounded-full');
+      expect(circle.classList.contains('rounded-full')).toBe(true);
       expect(circle.style.width).toBe('48px');
       expect(circle.style.height).toBe('48px');
     });
 
     it('renders text variant with default line styles', () => {
-      const { container } = render(
+      render(
         <Skeleton variant="text" data-testid="text-skel" />
       );
       const text = screen.getByTestId('text-skel');
-      expect(text).toHaveClass('rounded-md');
+      expect(text.classList.contains('rounded-md')).toBe(true);
     });
   });
 
@@ -56,14 +56,14 @@ describe('Skeleton Components & Route Loading Skeletons (Item 28)', () => {
     it('renders SkeletonCard with card styling and layout', () => {
       const { container } = render(<SkeletonCard />);
       const card = container.querySelector('.rounded-2xl');
-      expect(card).toBeInTheDocument();
+      expect(card).toBeDefined();
       expect(card?.getAttribute('aria-busy')).toBe('true');
     });
 
     it('renders SkeletonButton with minimum touch height', () => {
       const { container } = render(<SkeletonButton width={140} height={44} />);
       const button = container.firstChild as HTMLElement;
-      expect(button).toHaveClass('min-h-[44px]');
+      expect(button.classList.contains('min-h-[44px]')).toBe(true);
       expect(button.style.width).toBe('140px');
     });
   });
@@ -71,32 +71,32 @@ describe('Skeleton Components & Route Loading Skeletons (Item 28)', () => {
   describe('Route Loading Skeletons', () => {
     it('renders DashboardLoading without error and includes dashboard skeleton testid', () => {
       render(<DashboardLoading />);
-      expect(screen.getByTestId('dashboard-loading-skeleton')).toBeInTheDocument();
+      expect(screen.getByTestId('dashboard-loading-skeleton')).toBeDefined();
     });
 
     it('renders CoursesLoading without error and includes courses skeleton testid', () => {
       render(<CoursesLoading />);
-      expect(screen.getByTestId('courses-loading-skeleton')).toBeInTheDocument();
+      expect(screen.getByTestId('courses-loading-skeleton')).toBeDefined();
     });
 
     it('renders TasksLoading without error and includes tasks skeleton testid', () => {
       render(<TasksLoading />);
-      expect(screen.getByTestId('tasks-loading-skeleton')).toBeInTheDocument();
+      expect(screen.getByTestId('tasks-loading-skeleton')).toBeDefined();
     });
 
     it('renders CalendarLoading without error and includes calendar skeleton testid', () => {
       render(<CalendarLoading />);
-      expect(screen.getByTestId('calendar-loading-skeleton')).toBeInTheDocument();
+      expect(screen.getByTestId('calendar-loading-skeleton')).toBeDefined();
     });
 
     it('renders ContactsLoading without error and includes contacts skeleton testid', () => {
       render(<ContactsLoading />);
-      expect(screen.getByTestId('contacts-loading-skeleton')).toBeInTheDocument();
+      expect(screen.getByTestId('contacts-loading-skeleton')).toBeDefined();
     });
 
     it('renders AppRootLoading without error and includes root skeleton testid', () => {
       render(<AppRootLoading />);
-      expect(screen.getByTestId('app-root-loading-skeleton')).toBeInTheDocument();
+      expect(screen.getByTestId('app-root-loading-skeleton')).toBeDefined();
     });
   });
 });
