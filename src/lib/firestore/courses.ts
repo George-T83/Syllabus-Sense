@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, query, setDoc, where, writeBatch } from 'firebase/firestore';
 import { deleteObject, ref } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/client';
 import type { AppAction } from '@/context/AppStateContext';
@@ -59,17 +59,67 @@ export async function createCourseWithScheduleItems(
   }
 }
 
+/**
+ * Updates a course and cascades term/semester changes to all associated contacts
+ * so directory filtering stays consistent.
+ */
 export async function updateCourse(
   userId: string,
   previousCourse: Course,
   updatedCourse: Course,
   dispatch: React.Dispatch<AppAction>,
+  relatedContacts?: Contact[],
 ): Promise<void> {
   dispatch({ type: 'UPDATE_COURSE', payload: updatedCourse });
+
+  const termChanged = previousCourse.term !== updatedCourse.term;
+  let affectedContacts: Contact[] = [];
+  let updatedContacts: Contact[] = [];
+
+  if (termChanged) {
+    const database = requireDb();
+    if (relatedContacts) {
+      affectedContacts = relatedContacts.filter((c) => c.courseId === updatedCourse.id);
+    } else {
+      const snap = await getDocs(
+        query(
+          collection(database, 'users', userId, 'contacts'),
+          where('courseId', '==', updatedCourse.id),
+        ),
+      );
+      affectedContacts = snap.docs.map((d) => d.data() as Contact);
+    }
+
+    updatedContacts = affectedContacts.map((c) => {
+      const updated = { ...c };
+      if (updatedCourse.term) {
+        updated.term = updatedCourse.term;
+      } else {
+        delete updated.term;
+      }
+      return updated;
+    });
+
+    updatedContacts.forEach((c) => dispatch({ type: 'UPDATE_CONTACT', payload: c }));
+  }
+
   try {
-    await setDoc(doc(requireDb(), 'users', userId, 'courses', updatedCourse.id), updatedCourse);
+    const database = requireDb();
+    if (termChanged && updatedContacts.length > 0) {
+      const batch = writeBatch(database);
+      batch.set(doc(database, 'users', userId, 'courses', updatedCourse.id), updatedCourse);
+      updatedContacts.forEach((c) => {
+        batch.set(doc(database, 'users', userId, 'contacts', c.id), c);
+      });
+      await batch.commit();
+    } else {
+      await setDoc(doc(database, 'users', userId, 'courses', updatedCourse.id), updatedCourse);
+    }
   } catch (err) {
     dispatch({ type: 'UPDATE_COURSE', payload: previousCourse });
+    if (termChanged && affectedContacts.length > 0) {
+      affectedContacts.forEach((c) => dispatch({ type: 'UPDATE_CONTACT', payload: c }));
+    }
     throw err;
   }
 }

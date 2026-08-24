@@ -235,22 +235,23 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleEditCourse = async (values: CourseFormValues) => {
     if (!user) throw new Error('You must be signed in to edit a course.');
-    await updateCourse(
-      user.uid,
-      course,
-      {
-        ...course,
-        code: values.code,
-        title: values.title,
-        color: values.color,
-        icon: values.icon,
-        meetingTimes: values.meetingTimes ?? [],
-        ...(values.instructor ? { instructor: values.instructor } : {}),
-        ...(values.term ? { term: values.term } : {}),
-        ...(values.modality ? { modality: values.modality } : {}),
-      },
-      dispatch,
-    );
+    const updatedCourse: Course = {
+      ...course,
+      code: values.code,
+      title: values.title,
+      color: values.color,
+      icon: values.icon,
+      meetingTimes: values.meetingTimes ?? [],
+      ...(values.instructor ? { instructor: values.instructor } : {}),
+      ...(values.modality ? { modality: values.modality } : {}),
+    };
+    if (values.term) {
+      updatedCourse.term = values.term;
+    } else {
+      delete updatedCourse.term;
+    }
+
+    await updateCourse(user.uid, course, updatedCourse, dispatch, courseContacts);
   };
 
   const handleDeleteCourse = async () => {
