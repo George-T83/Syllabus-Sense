@@ -39,7 +39,7 @@ describe('detectExamCollisions', () => {
     const items = [
       makeItem('a', 'assignment', '2026-11-10'),
       makeItem('b', 'project', '2026-11-11'),
-      makeItem('c', 'lab', '2026-11-11'),
+      makeItem('c', 'assignment', '2026-11-11'),
     ];
     const alerts = detectExamCollisions(items);
     expect(alerts).toHaveLength(1);
