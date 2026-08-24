@@ -1,5 +1,4 @@
-import React from 'react';
-import { Skeleton, SkeletonCard, SkeletonText } from '@/components/ui/Skeleton';
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 
 export default function DashboardLoading() {
   return (
