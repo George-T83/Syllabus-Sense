@@ -22,6 +22,7 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
 import { SyllabusList } from '@/components/syllabus/SyllabusList';
 import { CourseAiSummaryCard } from '@/components/courses/CourseAiSummaryCard';
+import { AttendanceGauge } from '@/components/courses/AttendanceGauge';
 import { formatTimeLabel } from '@/lib/calendar/meetings';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateRateMyProfessorUrl } from '@/lib/export/rateMyProfessor';
@@ -601,6 +602,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         </Card>
 
         <CourseAiSummaryCard course={course} />
+
+        <AttendanceGauge
+          courseCode={course.code}
+          courseTitle={course.title}
+          maxAllowedAbsences={course.notes?.toLowerCase().includes('attendance') ? 3 : 4}
+        />
 
         <Card className="rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">

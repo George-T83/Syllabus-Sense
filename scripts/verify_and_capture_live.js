@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const http = require('http');
 const net = require('net');
 const crypto = require('crypto');
@@ -6,10 +7,10 @@ const path = require('path');
 
 http.get('http://127.0.0.1:9222/json/list', (res) => {
   let body = '';
-  res.on('data', chunk => body += chunk);
+  res.on('data', (chunk) => (body += chunk));
   res.on('end', async () => {
     const list = JSON.parse(body);
-    const page = list.find(p => p.type === 'page' && p.url.includes('localhost'));
+    const page = list.find((p) => p.type === 'page' && p.url.includes('localhost'));
     if (!page) {
       console.error('No localhost page found');
       return;
@@ -31,7 +32,7 @@ function connectWS(wsUrl) {
         `Connection: Upgrade`,
         `Sec-WebSocket-Key: ${key}`,
         `Sec-WebSocket-Version: 13`,
-        `\r\n`
+        `\r\n`,
       ].join('\r\n');
       socket.write(headers);
     });
@@ -143,7 +144,7 @@ async function runCapturePipeline(wsUrl) {
         });
         obs.observe(document.documentElement, { childList: true, subtree: true });
       })();
-    `
+    `,
   });
 
   const itemsToCapture = [
@@ -155,7 +156,7 @@ async function runCapturePipeline(wsUrl) {
         if (btn) btn.click();
         else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', metaKey: true, ctrlKey: true, bubbles: true }));
       `,
-      verifier: `!!document.querySelector('[role="dialog"]') || document.body.innerText.includes("Command Palette") || document.body.innerText.includes("Search tasks")`
+      verifier: `!!document.querySelector('[role="dialog"]') || document.body.innerText.includes("Command Palette") || document.body.innerText.includes("Search tasks")`,
     },
     {
       name: 'item-35-syllabus-chat-copilot',
@@ -164,7 +165,7 @@ async function runCapturePipeline(wsUrl) {
         const btn = document.querySelector('button[aria-label*="Copilot"]') || Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes("AI Copilot") || b.innerText.includes("AI Syllabus Chat"));
         if (btn) btn.click();
       `,
-      verifier: `document.body.innerText.includes("Syllabus Chat") || document.body.innerText.includes("Copilot")`
+      verifier: `document.body.innerText.includes("Syllabus Chat") || document.body.innerText.includes("Copilot")`,
     },
     {
       name: 'item-36-what-if-grade-simulator',
@@ -173,12 +174,12 @@ async function runCapturePipeline(wsUrl) {
         const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes("Grade Simulator") || b.innerText.includes("Calculate Grade"));
         if (btn) btn.click();
       `,
-      verifier: `document.body.innerText.includes("Grade Calculator") || document.body.innerText.includes("Grade Simulator")`
+      verifier: `document.body.innerText.includes("Grade Calculator") || document.body.innerText.includes("Grade Simulator")`,
     },
     {
       name: 'item-37-weekly-workload-radar',
       route: 'http://localhost:3000/dashboard?mock=true',
-      verifier: `document.body.innerText.includes("Workload") || document.body.innerText.includes("Weekly")`
+      verifier: `document.body.innerText.includes("Workload") || document.body.innerText.includes("Weekly")`,
     },
     {
       name: 'item-40-professor-email-drafter',
@@ -187,7 +188,7 @@ async function runCapturePipeline(wsUrl) {
         const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes("Draft Email"));
         if (btn) btn.click();
       `,
-      verifier: `document.body.innerText.includes("Draft Email") || document.body.innerText.includes("Professor Email")`
+      verifier: `document.body.innerText.includes("Draft Email") || document.body.innerText.includes("Professor Email")`,
     },
     {
       name: 'item-45-vcard-qr-generator',
@@ -196,7 +197,7 @@ async function runCapturePipeline(wsUrl) {
         const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes("Share Contact") || b.innerText.includes("vCard"));
         if (btn) btn.click();
       `,
-      verifier: `document.body.innerText.includes("vCard") || document.body.innerText.includes("QR Code")`
+      verifier: `document.body.innerText.includes("vCard") || document.body.innerText.includes("QR Code")`,
     },
     {
       name: 'item-46-syllabus-diff-modal',
@@ -205,7 +206,7 @@ async function runCapturePipeline(wsUrl) {
         const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes("Syllabus Diff") || b.innerText.includes("Compare"));
         if (btn) btn.click();
       `,
-      verifier: `document.body.innerText.includes("Diff") || document.body.innerText.includes("Syllabus Revisions")`
+      verifier: `document.body.innerText.includes("Diff") || document.body.innerText.includes("Syllabus Revisions")`,
     },
     {
       name: 'item-53-project-chunker-workload',
@@ -214,27 +215,29 @@ async function runCapturePipeline(wsUrl) {
         const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes("Divide Project") || b.innerText.includes("Bite Chunks"));
         if (btn) btn.click();
       `,
-      verifier: `document.body.innerText.includes("Bite-Sized Chunker") || document.body.innerText.includes("Academic Workload")`
+      verifier: `document.body.innerText.includes("Bite-Sized Chunker") || document.body.innerText.includes("Academic Workload")`,
     },
     {
       name: 'item-47-semester-gpa-goal-radial',
       route: 'http://localhost:3000/profile?mock=true',
-      verifier: `document.body.innerText.includes("GPA") || document.body.innerText.includes("Goal")`
+      verifier: `document.body.innerText.includes("GPA") || document.body.innerText.includes("Goal")`,
     },
     {
       name: 'item-48-attendance-policy-gauge',
-      route: 'http://localhost:3000/courses?mock=true',
-      verifier: `document.body.innerText.includes("Attendance") || document.body.innerText.includes("Absence")`
+      route: 'http://localhost:3000/courses/0e96611e-a144-432e-bddb-86120810b597?mock=true',
+      verifier: `document.body.innerText.includes("Attendance") || document.body.innerText.includes("Absence")`,
     },
     {
       name: 'item-49-late-penalty-advisor',
-      route: 'http://localhost:3000/tasks?mock=true',
-      verifier: `document.body.innerText.includes("Late Penalty") || document.body.innerText.includes("Advisor")`
-    }
+      route:
+        'http://localhost:3000/tasks/task-0e96611e-a144-432e-bddb-86120810b597-w4-e1?mock=true',
+      verifier: `document.body.innerText.includes("Late Penalty") || document.body.innerText.includes("Advisor")`,
+    },
   ];
 
   const docsDir = path.join(__dirname, '../docs/screenshots');
-  const artifactDir = 'C:\\Users\\georg\\.gemini\\antigravity\\brain\\dd89f5ff-ff76-48ee-a299-4f4111169b3b';
+  const artifactDir =
+    'C:\\Users\\georg\\.gemini\\antigravity\\brain\\dd89f5ff-ff76-48ee-a299-4f4111169b3b';
 
   fs.mkdirSync(docsDir, { recursive: true });
   fs.mkdirSync(artifactDir, { recursive: true });
@@ -257,7 +260,9 @@ async function runCapturePipeline(wsUrl) {
     }
 
     // Dismiss any Next.js dev error overlay or red toast before capturing
-    await evalScript(socket, `
+    await evalScript(
+      socket,
+      `
       // Close Next.js built-in error overlay (dev mode)
       try {
         const overlay = document.querySelector('nextjs-portal');
@@ -274,7 +279,8 @@ async function runCapturePipeline(wsUrl) {
       // Also hide shadow-dom error overlay if present
       const devOverlay = document.getElementById('__next-build-watcher');
       if (devOverlay) devOverlay.style.display = 'none';
-    `);
+    `,
+    );
     await new Promise((r) => setTimeout(r, 300));
 
     const verified = item.verifier ? await evalScript(socket, item.verifier) : true;

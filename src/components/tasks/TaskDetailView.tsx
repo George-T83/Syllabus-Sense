@@ -13,6 +13,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { clampProgress, TASK_STATUS_LABEL } from '@/lib/taskStatus';
+import { LatePenaltyAdvisor } from './LatePenaltyAdvisor';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { AssignmentType, Course, ScheduleItem } from '@/types/schedule';
 import { cn } from '@/lib/utils';
@@ -577,6 +578,17 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
           </dl>
 
           <GradeImpactPanel item={item} course={course} courseItems={courseItems} />
+
+          <div className="border-t border-border mt-4 pt-4 px-6">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Late Penalty Advisor
+            </h3>
+            <LatePenaltyAdvisor
+              courseCode={course?.code}
+              assignmentTitle={item.title}
+              defaultRawScore={95}
+            />
+          </div>
 
           {item.notes && (
             <dl className="p-6">

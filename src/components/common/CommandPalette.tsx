@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import { useAppState } from '@/context/AppStateContext';
 import { useTheme } from '@/context/ThemeProvider';
+import { usePlatformKey } from '@/hooks/usePlatformKey';
 
 export interface CommandPaletteProps {
   isOpen?: boolean;
@@ -42,6 +43,7 @@ export function CommandPalette({
   const { state } = useAppState();
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
+  const modKey = usePlatformKey();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -406,7 +408,7 @@ export function CommandPalette({
             aria-autocomplete="list"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command, course, task, or page (or ⌘P)..."
+            placeholder={`Type a command, course, task, or page (or ${modKey}+P)...`}
             className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {query ? (

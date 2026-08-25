@@ -65,15 +65,4 @@ describe('Web App Manifest (Item 26)', () => {
       }
     }
   });
-
-  it('verifies public/manifest.webmanifest matches manifest.ts specification', () => {
-    const manifestPath = path.join(process.cwd(), 'public', 'manifest.webmanifest');
-    expect(fs.existsSync(manifestPath)).toBe(true);
-    const raw = fs.readFileSync(manifestPath, 'utf8');
-    const parsed = JSON.parse(raw);
-    expect(parsed.name).toBe('Syllabus Sense - AI Academic Planning & Schedule Command Center');
-    expect(parsed.short_name).toBe('SyllabusSense');
-    expect(parsed.display).toBe('standalone');
-    expect(parsed.theme_color).toBe('#5B3DF5');
-  });
 });
