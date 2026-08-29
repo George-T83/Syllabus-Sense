@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { Card } from '@/components/ui/Card';
 
 export interface AbsenceRecord {
   id: string;
@@ -106,14 +107,14 @@ export function AttendanceGauge({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/30">
               {courseCode}
             </span>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               Attendance & Absence Allowance Gauge
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             {courseTitle} — Track unexcused absences against syllabus policy thresholds.
           </p>
         </div>
@@ -121,9 +122,15 @@ export function AttendanceGauge({
         <button
           onClick={() => setIsLoggingModalOpen(true)}
           data-testid="log-absence-open-btn"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer min-h-[44px]"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:opacity-90 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-all cursor-pointer min-h-[44px]"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
           <span>Log Absence</span>
@@ -133,7 +140,7 @@ export function AttendanceGauge({
       {/* Main Gauge & Policy Status Card */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left Side: Circular Gauge (5 cols) */}
-        <div className="md:col-span-5 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 flex flex-col items-center justify-center space-y-4 shadow-xl backdrop-blur-xl">
+        <Card className="md:col-span-5 p-6 flex flex-col items-center justify-center space-y-4">
           <div className="relative flex items-center justify-center">
             <svg
               className="w-44 h-44 transform -rotate-90"
@@ -149,7 +156,7 @@ export function AttendanceGauge({
                 cx="70"
                 cy="70"
                 r={radius}
-                className="stroke-slate-800"
+                className="stroke-slate-200 dark:stroke-slate-800"
                 strokeWidth="10"
                 fill="transparent"
               />
@@ -160,10 +167,10 @@ export function AttendanceGauge({
                 r={radius}
                 className={`transition-all duration-700 ease-out ${
                   status === 'critical'
-                    ? 'stroke-rose-500'
+                    ? 'stroke-load-critical'
                     : status === 'warning'
-                    ? 'stroke-amber-400'
-                    : 'stroke-emerald-400'
+                      ? 'stroke-load-medium'
+                      : 'stroke-load-low'
                 }`}
                 strokeWidth="10"
                 strokeDasharray={circumference}
@@ -175,11 +182,13 @@ export function AttendanceGauge({
 
             {/* Central Badge */}
             <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-3xl font-extrabold text-white tracking-tight">
+              <span className="text-3xl font-extrabold text-foreground tracking-tight">
                 {unexcusedCount}
-                <span className="text-base font-medium text-slate-500">/{maxAllowedAbsences}</span>
+                <span className="text-base font-medium text-muted-foreground">
+                  /{maxAllowedAbsences}
+                </span>
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Unexcused
               </span>
             </div>
@@ -190,43 +199,56 @@ export function AttendanceGauge({
               data-testid="absence-status-badge"
               className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
                 status === 'safe'
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  ? 'bg-load-low/10 text-load-low border-load-low/30'
                   : status === 'warning'
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                    ? 'bg-load-medium/10 text-load-medium border-load-medium/30'
+                    : 'bg-load-critical/10 text-load-critical border-load-critical/30'
               }`}
             >
               {status === 'safe'
                 ? `${remainingAllowed} of ${maxAllowedAbsences} Absences Remaining`
                 : status === 'warning'
-                ? 'Final Warning: 1 Absence Left'
-                : excessAbsences > 0
-                ? `Penalty Active: +${excessAbsences} Over Limit`
-                : 'Limit Reached: 0 Remaining'}
+                  ? 'Final Warning: 1 Absence Left'
+                  : excessAbsences > 0
+                    ? `Penalty Active: +${excessAbsences} Over Limit`
+                    : 'Limit Reached: 0 Remaining'}
             </span>
-            <p className="text-xs text-slate-400">
-              {excusedCount} excused {excusedCount === 1 ? 'absence' : 'absences'} logged (no penalty)
+            <p className="text-xs text-muted-foreground">
+              {excusedCount} excused {excusedCount === 1 ? 'absence' : 'absences'} logged (no
+              penalty)
             </p>
           </div>
-        </div>
+        </Card>
 
         {/* Right Side: Policy Details & Advice (7 cols) */}
-        <div className="md:col-span-7 rounded-3xl bg-slate-900/80 border border-slate-800 p-6 space-y-4 shadow-xl backdrop-blur-xl flex flex-col justify-between">
+        <Card className="md:col-span-7 p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-indigo-300 font-semibold text-sm">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
               </svg>
               <span>Syllabus Attendance Policy Rules</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-300 space-y-2">
-              <p className="leading-relaxed font-mono text-slate-200">
-                &ldquo;{penaltyDescription}&rdquo;
-              </p>
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Allowed Unexcused: <strong>{maxAllowedAbsences}</strong></span>
-                <span>Current Unexcused: <strong className="text-white">{unexcusedCount}</strong></span>
+            <div className="p-4 rounded-2xl bg-muted/50 border border-border text-xs text-foreground space-y-2">
+              <p className="leading-relaxed font-mono">&ldquo;{penaltyDescription}&rdquo;</p>
+              <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>
+                  Allowed Unexcused: <strong>{maxAllowedAbsences}</strong>
+                </span>
+                <span>
+                  Current Unexcused: <strong className="text-foreground">{unexcusedCount}</strong>
+                </span>
               </div>
             </div>
           </div>
@@ -234,15 +256,25 @@ export function AttendanceGauge({
           <div
             className={`p-4 rounded-2xl border text-xs space-y-1 ${
               status === 'safe'
-                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+                ? 'bg-load-low/10 border-load-low/30 text-load-low'
                 : status === 'warning'
-                ? 'bg-amber-950/20 border-amber-500/30 text-amber-300'
-                : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
+                  ? 'bg-load-medium/10 border-load-medium/30 text-load-medium'
+                  : 'bg-load-critical/10 border-load-critical/30 text-load-critical'
             }`}
           >
             <div className="font-bold flex items-center gap-1.5">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span>Attendance Advisory</span>
             </div>
@@ -250,29 +282,29 @@ export function AttendanceGauge({
               {status === 'safe'
                 ? `You are in good standing. You can miss ${remainingAllowed} more classes without any academic penalty.`
                 : status === 'warning'
-                ? 'Caution: You have used 2 absences. Missing one more class will trigger automatic grade deductions.'
-                : 'Warning: You have reached or exceeded the allowed absences. Contact your professor or submit medical documentation.'}
+                  ? 'Caution: You have used 2 absences. Missing one more class will trigger automatic grade deductions.'
+                  : 'Warning: You have reached or exceeded the allowed absences. Contact your professor or submit medical documentation.'}
             </p>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Logged Absences Table */}
-      <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 space-y-4 shadow-xl backdrop-blur-xl">
+      <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
             Absence History ({absences.length})
           </h3>
         </div>
 
         {absences.length === 0 ? (
-          <div className="p-8 text-center rounded-2xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400">
+          <div className="p-8 text-center rounded-2xl bg-muted/30 border border-border text-xs text-muted-foreground">
             No absences recorded. Perfect attendance!
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/40">
+          <div className="overflow-x-auto rounded-xl border border-border bg-muted/20">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-800">
+              <thead className="bg-muted/80 text-muted-foreground font-semibold border-b border-border">
                 <tr>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Classification</th>
@@ -281,31 +313,47 @@ export function AttendanceGauge({
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-border/60">
                 {absences.map((rec) => (
-                  <tr key={rec.id} data-testid={`absence-row-${rec.id}`} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium text-white">{rec.date}</td>
+                  <tr
+                    key={rec.id}
+                    data-testid={`absence-row-${rec.id}`}
+                    className="hover:bg-muted/40 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-mono font-medium text-foreground">{rec.date}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
                           rec.type === 'excused'
-                            ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
-                            : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                            ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30'
+                            : 'bg-load-critical/10 text-load-critical border-load-critical/30'
                         }`}
                       >
                         {rec.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{rec.reason || '—'}</td>
-                    <td className="px-4 py-3 text-slate-400 text-[11px]">{rec.note || '—'}</td>
+                    <td className="px-4 py-3 text-foreground/80">{rec.reason || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-[11px]">
+                      {rec.note || '—'}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => handleDeleteAbsence(rec.id)}
                         aria-label={`Delete absence on ${rec.date}`}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                        className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-muted transition-colors cursor-pointer"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     </td>
@@ -315,7 +363,7 @@ export function AttendanceGauge({
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Log Absence Modal */}
       {isLoggingModalOpen && (
@@ -323,19 +371,25 @@ export function AttendanceGauge({
           role="dialog"
           aria-modal="true"
           aria-labelledby="log-absence-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
         >
-          <div className="relative w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 id="log-absence-title" className="text-base font-bold text-white">
+          <Card className="relative w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 id="log-absence-title" className="text-base font-bold text-foreground">
                 Log Course Absence
               </h3>
               <button
                 onClick={() => setIsLoggingModalOpen(false)}
                 aria-label="Close log absence dialog"
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -343,7 +397,7 @@ export function AttendanceGauge({
 
             <form onSubmit={handleAddAbsence} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Absence Date
                 </label>
                 <input
@@ -352,12 +406,12 @@ export function AttendanceGauge({
                   onChange={(e) => setNewDate(e.target.value)}
                   required
                   aria-label="Absence Date"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Classification
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -366,8 +420,8 @@ export function AttendanceGauge({
                     onClick={() => setNewType('unexcused')}
                     className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[40px] ${
                       newType === 'unexcused'
-                        ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
-                        : 'bg-slate-950 text-slate-400 border border-slate-800'
+                        ? 'bg-load-critical text-white shadow-md shadow-load-critical/20'
+                        : 'bg-background text-muted-foreground border border-border'
                     }`}
                   >
                     Unexcused
@@ -378,7 +432,7 @@ export function AttendanceGauge({
                     className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[40px] ${
                       newType === 'excused'
                         ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                        : 'bg-slate-950 text-slate-400 border border-slate-800'
+                        : 'bg-background text-muted-foreground border border-border'
                     }`}
                   >
                     Excused
@@ -387,7 +441,7 @@ export function AttendanceGauge({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Reason / Excuse
                 </label>
                 <input
@@ -396,12 +450,12 @@ export function AttendanceGauge({
                   value={newReason}
                   onChange={(e) => setNewReason(e.target.value)}
                   aria-label="Reason or excuse"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Private Notes
                 </label>
                 <textarea
@@ -410,7 +464,7 @@ export function AttendanceGauge({
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   aria-label="Private notes"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
               </div>
 
@@ -418,20 +472,20 @@ export function AttendanceGauge({
                 <button
                   type="button"
                   onClick={() => setIsLoggingModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 cursor-pointer min-h-[44px]"
+                  className="px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted cursor-pointer min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   data-testid="submit-absence-btn"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/20 cursor-pointer min-h-[44px]"
+                  className="px-5 py-2 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-90 rounded-xl shadow-lg shadow-primary/20 cursor-pointer min-h-[44px]"
                 >
                   Save Absence
                 </button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>
