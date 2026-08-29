@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '@/context/AppStateContext';
+import { Card } from '@/components/ui/Card';
 import {
   GradeCategory,
   calculateCurrentWeightedGrade,
@@ -81,10 +82,17 @@ export function GradeCalculatorModal({
   }, [state.courses, selectedCourseId, currentGrade.currentPercentage]);
 
   // Category handlers
-  const handleUpdateCategory = (index: number, field: keyof GradeCategory, value: string | number) => {
+  const handleUpdateCategory = (
+    index: number,
+    field: keyof GradeCategory,
+    value: string | number,
+  ) => {
     setCategories((prev) => {
       const next = [...prev];
-      next[index] = { ...next[index], [field]: typeof value === 'string' ? Number(value) || 0 : value };
+      next[index] = {
+        ...next[index],
+        [field]: typeof value === 'string' ? Number(value) || 0 : value,
+      };
       return next;
     });
   };
@@ -123,21 +131,32 @@ export function GradeCalculatorModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl transition-all my-8">
-        
+      <Card className="relative w-full max-w-2xl overflow-hidden transition-all my-8">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/40 px-5 py-4 bg-muted/20">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
               </svg>
             </div>
             <div>
               <h2 className="text-base font-bold tracking-tight text-foreground">
                 What-If Grade Simulator & GPA Solver
               </h2>
-              <p className="text-xs text-muted-foreground">Model category weights & calculate required final exam scores</p>
+              <p className="text-xs text-muted-foreground">
+                Model category weights & calculate required final exam scores
+              </p>
             </div>
           </div>
 
@@ -146,7 +165,13 @@ export function GradeCalculatorModal({
             aria-label="Close grade calculator"
             className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -178,7 +203,9 @@ export function GradeCalculatorModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <label htmlFor="course-select" className="text-xs font-medium text-muted-foreground">Course:</label>
+            <label htmlFor="course-select" className="text-xs font-medium text-muted-foreground">
+              Course:
+            </label>
             <select
               id="course-select"
               aria-label="Select course"
@@ -201,7 +228,6 @@ export function GradeCalculatorModal({
             <>
               {/* Current Standing & Target Result Overview */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                
                 {/* Current Standing Card */}
                 <div className="rounded-xl border border-border/50 bg-card p-4 shadow-sm flex flex-col justify-between">
                   <div className="flex items-center justify-between">
@@ -223,28 +249,32 @@ export function GradeCalculatorModal({
                 </div>
 
                 {/* Final Exam Target Required Card */}
-                <div className={`rounded-xl border p-4 shadow-sm flex flex-col justify-between ${
-                  finalExamTarget.status === 'already_achieved'
-                    ? 'border-emerald-500/40 bg-emerald-500/10'
-                    : finalExamTarget.status === 'impossible'
-                    ? 'border-destructive/40 bg-destructive/10'
-                    : finalExamTarget.status === 'challenging'
-                    ? 'border-amber-500/40 bg-amber-500/10'
-                    : 'border-primary/40 bg-primary/10'
-                }`}>
+                <div
+                  className={`rounded-xl border p-4 shadow-sm flex flex-col justify-between ${
+                    finalExamTarget.status === 'already_achieved'
+                      ? 'border-load-low/40 bg-load-low/10'
+                      : finalExamTarget.status === 'impossible'
+                        ? 'border-destructive/40 bg-destructive/10'
+                        : finalExamTarget.status === 'challenging'
+                          ? 'border-load-medium/40 bg-load-medium/10'
+                          : 'border-primary/40 bg-primary/10'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Final Exam Target Score
                     </span>
-                    <span className={`rounded-md px-2 py-0.5 text-xs font-bold uppercase ${
-                      finalExamTarget.status === 'already_achieved'
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : finalExamTarget.status === 'impossible'
-                        ? 'bg-destructive/20 text-destructive'
-                        : finalExamTarget.status === 'challenging'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-primary/20 text-primary'
-                    }`}>
+                    <span
+                      className={`rounded-md px-2 py-0.5 text-xs font-bold uppercase ${
+                        finalExamTarget.status === 'already_achieved'
+                          ? 'bg-load-low/20 text-load-low'
+                          : finalExamTarget.status === 'impossible'
+                            ? 'bg-destructive/20 text-destructive'
+                            : finalExamTarget.status === 'challenging'
+                              ? 'bg-load-medium/20 text-load-medium'
+                              : 'bg-primary/20 text-primary'
+                      }`}
+                    >
                       {finalExamTarget.status.replace('_', ' ')}
                     </span>
                   </div>
@@ -261,7 +291,9 @@ export function GradeCalculatorModal({
 
               {/* Target Grade Selector Pills */}
               <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">
-                <span className="text-xs font-semibold text-foreground">Target Letter Grade Goal:</span>
+                <span className="text-xs font-semibold text-foreground">
+                  Target Letter Grade Goal:
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {STANDARD_GRADE_SCALE.slice(0, 8).map((grade) => (
                     <button
@@ -277,7 +309,9 @@ export function GradeCalculatorModal({
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground pt-1">{finalExamTarget.statusMessage}</p>
+                <p className="text-xs text-muted-foreground pt-1">
+                  {finalExamTarget.statusMessage}
+                </p>
               </div>
 
               {/* Assessment Categories Breakdown Table */}
@@ -287,7 +321,9 @@ export function GradeCalculatorModal({
                     Grading Categories & Weights
                   </h3>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold ${totalWeight === 100 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    <span
+                      className={`text-xs font-semibold ${totalWeight === 100 ? 'text-load-low' : 'text-load-medium'}`}
+                    >
                       Total Weight: {totalWeight}% {totalWeight !== 100 && '(Adjust to 100%)'}
                     </span>
                     <button
@@ -322,7 +358,12 @@ export function GradeCalculatorModal({
 
                       <div className="flex items-center gap-4 w-full sm:w-auto">
                         <div className="flex items-center gap-1.5">
-                          <label htmlFor={`weight-${idx}`} className="text-xs text-muted-foreground">Weight:</label>
+                          <label
+                            htmlFor={`weight-${idx}`}
+                            className="text-xs text-muted-foreground"
+                          >
+                            Weight:
+                          </label>
                           <input
                             id={`weight-${idx}`}
                             type="number"
@@ -336,7 +377,9 @@ export function GradeCalculatorModal({
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <label htmlFor={`score-${idx}`} className="text-xs text-muted-foreground">Score:</label>
+                          <label htmlFor={`score-${idx}`} className="text-xs text-muted-foreground">
+                            Score:
+                          </label>
                           <input
                             id={`score-${idx}`}
                             type="number"
@@ -354,8 +397,18 @@ export function GradeCalculatorModal({
                           aria-label={`Delete ${cat.name}`}
                           className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors ml-auto"
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -368,12 +421,16 @@ export function GradeCalculatorModal({
                       <span className="rounded-md bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-bold">
                         FINAL
                       </span>
-                      <span className="text-xs font-bold text-foreground">Final Exam / Capstone</span>
+                      <span className="text-xs font-bold text-foreground">
+                        Final Exam / Capstone
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5">
-                        <label htmlFor="final-weight" className="text-xs text-muted-foreground">Weight:</label>
+                        <label htmlFor="final-weight" className="text-xs text-muted-foreground">
+                          Weight:
+                        </label>
                         <input
                           id="final-weight"
                           type="number"
@@ -388,7 +445,9 @@ export function GradeCalculatorModal({
 
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-semibold text-primary">Required:</span>
-                        <span className="text-xs font-extrabold text-primary">{finalExamTarget.requiredFinalScore}%</span>
+                        <span className="text-xs font-extrabold text-primary">
+                          {finalExamTarget.requiredFinalScore}%
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -414,7 +473,9 @@ export function GradeCalculatorModal({
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-muted-foreground">Quality Points</span>
-                  <p className="text-sm font-bold text-foreground">{semesterGpaResult.qualityPoints.toFixed(1)}</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {semesterGpaResult.qualityPoints.toFixed(1)}
+                  </p>
                 </div>
               </div>
 
@@ -433,17 +494,23 @@ export function GradeCalculatorModal({
                     <div
                       key={course.id}
                       className={`flex items-center justify-between rounded-xl border p-3 ${
-                        isCurrent ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/40 bg-card'
+                        isCurrent
+                          ? 'border-primary bg-primary/5 shadow-sm'
+                          : 'border-border/40 bg-card'
                       }`}
                     >
                       <div>
                         <span className="text-sm font-bold text-foreground">{course.code}</span>
-                        <p className="text-xs text-muted-foreground">{course.title} • {credits} cr</p>
+                        <p className="text-xs text-muted-foreground">
+                          {course.title} • {credits} cr
+                        </p>
                       </div>
                       <div className="flex items-center gap-3 text-right">
                         <div>
                           <span className="text-sm font-extrabold text-foreground">{percent}%</span>
-                          <p className="text-xs font-semibold text-primary">{letter} ({gpaPts} pts)</p>
+                          <p className="text-xs font-semibold text-primary">
+                            {letter} ({gpaPts} pts)
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -469,7 +536,7 @@ export function GradeCalculatorModal({
             Done
           </button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
