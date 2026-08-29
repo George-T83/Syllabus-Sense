@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Card } from '@/components/ui/Card';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import { cn } from '@/lib/utils';
 import type { Contact } from '@/types/schedule';
 import type { ScheduleItem } from '@/types/schedule';
@@ -75,7 +77,8 @@ export function ProfessorEmailDrafterModal({
   const [activeTemplate, setActiveTemplate] = useState<TemplateKey>('extension');
   const [copied, setCopied] = useState(false);
 
-  const addressAs = contact.howToAddress || `Professor ${(contact.fullName || '').split(' ').slice(-1)[0]}`;
+  const addressAs =
+    contact.howToAddress || `Professor ${(contact.fullName || '').split(' ').slice(-1)[0]}`;
   const assignmentName = scheduleItem?.title || '[Assignment Name]';
   const ctx: TemplateContext = { addressAs, courseCode, assignmentName };
 
@@ -83,6 +86,8 @@ export function ProfessorEmailDrafterModal({
   const subject = template.subject(ctx);
   const body = template.body(ctx);
   const fullEmail = `Subject: ${subject}\n\n${body}`;
+
+  const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
 
   const handleCopy = async () => {
     try {
@@ -96,99 +101,129 @@ export function ProfessorEmailDrafterModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="email-drafter-title"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl"
+        ref={dialogRef}
+        tabIndex={-1}
+        className="w-full max-w-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div>
-            <h2 id="email-drafter-title" className="text-base font-semibold text-foreground">
-              Draft Email to {contact.fullName}
-            </h2>
-            {courseCode && (
-              <p className="text-xs text-muted-foreground">{courseCode}</p>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close email drafter"
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Template tabs */}
-        <div className="flex gap-1 overflow-x-auto border-b border-border px-4 pt-3">
-          {(Object.entries(TEMPLATES) as [TemplateKey, Template][]).map(([key, tmpl]) => (
+        <Card>
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div>
+              <h2 id="email-drafter-title" className="text-base font-semibold text-foreground">
+                Draft Email to {contact.fullName}
+              </h2>
+              {courseCode && <p className="text-xs text-muted-foreground">{courseCode}</p>}
+            </div>
             <button
-              key={key}
-              onClick={() => setActiveTemplate(key)}
+              onClick={onClose}
+              aria-label="Close email drafter"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Template tabs */}
+          <div className="flex gap-1 overflow-x-auto border-b border-border px-4 pt-3">
+            {(Object.entries(TEMPLATES) as [TemplateKey, Template][]).map(([key, tmpl]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTemplate(key)}
+                className={cn(
+                  'shrink-0 rounded-t-lg border-b-2 px-3 pb-2.5 pt-1.5 text-xs font-medium transition-colors',
+                  activeTemplate === key
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {tmpl.icon} {tmpl.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Email preview */}
+          <div className="p-5 space-y-3">
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Subject
+              </span>
+              <p className="mt-0.5 text-sm font-medium text-foreground">{subject}</p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Body
+              </span>
+              <pre className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-foreground font-sans">
+                {body}
+              </pre>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between border-t border-border px-5 py-3">
+            <p className="text-[10px] text-muted-foreground">
+              Replace <span className="font-mono">[bracketed placeholders]</span> before sending.
+            </p>
+            <button
+              onClick={handleCopy}
               className={cn(
-                'shrink-0 rounded-t-lg border-b-2 px-3 pb-2.5 pt-1.5 text-xs font-medium transition-colors',
-                activeTemplate === key
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
+                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                copied
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-primary text-primary-foreground hover:opacity-90',
               )}
             >
-              {tmpl.icon} {tmpl.label}
+              {copied ? (
+                <>
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Copy to Clipboard
+                </>
+              )}
             </button>
-          ))}
-        </div>
-
-        {/* Email preview */}
-        <div className="p-5 space-y-3">
-          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Subject</span>
-            <p className="mt-0.5 text-sm font-medium text-foreground">{subject}</p>
           </div>
-
-          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Body</span>
-            <pre className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-foreground font-sans">{body}</pre>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center justify-between border-t border-border px-5 py-3">
-          <p className="text-[10px] text-muted-foreground">
-            Replace <span className="font-mono">[bracketed placeholders]</span> before sending.
-          </p>
-          <button
-            onClick={handleCopy}
-            className={cn(
-              'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
-              copied
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-primary text-primary-foreground hover:opacity-90',
-            )}
-          >
-            {copied ? (
-              <>
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Copied!
-              </>
-            ) : (
-              <>
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy to Clipboard
-              </>
-            )}
-          </button>
-        </div>
+        </Card>
       </div>
     </div>
   );
