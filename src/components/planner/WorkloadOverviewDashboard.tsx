@@ -207,7 +207,7 @@ export function WorkloadOverviewDashboard({
                   No tasks scheduled for this day.
                 </p>
               ) : (
-                <ul className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                <ul className="space-y-2.5 max-h-64 overflow-y-auto overflow-x-hidden pr-1">
                   {activeDay.items.map((item) => (
                     <li
                       key={item.id}
@@ -242,11 +242,17 @@ export function WorkloadOverviewDashboard({
                         </span>
                       </div>
 
-                      {/* Manual Date Shift Control with Date Picker & Quick-Shift Controls */}
+                      {/* Manual Date Shift Control with Date Picker & Quick-Shift Controls.
+                       * Stacked (label above controls, controls free to wrap) rather
+                       * than forced onto one line - a native <input type="date"> has a
+                       * browser-enforced minimum width that doesn't shrink, so packing
+                       * it alongside the quick-shift buttons on a single row overflowed
+                       * this card's narrow column and forced a second, horizontal
+                       * scrollbar on the already vertically-scrolling list. */}
                       {!item.completed && (
-                        <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] text-muted-foreground pt-1.5 border-t border-border/30">
-                          <span className="shrink-0">Move to another day:</span>
-                          <div className="flex items-center gap-1">
+                        <div className="flex flex-col gap-1.5 border-t border-border/30 pt-1.5 text-[10px] text-muted-foreground">
+                          <span>Move to another day:</span>
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <div className="flex items-center gap-0.5">
                               <button
                                 type="button"
@@ -280,7 +286,7 @@ export function WorkloadOverviewDashboard({
                               aria-label={`Shift date for ${item.title}`}
                               value={activeDay.dateStr}
                               onChange={(e) => handleShiftTaskDate(item.id, e.target.value)}
-                              className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="min-w-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </div>
                         </div>
