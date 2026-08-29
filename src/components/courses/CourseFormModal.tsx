@@ -234,10 +234,11 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                     <button
                       key={preset.value}
                       type="button"
-                      aria-label={preset.value}
+                      aria-label={`Select ${preset.label ?? preset.value} color`}
+                      aria-pressed={values.color === preset.value}
                       onClick={() => setValues((s) => ({ ...s, color: preset.value }))}
                       className={cn(
-                        'h-7 w-7 rounded-full transition-transform',
+                        'h-7 w-7 rounded-full transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                         preset.value,
                         values.color === preset.value
                           ? 'ring-2 ring-offset-2 ring-primary ring-offset-card scale-110'
@@ -346,57 +347,73 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {meetingTimes.map((meeting, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2"
-                      >
-                        <select
-                          aria-label={`Meeting ${index + 1} day of week`}
-                          value={meeting.dayOfWeek}
-                          onChange={(e) =>
-                            updateMeetingTime(index, { dayOfWeek: Number(e.target.value) })
-                          }
-                          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          {WEEKDAY_OPTIONS.map((d) => (
-                            <option key={d.value} value={d.value}>
-                              {d.label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          aria-label={`Meeting ${index + 1} start time`}
-                          type="time"
-                          value={meeting.startTime}
-                          onChange={(e) => updateMeetingTime(index, { startTime: e.target.value })}
-                          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                        <span className="text-xs text-muted-foreground">to</span>
-                        <input
-                          aria-label={`Meeting ${index + 1} end time`}
-                          type="time"
-                          value={meeting.endTime}
-                          onChange={(e) => updateMeetingTime(index, { endTime: e.target.value })}
-                          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                        <input
-                          aria-label={`Meeting ${index + 1} location`}
-                          value={meeting.location ?? ''}
-                          onChange={(e) => updateMeetingTime(index, { location: e.target.value })}
-                          placeholder="Location (optional)"
-                          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeMeetingTime(index)}
-                          aria-label={`Remove meeting ${index + 1}`}
-                          className="rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                    {meetingTimes.map((meeting, index) => {
+                      const timeInvalid =
+                        !!meeting.startTime &&
+                        !!meeting.endTime &&
+                        meeting.endTime <= meeting.startTime;
+                      return (
+                        <div key={index} className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2">
+                            <select
+                              aria-label={`Meeting ${index + 1} day of week`}
+                              value={meeting.dayOfWeek}
+                              onChange={(e) =>
+                                updateMeetingTime(index, { dayOfWeek: Number(e.target.value) })
+                              }
+                              className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              {WEEKDAY_OPTIONS.map((d) => (
+                                <option key={d.value} value={d.value}>
+                                  {d.label}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              aria-label={`Meeting ${index + 1} start time`}
+                              type="time"
+                              value={meeting.startTime}
+                              onChange={(e) => updateMeetingTime(index, { startTime: e.target.value })}
+                              className={cn(
+                                'rounded-md border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+                                timeInvalid ? 'border-destructive' : 'border-border',
+                              )}
+                            />
+                            <span className="text-xs text-muted-foreground">to</span>
+                            <input
+                              aria-label={`Meeting ${index + 1} end time`}
+                              type="time"
+                              value={meeting.endTime}
+                              onChange={(e) => updateMeetingTime(index, { endTime: e.target.value })}
+                              className={cn(
+                                'rounded-md border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+                                timeInvalid ? 'border-destructive' : 'border-border',
+                              )}
+                            />
+                            <input
+                              aria-label={`Meeting ${index + 1} location`}
+                              value={meeting.location ?? ''}
+                              onChange={(e) => updateMeetingTime(index, { location: e.target.value })}
+                              placeholder="Location (optional)"
+                              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeMeetingTime(index)}
+                              aria-label={`Remove meeting ${index + 1}`}
+                              className="rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          {timeInvalid && (
+                            <p className="text-xs text-destructive" role="alert">
+                              End time must be after start time.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
                 {errors.meetingTimes && (
@@ -414,7 +431,12 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
               </button>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={
+                  submitting ||
+                  meetingTimes.some(
+                    (m) => !!m.startTime && !!m.endTime && m.endTime <= m.startTime,
+                  )
+                }
                 className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : initialCourse ? 'Save Changes' : 'Add Course'}

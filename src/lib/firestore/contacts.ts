@@ -67,6 +67,45 @@ export async function updateContact(
   }
 }
 
+/**
+ * Cascades a course term change to all contacts associated with that course,
+ * updating local state optimistically and persisting via an atomic Firestore writeBatch.
+ */
+export async function updateCourseContactsTerm(
+  userId: string,
+  courseId: string,
+  newTerm: string | undefined,
+  contacts: Contact[],
+  dispatch: React.Dispatch<AppAction>,
+): Promise<void> {
+  const affected = contacts.filter((c) => c.courseId === courseId);
+  if (affected.length === 0) return;
+
+  const previousContacts = [...affected];
+  const updatedContacts = affected.map((c) => {
+    const updated = { ...c };
+    if (newTerm) {
+      updated.term = newTerm;
+    } else {
+      delete updated.term;
+    }
+    return updated;
+  });
+
+  updatedContacts.forEach((c) => dispatch({ type: 'UPDATE_CONTACT', payload: c }));
+  try {
+    const database = requireDb();
+    const batch = writeBatch(database);
+    updatedContacts.forEach((c) => {
+      batch.set(doc(database, 'users', userId, 'contacts', c.id), c);
+    });
+    await batch.commit();
+  } catch (err) {
+    previousContacts.forEach((c) => dispatch({ type: 'UPDATE_CONTACT', payload: c }));
+    throw err;
+  }
+}
+
 export async function deleteContact(
   userId: string,
   contact: Contact,

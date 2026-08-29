@@ -14,6 +14,10 @@ import type { CourseFormValues } from '@/lib/validation/course';
 import { courseSwatch, courseWash } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 
+import { useEffect } from 'react';
+import { GradeCalculatorModal } from '@/components/courses/GradeCalculatorModal';
+import { SyllabusDiffModal } from '@/components/syllabus/SyllabusDiffModal';
+
 type SortMode = 'code' | 'title' | 'term';
 
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -30,19 +34,24 @@ export function CoursesListView() {
   const { courses, scheduleItems } = state;
 
   const [search, setSearch] = useState('');
-  // Defaults to the active term (same as the Dashboard/navbar), not "All
-  // Terms" - most visits are "what do I have this term," and narrowing by
-  // default reads better day to day. CO-2's original problem wasn't the
-  // narrowed default itself, it was that older courses vanished with zero
-  // indication a filter was hiding them. Solved instead with an always-on
-  // filter strip (below) that names the active term and surfaces exactly
-  // how many courses are hidden, one click from "All Terms." `null` means
-  // "no explicit choice yet" - follow the app-wide active term; setting the
-  // select to any concrete value (including 'all') overrides that.
   const [termFilter, setTermFilter] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('code');
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.search.includes('simulator=true') || window.location.search.includes('grade=true')) {
+        setSimulatorOpen(true);
+      }
+      if (window.location.search.includes('diff=true')) {
+        setDiffOpen(true);
+      }
+    }
+  }, []);
+
 
   const terms = useMemo(
     () => Array.from(new Set(courses.map((c) => c.term).filter(Boolean))) as string[],
@@ -338,6 +347,8 @@ export function CoursesListView() {
         onSubmit={handleAddCourse}
       />
       <SyllabusAutofillModal open={autofillOpen} onClose={() => setAutofillOpen(false)} />
+      <GradeCalculatorModal isOpen={simulatorOpen} onClose={() => setSimulatorOpen(false)} />
+      <SyllabusDiffModal isOpen={diffOpen} onClose={() => setDiffOpen(false)} originalSyllabusText="" revisedSyllabusText="" />
     </>
   );
 }

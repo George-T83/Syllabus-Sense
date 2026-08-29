@@ -1,4 +1,4 @@
-import type { AssignmentType, Priority } from '@/types/schedule';
+import type { AssignmentType, Priority, WorkloadLevel } from '@/types/schedule';
 
 /**
  * #49 Workload formula matrix.
@@ -35,6 +35,30 @@ export const DEFAULT_ESTIMATED_HOURS: Record<AssignmentType, number> = {
   reading: 1.5,
   other: 2,
 };
+
+/** Safe fallback weight when an assignment type is missing or unrecognized. */
+export const DEFAULT_ASSIGNMENT_TYPE_WEIGHT = 1.0;
+
+/** Safe fallback hours when an assignment type estimate is missing or unrecognized. */
+export const DEFAULT_FALLBACK_HOURS = 2;
+
+/**
+ * Returns the intrinsic cognitive weight for an assignment type, falling back safely
+ * to 1.0 for missing, unrecognized, or custom types to prevent NaN propagation.
+ */
+export function getAssignmentTypeWeight(type?: AssignmentType | string): number {
+  if (!type) return DEFAULT_ASSIGNMENT_TYPE_WEIGHT;
+  return ASSIGNMENT_TYPE_WEIGHT[type as AssignmentType] ?? DEFAULT_ASSIGNMENT_TYPE_WEIGHT;
+}
+
+/**
+ * Returns the fallback estimated hours for an assignment type, falling back safely
+ * to DEFAULT_FALLBACK_HOURS for unrecognized types.
+ */
+export function getDefaultEstimatedHours(type?: AssignmentType | string): number {
+  if (!type) return DEFAULT_FALLBACK_HOURS;
+  return DEFAULT_ESTIMATED_HOURS[type as AssignmentType] ?? DEFAULT_FALLBACK_HOURS;
+}
 
 /**
  * #52 Stress-factor coefficients derived from onboarding poll responses.
@@ -88,12 +112,41 @@ export const WORKLOAD_LEVEL_THRESHOLDS = {
 } as const;
 
 /** Human-readable labels for each WorkloadLevel, for display purposes only. */
-export const WORKLOAD_LEVEL_LABELS = {
+export const WORKLOAD_LEVEL_LABELS: Record<WorkloadLevel, string> = {
   low: 'Low',
   medium: 'Medium',
   high: 'High',
   critical: 'Extreme',
-} as const;
+};
+
+/** Severity-oriented labels for each WorkloadLevel (using 'Critical' instead of 'Extreme'). */
+export const WORKLOAD_LEVEL_SEVERITY_LABELS: Record<WorkloadLevel, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  critical: 'Critical',
+};
+
+/** Human-readable descriptive explanation of each WorkloadLevel tier. */
+export const WORKLOAD_LEVEL_DESCRIPTIONS: Record<WorkloadLevel, string> = {
+  low: 'Comfortable focus budget (0–3h/day)',
+  medium: 'Manageable study load (3–5h/day)',
+  high: 'Heavy study load (5–8h/day)',
+  critical: 'Intense cognitive peak (8h+/day)',
+};
+
+/**
+ * Returns human-readable label for a WorkloadLevel, supporting 'extreme' (default) or 'critical' variant.
+ */
+export function getWorkloadLevelLabel(
+  level: WorkloadLevel,
+  variant: 'extreme' | 'critical' = 'extreme',
+): string {
+  if (variant === 'critical') {
+    return WORKLOAD_LEVEL_SEVERITY_LABELS[level] ?? 'Medium';
+  }
+  return WORKLOAD_LEVEL_LABELS[level] ?? 'Medium';
+}
 
 /**
  * PL-5: Daily effective-hours capacity the backward-fill recommender

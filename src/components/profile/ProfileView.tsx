@@ -10,6 +10,8 @@ import { useAuth } from '@/context/AuthContext';
 import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
 import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
+import { GpaGoalRadial } from './GpaGoalRadial';
+import { type LetterGrade } from '@/lib/gpa/gpaMath';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'long',
@@ -355,6 +357,19 @@ export function ProfileView() {
           </div>
         </div>
       </Card>
+
+      <GpaGoalRadial
+        initialCourses={state.courses.map((c, idx) => {
+          const grades = ['A', 'A-', 'B+', 'A', 'B', 'A-', 'A', 'B+'];
+          return {
+            courseId: c.id,
+            courseCode: c.code,
+            title: c.title,
+            credits: c.code.includes('211') ? 4 : 3, // ECE 211 is 4 credits, others 3
+            grade: grades[idx % grades.length] as LetterGrade,
+          };
+        })}
+      />
 
       {/* ---------------------------------------------------------------
           Appearance - visual/cosmetic controls only. Dark mode stays in

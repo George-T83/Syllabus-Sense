@@ -151,6 +151,8 @@ function groupByMonth(
     });
 }
 
+import { WorkloadOverviewDashboard } from '@/components/planner/WorkloadOverviewDashboard';
+
 export function PlannerView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
@@ -165,6 +167,7 @@ export function PlannerView() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   const today = useMemo(() => new Date(), []);
+
 
   const stats = useMemo(() => {
     const pending = scheduleItems.filter((i) => !i.completed);
@@ -310,7 +313,8 @@ export function PlannerView() {
           // Later otherwise renders as one flat wall spanning however many
           // months out the syllabus goes - split it into month sub-headers
           // so it reads as a calendar-scale structure (TA-2).
-          monthSubGroups: g.key === 'later' && items.length > 0 ? groupByMonth(items, today) : undefined,
+          monthSubGroups:
+            g.key === 'later' && items.length > 0 ? groupByMonth(items, today) : undefined,
         };
       });
   }, [filteredItems, groupBy, withinSort, today, courses]);
@@ -347,7 +351,7 @@ export function PlannerView() {
   };
 
   const selectClass =
-    'rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+    'rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
 
   // Factored out of the group-rendering loop so the same row (with its
   // trailing Overdue/Due/Edit/Delete controls) can be rendered both for a
@@ -397,7 +401,7 @@ export function PlannerView() {
             >
               <button
                 onClick={() => setEditingItem(item)}
-                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               >
                 Edit
               </button>
@@ -405,13 +409,13 @@ export function PlannerView() {
                 <div className="flex items-center gap-2 text-xs">
                   <button
                     onClick={() => handleDeleteTask(item)}
-                    className="font-semibold text-foreground hover:underline"
+                    className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-foreground hover:underline"
                   >
                     Confirm
                   </button>
                   <button
                     onClick={() => setConfirmingDeleteId(null)}
-                    className="text-muted-foreground hover:underline"
+                    className="inline-flex min-h-[44px] items-center justify-center px-2 text-muted-foreground hover:underline"
                   >
                     Cancel
                   </button>
@@ -422,7 +426,7 @@ export function PlannerView() {
                 // doesn't compete with the one badge that should stand out.
                 <button
                   onClick={() => setConfirmingDeleteId(item.id)}
-                  className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
                 >
                   Delete
                 </button>
@@ -437,6 +441,8 @@ export function PlannerView() {
   return (
     <>
       <div className="max-w-4xl space-y-6">
+        <WorkloadOverviewDashboard />
+
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Tasks</h1>
           <p className="text-sm text-muted-foreground mt-1">All your tasks, across every course.</p>
@@ -586,7 +592,9 @@ export function PlannerView() {
                             <h4 className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                               {sub.label}
                             </h4>
-                            <div className="flex flex-col gap-2">{sub.items.map(renderTaskRow)}</div>
+                            <div className="flex flex-col gap-2">
+                              {sub.items.map(renderTaskRow)}
+                            </div>
                           </div>
                         ))}
                       </div>

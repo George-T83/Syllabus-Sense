@@ -11,12 +11,12 @@ import { cn } from '@/lib/utils';
  * button); `variant="ghost"` is for secondary navigation ("View all →").
  */
 const baseClass =
-  'inline-flex shrink-0 items-center gap-1 rounded-full text-xs font-semibold transition-colors active:scale-[0.97]';
+  'inline-flex shrink-0 items-center justify-center gap-1 rounded-full text-xs font-semibold transition-colors active:scale-[0.97] min-h-[44px]';
 
 const variantClass = {
-  solid: 'bg-primary/10 text-primary px-3 py-1.5 hover:bg-primary/20',
+  solid: 'bg-primary/10 text-primary px-3.5 py-2 hover:bg-primary/20',
   ghost:
-    'border border-border text-muted-foreground px-3 py-1.5 hover:border-primary/30 hover:bg-primary/5 hover:text-primary',
+    'border border-border text-muted-foreground px-3.5 py-2 hover:border-primary/30 hover:bg-primary/5 hover:text-primary',
 } as const;
 
 export type CardActionVariant = keyof typeof variantClass;

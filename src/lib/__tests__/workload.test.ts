@@ -12,7 +12,13 @@ import {
   toDateOnly,
   formatDateISO,
   WORKLOAD_LEVEL_THRESHOLDS,
+  WORKLOAD_LEVEL_LABELS,
+  WORKLOAD_LEVEL_SEVERITY_LABELS,
+  WORKLOAD_LEVEL_DESCRIPTIONS,
+  getWorkloadLevelLabel,
+  getWorkloadBadgeTokens,
 } from '@/lib/workload';
+import { computeSmartPlan } from '@/lib/planner/computeSmartPlan';
 
 const REFERENCE_DATE = '2026-08-16'; // fixed "today" for deterministic tests
 
@@ -87,6 +93,24 @@ describe('#50 getBaseEffectiveHours', () => {
     const under = makeItem({ estimatedHours: 10, progress: -20 });
     expect(getBaseEffectiveHours(over)).toBe(0);
     expect(getBaseEffectiveHours(under)).toBeCloseTo(10 * ASSIGNMENT_TYPE_WEIGHT.assignment);
+  });
+
+  it('safely handles zero-credit / zero-hour edge cases, NaN, and negative hours', () => {
+    const zeroHours = makeItem({ estimatedHours: 0 });
+    const nanHours = makeItem({ estimatedHours: Number.NaN });
+    const negativeHours = makeItem({ estimatedHours: -10 });
+    const infinityHours = makeItem({ estimatedHours: Number.POSITIVE_INFINITY });
+
+    expect(getBaseEffectiveHours(zeroHours)).toBe(0);
+    expect(getBaseEffectiveHours(nanHours)).toBe(0);
+    expect(getBaseEffectiveHours(negativeHours)).toBe(0);
+    expect(getBaseEffectiveHours(infinityHours)).toBe(0);
+  });
+
+  it('falls back to safe default weights and hours when item.type is unknown or invalid', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unknownTypeItem = makeItem({ type: 'unknown_type' as any, estimatedHours: undefined });
+    expect(getBaseEffectiveHours(unknownTypeItem)).toBe(2); // fallback 2h * 1.0 weight
   });
 });
 
@@ -224,6 +248,29 @@ describe('#53/#56 calculateDailyLoad edge cases', () => {
     expect(Number.isNaN(val)).toBe(false);
     expect(val).toBeGreaterThanOrEqual(0);
   });
+
+  it('does not distort daily load when combining zero-credit and normal courses', () => {
+    const normalTask = makeItem({
+      id: 'norm-1',
+      dueDate: REFERENCE_DATE,
+      estimatedHours: 3,
+      type: 'assignment',
+    });
+    const zeroCreditTask1 = makeItem({ id: 'zero-1', dueDate: REFERENCE_DATE, estimatedHours: 0 });
+    const zeroCreditTask2 = makeItem({ id: 'zero-2', dueDate: REFERENCE_DATE, estimatedHours: -5 });
+    const zeroCreditTask3 = makeItem({
+      id: 'zero-3',
+      dueDate: REFERENCE_DATE,
+      estimatedHours: Number.NaN,
+    });
+
+    const result = calculateDailyLoad(
+      [normalTask, zeroCreditTask1, zeroCreditTask2, zeroCreditTask3],
+      REFERENCE_DATE,
+      { stressDisposition: 'moderate' },
+    );
+    expect(result.get(REFERENCE_DATE)).toBeCloseTo(3 * ASSIGNMENT_TYPE_WEIGHT.assignment);
+  });
 });
 
 describe('#54 getWorkloadLevel thresholds', () => {
@@ -251,6 +298,42 @@ describe('#54 getWorkloadLevel thresholds', () => {
     const levels = ['low', 'medium', 'high', 'critical'];
     expect(levels).toContain(getWorkloadLevel(-5));
     expect(levels).toContain(getWorkloadLevel(1000));
+  });
+});
+
+describe('Item 06: semantic labels and unified badge tokens alignment', () => {
+  it('provides consistent human-readable and severity labels across all workload tiers', () => {
+    expect(WORKLOAD_LEVEL_LABELS.low).toBe('Low');
+    expect(WORKLOAD_LEVEL_LABELS.medium).toBe('Medium');
+    expect(WORKLOAD_LEVEL_LABELS.high).toBe('High');
+    expect(WORKLOAD_LEVEL_LABELS.critical).toBe('Extreme');
+
+    expect(WORKLOAD_LEVEL_SEVERITY_LABELS.critical).toBe('Critical');
+    expect(getWorkloadLevelLabel('critical', 'extreme')).toBe('Extreme');
+    expect(getWorkloadLevelLabel('critical', 'critical')).toBe('Critical');
+    expect(getWorkloadLevelLabel('low')).toBe('Low');
+  });
+
+  it('provides descriptive explanations for cognitive load tiers', () => {
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.low).toContain('Comfortable');
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.medium).toContain('Manageable');
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.high).toContain('Heavy');
+    expect(WORKLOAD_LEVEL_DESCRIPTIONS.critical).toContain('Intense');
+  });
+
+  it('returns unified badge tokens with chip, text, swatch, tint, and badge classes', () => {
+    const lowTokens = getWorkloadBadgeTokens('low');
+    expect(lowTokens.label).toBe('Low');
+    expect(lowTokens.badgeClass).toContain('text-load-low');
+    expect(lowTokens.chipClass).toContain('bg-load-low/10');
+    expect(lowTokens.swatchClass).toContain('bg-load-low');
+
+    const criticalSolid = getWorkloadBadgeTokens('critical', {
+      solid: true,
+      labelVariant: 'critical',
+    });
+    expect(criticalSolid.label).toBe('Critical');
+    expect(criticalSolid.badgeClass).toContain('bg-load-critical text-white');
   });
 });
 
@@ -367,3 +450,56 @@ describe('toDateOnly - real ScheduleItem.dueDate values (regression)', () => {
     expect(dailyLoad.get('2026-08-21')).toBeGreaterThan(0);
   });
 });
+
+describe('Item 08: Workload Runway Exhaustion & Overdue Backlog Separation', () => {
+  it('correctly reports runwayDays, deficitHours, and runwayExhausted on future overloaded tasks', () => {
+    // 100-hour assignment due in 2 days has insufficient runway
+    const hugeTask = makeItem({
+      id: 'huge-1',
+      dueDate: '2026-08-18',
+      estimatedHours: 100,
+    });
+    const rec = recommendStudyStartDate(hugeTask, REFERENCE_DATE);
+    expect(rec.runwayDays).toBe(3); // Aug 16, 17, 18
+    expect(rec.runwayExhausted).toBe(true);
+    expect(rec.deficitHours).toBeGreaterThan(0);
+    expect(rec.isOverdue).toBe(false);
+  });
+
+  it('separates overdue backlog items from prospective study start buckets in computeSmartPlan', () => {
+    const overdueTask = makeItem({
+      id: 'overdue-1',
+      dueDate: '2026-08-10', // In the past relative to Aug 16
+      estimatedHours: 4,
+      completed: false,
+    });
+    const todayTask = makeItem({
+      id: 'today-1',
+      dueDate: '2026-08-16',
+      estimatedHours: 2,
+      completed: false,
+    });
+    const futureTask = makeItem({
+      id: 'future-1',
+      dueDate: '2026-08-20',
+      estimatedHours: 3,
+      completed: false,
+    });
+
+    const plan = computeSmartPlan(
+      [overdueTask, todayTask, futureTask],
+      toDateOnly(REFERENCE_DATE),
+    );
+
+    // Overdue items must NOT pollute startToday or prospective buckets
+    expect(plan.overdueItems.length).toBe(1);
+    expect(plan.overdueItems[0].item.id).toBe('overdue-1');
+    expect(plan.startToday.some((p) => p.item.id === 'overdue-1')).toBe(false);
+    expect(plan.overdueHours).toBeGreaterThan(0);
+
+    // Prospective tasks should be in startToday / startThisWeek
+    expect(plan.startToday.some((p) => p.item.id === 'today-1')).toBe(true);
+    expect(plan.startThisWeek.some((p) => p.item.id === 'future-1')).toBe(true);
+  });
+});
+

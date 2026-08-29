@@ -466,7 +466,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         key: `${i}-${item.title}`,
         approved: item.dueDate !== null,
       }));
-      const nextUnresolved = result.unresolved;
+      const nextUnresolved = result.unresolved ?? [];
       const nextLearningObjectivesText = result.course.learningObjectives.join('\n');
       const nextHasLearningObjectives = result.course.learningObjectives.length > 0;
       const nextContactDrafts = buildContactDrafts(result.course.contacts, state.contacts);
