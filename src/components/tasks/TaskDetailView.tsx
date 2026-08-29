@@ -579,10 +579,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
 
           <GradeImpactPanel item={item} course={course} courseItems={courseItems} />
 
-          <div className="border-t border-border mt-4 pt-4 px-6">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-              Late Penalty Advisor
-            </h3>
+          <div className="border-t border-border">
             <LatePenaltyAdvisor
               courseCode={course?.code}
               assignmentTitle={item.title}
