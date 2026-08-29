@@ -3,13 +3,41 @@
 import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { useAppState } from '@/context/AppStateContext';
-import { calculateWorkloadBreakdown, type DailyWorkloadDay } from '@/lib/planner/projectChunker';
+import {
+  calculateWorkloadBreakdown,
+  type DailyWorkloadDay,
+  type WorkloadIntensity,
+} from '@/lib/planner/projectChunker';
 import { ProjectChunkerModal } from './ProjectChunkerModal';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { toLocalDateStr } from '@/lib/planner/projectChunker';
-import type { ScheduleItem } from '@/types/schedule';
+import { WORKLOAD_BADGE_CLASS } from '@/lib/workload';
+import type { ScheduleItem, WorkloadLevel } from '@/types/schedule';
+
+// This dashboard's "how busy is this day" scale comes from the chunker's own
+// light/moderate/heavy buckets (calculateWorkloadBreakdown), which is a
+// coarser 3-tier signal than the shared WorkloadLevel used elsewhere (Month
+// Calendar, Smart Planner). Rather than inventing a one-off color palette for
+// it, map each bucket onto the nearest shared WorkloadLevel so the same
+// low/medium/critical tokens - and their light/dark handling - are reused
+// here too.
+const INTENSITY_TO_LEVEL: Record<WorkloadIntensity, WorkloadLevel> = {
+  light: 'low',
+  moderate: 'medium',
+  heavy: 'critical',
+};
+
+/** Day-tile border/background per level, including hover - kept as literal
+ * class strings (not built with template interpolation) so Tailwind's
+ * static scanner can see them. */
+const DAY_TILE_LEVEL_CLASS: Record<WorkloadLevel, string> = {
+  low: 'border-load-low/30 bg-load-low/10 hover:bg-load-low/15',
+  medium: 'border-load-medium/30 bg-load-medium/10 hover:bg-load-medium/15',
+  high: 'border-load-high/30 bg-load-high/10 hover:bg-load-high/15',
+  critical: 'border-load-critical/40 bg-load-critical/10 hover:bg-load-critical/15',
+};
 
 export interface WorkloadOverviewDashboardProps {
   scheduleItems?: ScheduleItem[];
@@ -97,21 +125,25 @@ export function WorkloadOverviewDashboard({
   return (
     <div className="space-y-6">
       {/* Header bar with Chunk Project/Exam Action */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
               📊 Daily &amp; Weekly Workload Center
             </span>
             {breakdown.rolledOverCount > 0 && (
-              <span className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
-                ⚠️ {breakdown.rolledOverCount} Rollover {breakdown.rolledOverCount === 1 ? 'Task' : 'Tasks'}
+              <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-bold text-destructive">
+                ⚠️ {breakdown.rolledOverCount} Rollover{' '}
+                {breakdown.rolledOverCount === 1 ? 'Task' : 'Tasks'}
               </span>
             )}
           </div>
-          <h2 className="mt-1.5 text-xl font-bold text-foreground">Academic Workload &amp; Pace Advisor</h2>
+          <h2 className="mt-1.5 text-xl font-bold text-foreground">
+            Academic Workload &amp; Pace Advisor
+          </h2>
           <p className="text-xs text-muted-foreground">
-            Track daily study load, monitor weekly cognitive demand, and split large final projects or exams into bite-sized tasks.
+            Track daily study load, monitor weekly cognitive demand, and split large final projects
+            or exams into bite-sized tasks.
           </p>
         </div>
 
@@ -119,17 +151,23 @@ export function WorkloadOverviewDashboard({
           onClick={() => setChunkerOpen(true)}
           className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-md transition-all hover:scale-[1.02] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
           <span>Divide Project/Exam into Bite Chunks</span>
         </button>
-      </div>
+      </Card>
 
       {/* Grid: Day Details & Workload Load + 7-Day Forecast Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Selected Day Workload Meter & Task Inspector */}
-        <Card className="lg:col-span-1 border border-border bg-card p-5">
+        <Card className="lg:col-span-1 p-5">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-sm font-bold text-foreground">
@@ -142,11 +180,7 @@ export function WorkloadOverviewDashboard({
             <span
               className={cn(
                 'rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize',
-                activeDay.intensity === 'heavy'
-                  ? 'bg-destructive/15 text-destructive border border-destructive/30'
-                  : activeDay.intensity === 'moderate'
-                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                  : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                WORKLOAD_BADGE_CLASS[INTENSITY_TO_LEVEL[activeDay.intensity]],
               )}
             >
               {activeDay.intensity === 'heavy' ? '⚠️ Heavy Peak' : `${activeDay.intensity} Pace`}
@@ -156,7 +190,9 @@ export function WorkloadOverviewDashboard({
           <CardContent className="p-0 pt-2 space-y-4">
             <div className="flex items-baseline justify-between border-b border-border/50 pb-3">
               <div>
-                <span className="text-3xl font-extrabold text-foreground">{activeDayHours} hrs</span>
+                <span className="text-3xl font-extrabold text-foreground">
+                  {activeDayHours} hrs
+                </span>
                 <span className="text-xs text-muted-foreground"> total scheduled study load</span>
               </div>
             </div>
@@ -167,7 +203,9 @@ export function WorkloadOverviewDashboard({
                 Bite-Sized Tasks ({activeDay.items.length})
               </h4>
               {activeDay.items.length === 0 ? (
-                <p className="text-xs italic text-muted-foreground py-2">No tasks scheduled for this day.</p>
+                <p className="text-xs italic text-muted-foreground py-2">
+                  No tasks scheduled for this day.
+                </p>
               ) : (
                 <ul className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {activeDay.items.map((item) => (
@@ -176,10 +214,10 @@ export function WorkloadOverviewDashboard({
                       className={cn(
                         'flex flex-col gap-1.5 rounded-xl border p-2.5 text-xs transition-colors',
                         item.completed
-                          ? 'border-emerald-500/30 bg-emerald-500/5 opacity-75'
+                          ? 'border-load-low/30 bg-load-low/5 opacity-75'
                           : item.isRollover
-                          ? 'border-amber-500/40 bg-amber-500/10'
-                          : 'border-border/60 bg-background/60 hover:bg-accent/40'
+                            ? 'border-destructive/40 bg-destructive/10'
+                            : 'border-border/60 bg-background/60 hover:bg-accent/40',
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -193,7 +231,7 @@ export function WorkloadOverviewDashboard({
                           <span
                             className={cn(
                               'font-medium text-foreground truncate',
-                              item.completed && 'line-through text-muted-foreground'
+                              item.completed && 'line-through text-muted-foreground',
                             )}
                           >
                             {item.title}
@@ -221,7 +259,9 @@ export function WorkloadOverviewDashboard({
                               <button
                                 type="button"
                                 title="Shift to today"
-                                onClick={() => handleShiftTaskDate(item.id, breakdown.today.dateStr)}
+                                onClick={() =>
+                                  handleShiftTaskDate(item.id, breakdown.today.dateStr)
+                                }
                                 className="rounded border border-border px-1 py-0.5 text-[9px] font-semibold hover:bg-accent"
                               >
                                 Today
@@ -254,7 +294,7 @@ export function WorkloadOverviewDashboard({
         </Card>
 
         {/* Weekly Workload Schedule (Interactive 7-Day Forecast Grid) */}
-        <Card className="lg:col-span-2 border border-border bg-card p-5">
+        <Card className="lg:col-span-2 p-5">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-sm font-bold text-foreground">
@@ -279,18 +319,16 @@ export function WorkloadOverviewDashboard({
                     className={cn(
                       'flex flex-col justify-between rounded-2xl border p-3 text-center transition-all focus:outline-none focus:ring-2 focus:ring-primary',
                       isSelected && 'ring-2 ring-primary border-primary',
-                      day.intensity === 'heavy'
-                        ? 'border-destructive/50 bg-destructive/10 hover:bg-destructive/15'
-                        : day.intensity === 'moderate'
-                        ? 'border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10'
-                        : 'border-border bg-background/50 hover:bg-accent/40'
+                      DAY_TILE_LEVEL_CLASS[INTENSITY_TO_LEVEL[day.intensity]],
                     )}
                   >
                     <div>
                       <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                         {day.dayName}
                       </span>
-                      <p className="text-xs font-semibold text-foreground mt-0.5">{day.formattedDate}</p>
+                      <p className="text-xs font-semibold text-foreground mt-0.5">
+                        {day.formattedDate}
+                      </p>
                     </div>
 
                     <div className="my-3">
@@ -301,11 +339,7 @@ export function WorkloadOverviewDashboard({
                     <span
                       className={cn(
                         'mt-auto rounded-full py-0.5 text-[9px] font-bold uppercase',
-                        day.intensity === 'heavy'
-                          ? 'bg-destructive text-destructive-foreground'
-                          : day.intensity === 'moderate'
-                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                          : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                        WORKLOAD_BADGE_CLASS[INTENSITY_TO_LEVEL[day.intensity]],
                       )}
                     >
                       {day.intensity === 'heavy' ? '⚠️ Heavy Peak' : day.intensity}
