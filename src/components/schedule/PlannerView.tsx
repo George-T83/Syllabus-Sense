@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionIcon } from '@/components/ui/SectionIcon';
@@ -153,6 +153,55 @@ function groupByMonth(
 
 import { WorkloadOverviewDashboard } from '@/components/planner/WorkloadOverviewDashboard';
 
+/** Default number of task rows a group shows before collapsing the rest
+ * behind a "Show N more" toggle. A real semester's task list can run into
+ * the hundreds of items once rollover/overdue tasks accumulate - rendering
+ * every group in full made this page endless to scroll. Capping each group
+ * (and each Later-bucket month sub-group) independently keeps it skimmable
+ * while every item stays reachable in one click. */
+const DEFAULT_VISIBLE_COUNT = 8;
+
+/** Renders `items` (via `renderItem`) capped to `initialCount`, with a
+ * "Show N more" / "Show less" toggle when there's more than that to show.
+ * Each call site gets its own independent expand/collapse state. */
+function ExpandableItemList({
+  items,
+  renderItem,
+  initialCount = DEFAULT_VISIBLE_COUNT,
+}: {
+  items: ScheduleItem[];
+  renderItem: (item: ScheduleItem) => ReactNode;
+  initialCount?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? items : items.slice(0, initialCount);
+  const remaining = items.length - visible.length;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {visible.map(renderItem)}
+      {remaining > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-1 min-h-[44px] self-start rounded-lg px-2 text-xs font-semibold text-primary hover:underline"
+        >
+          Show {remaining} more
+        </button>
+      )}
+      {expanded && items.length > initialCount && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="min-h-[44px] self-start rounded-lg px-2 text-xs font-semibold text-muted-foreground hover:underline"
+        >
+          Show less
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function PlannerView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
@@ -167,7 +216,6 @@ export function PlannerView() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   const today = useMemo(() => new Date(), []);
-
 
   const stats = useMemo(() => {
     const pending = scheduleItems.filter((i) => !i.completed);
@@ -592,14 +640,12 @@ export function PlannerView() {
                             <h4 className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                               {sub.label}
                             </h4>
-                            <div className="flex flex-col gap-2">
-                              {sub.items.map(renderTaskRow)}
-                            </div>
+                            <ExpandableItemList items={sub.items} renderItem={renderTaskRow} />
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-2">{group.items.map(renderTaskRow)}</div>
+                      <ExpandableItemList items={group.items} renderItem={renderTaskRow} />
                     )}
                   </div>
                 );
