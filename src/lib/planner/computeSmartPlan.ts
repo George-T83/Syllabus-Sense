@@ -14,6 +14,12 @@ export interface PlannedItem {
    * reactions from the student, so they're tracked separately rather than
    * both surfacing as the same badge. */
   overdue: boolean;
+  /** Upcoming item that has exhausted available study runway without fitting within capacity. */
+  runwayExhausted?: boolean;
+  /** Missing study hours that could not fit in the available runway. */
+  deficitHours?: number;
+  /** Number of calendar days left until due date. */
+  runwayDays?: number;
 }
 
 export interface DayLoad {
@@ -28,6 +34,8 @@ export interface SmartPlan {
   startToday: PlannedItem[];
   startThisWeek: PlannedItem[];
   startLater: PlannedItem[];
+  /** Overdue backlog items separated from prospective study start buckets. */
+  overdueItems: PlannedItem[];
   /**
    * PL-1: total effective hours parked on PAST due dates (i.e. excluded from
    * `weekLoad`, which only covers `referenceDate` through +6 days). Read from
@@ -37,6 +45,8 @@ export interface SmartPlan {
    * own number instead of a student having to infer it from a badge count.
    */
   overdueHours: number;
+  /** Total count of upcoming items whose study runway has been exhausted. */
+  runwayExhaustedCount: number;
 }
 
 /**
@@ -73,17 +83,16 @@ export function computeSmartPlan(scheduleItems: ScheduleItem[], referenceDate: D
     const others = pendingItems.filter((i) => i.id !== item.id);
     const existingLoad = calculateDailyLoad(others, referenceDate);
     const rec = recommendStudyStartDate(item, referenceDate, existingLoad);
-    // Matches the exact `!completed && dueDate < now` check used on Tasks/
-    // Course/Task-detail (real current moment, not the UTC-midnight
-    // `referenceDate` used for workload bucketing) so "overdue" means the
-    // same thing everywhere in the app.
-    const overdue = !item.completed && new Date(item.dueDate) < new Date();
+    const overdue = !item.completed && rec.isOverdue;
     return {
       item,
       startDate: rec.startDate,
       overloaded: rec.overloaded,
       tight: rec.tight,
       overdue,
+      runwayExhausted: !overdue && rec.overloaded,
+      deficitHours: rec.deficitHours,
+      runwayDays: rec.runwayDays,
     };
   });
   plannedItems.sort((a, b) => a.startDate.localeCompare(b.startDate));
@@ -98,12 +107,20 @@ export function computeSmartPlan(scheduleItems: ScheduleItem[], referenceDate: D
     if (key < todayKey) overdueHours += hours;
   }
 
+  const overdueItems = plannedItems.filter((p) => p.overdue);
+  const nonOverdueItems = plannedItems.filter((p) => !p.overdue);
+
   const weekEndKey = weekLoad[6].key;
+  const runwayExhaustedCount = nonOverdueItems.filter((p) => p.overloaded).length;
+
   return {
     weekLoad,
-    startToday: plannedItems.filter((p) => p.startDate <= todayKey),
-    startThisWeek: plannedItems.filter((p) => p.startDate > todayKey && p.startDate <= weekEndKey),
-    startLater: plannedItems.filter((p) => p.startDate > weekEndKey),
+    startToday: nonOverdueItems.filter((p) => p.startDate <= todayKey),
+    startThisWeek: nonOverdueItems.filter((p) => p.startDate > todayKey && p.startDate <= weekEndKey),
+    startLater: nonOverdueItems.filter((p) => p.startDate > weekEndKey),
+    overdueItems,
     overdueHours,
+    runwayExhaustedCount,
   };
 }
+

@@ -1,8 +1,8 @@
 import type { ScheduleItem, WorkloadLevel } from '@/types/schedule';
 import { clampProgress } from '@/lib/taskStatus';
 import {
-  ASSIGNMENT_TYPE_WEIGHT,
-  DEFAULT_ESTIMATED_HOURS,
+  getAssignmentTypeWeight,
+  getDefaultEstimatedHours,
   PRIORITY_STRESS_COEFFICIENT,
   STRESS_DISPOSITION_COEFFICIENT,
   WORKLOAD_LEVEL_THRESHOLDS,
@@ -33,6 +33,10 @@ export interface WorkloadOptions {
  * respected as zero, since that's an explicit user statement, not an absence
  * of data.
  *
+ * Zero-credit defense: tasks with 0 estimated hours (e.g. zero-credit lab check-ins,
+ * syllabus acknowledgements, or zero-effort tasks) or invalid non-finite numbers
+ * evaluate to 0 effective hours without NaN corruption or dividing by zero.
+ *
  * The result is further scaled by how much of the item is *not yet* done
  * (`1 - progress/100`), so a half-finished project counts as half its
  * estimate instead of its full estimate right up until it's checked
@@ -43,9 +47,21 @@ export interface WorkloadOptions {
  * before (fraction of 1, no change).
  */
 export function getBaseEffectiveHours(item: ScheduleItem): number {
-  const rawHours = item.estimatedHours ?? DEFAULT_ESTIMATED_HOURS[item.type];
-  const remainingFraction = 1 - clampProgress(item.progress ?? 0) / 100;
-  return rawHours * ASSIGNMENT_TYPE_WEIGHT[item.type] * remainingFraction;
+  const rawHours =
+    typeof item.estimatedHours === 'number'
+      ? !Number.isFinite(item.estimatedHours) || item.estimatedHours <= 0
+        ? 0
+        : item.estimatedHours
+      : getDefaultEstimatedHours(item.type);
+
+  if (rawHours <= 0) {
+    return 0;
+  }
+
+  const weight = getAssignmentTypeWeight(item.type);
+  const remainingFraction = Math.max(0, Math.min(1, 1 - clampProgress(item.progress ?? 0) / 100));
+  const effectiveHours = rawHours * weight * remainingFraction;
+  return Number.isFinite(effectiveHours) && effectiveHours > 0 ? effectiveHours : 0;
 }
 
 /**
@@ -59,9 +75,14 @@ export function applyStressFactor(
   priority: ScheduleItem['priority'],
   disposition: StressDisposition = DEFAULT_STRESS_DISPOSITION,
 ): number {
-  const priorityCoefficient = PRIORITY_STRESS_COEFFICIENT[priority ?? 'medium'];
-  const dispositionCoefficient = STRESS_DISPOSITION_COEFFICIENT[disposition];
-  return baseHours * dispositionCoefficient * priorityCoefficient;
+  if (!Number.isFinite(baseHours) || baseHours <= 0) return 0;
+  const priorityCoefficient =
+    (priority && PRIORITY_STRESS_COEFFICIENT[priority]) ?? PRIORITY_STRESS_COEFFICIENT.medium;
+  const dispositionCoefficient =
+    (disposition && STRESS_DISPOSITION_COEFFICIENT[disposition]) ??
+    STRESS_DISPOSITION_COEFFICIENT[DEFAULT_STRESS_DISPOSITION];
+  const adjusted = baseHours * dispositionCoefficient * priorityCoefficient;
+  return Number.isFinite(adjusted) && adjusted > 0 ? adjusted : 0;
 }
 
 /**
@@ -92,7 +113,7 @@ export function getItemDailyDistribution(
 
   const today = toDateOnly(referenceDate);
   const due = toDateOnly(item.dueDate);
-  const maxDays = options.maxDistributionDays ?? DEFAULT_MAX_DISTRIBUTION_DAYS;
+  const maxDays = Math.max(1, options.maxDistributionDays ?? DEFAULT_MAX_DISTRIBUTION_DAYS);
 
   if (diffInDays(due, today) < 0) {
     // Overdue: nothing to spread, park it all on the due date.
@@ -100,10 +121,21 @@ export function getItemDailyDistribution(
     return distribution;
   }
 
+  if (totalHours <= 0) {
+    // Zero-credit / zero-hour defense: park 0 on due date without creating multi-day zero allocations
+    distribution.set(formatDateISO(due), 0);
+    return distribution;
+  }
+
   const earliestPossibleStart = addDays(due, -(maxDays - 1));
   const windowStart =
     earliestPossibleStart.getTime() > today.getTime() ? earliestPossibleStart : today;
   const windowDays = enumerateDays(windowStart, due);
+
+  if (windowDays.length === 0) {
+    distribution.set(formatDateISO(due), totalHours);
+    return distribution;
+  }
 
   const hoursPerDay = totalHours / windowDays.length;
   for (const day of windowDays) {
@@ -137,7 +169,9 @@ export function calculateDailyLoad(
 
     const baseDistribution = getItemDailyDistribution(item, referenceDate, options);
     for (const [dateKey, baseHours] of Array.from(baseDistribution)) {
+      if (!Number.isFinite(baseHours) || baseHours <= 0) continue;
       const adjustedHours = applyStressFactor(baseHours, item.priority, options.stressDisposition);
+      if (!Number.isFinite(adjustedHours) || adjustedHours <= 0) continue;
       dailyLoad.set(dateKey, (dailyLoad.get(dateKey) ?? 0) + adjustedHours);
     }
   }
@@ -155,7 +189,7 @@ export function calculateDailyLoad(
  * 3.0 hours is still 'low', and exactly 8.0 hours is already 'critical'.
  */
 export function getWorkloadLevel(hours: number): WorkloadLevel {
-  if (hours <= WORKLOAD_LEVEL_THRESHOLDS.low) return 'low';
+  if (!Number.isFinite(hours) || hours <= 0 || hours <= WORKLOAD_LEVEL_THRESHOLDS.low) return 'low';
   if (hours <= WORKLOAD_LEVEL_THRESHOLDS.medium) return 'medium';
   if (hours < WORKLOAD_LEVEL_THRESHOLDS.high) return 'high';
   return 'critical';

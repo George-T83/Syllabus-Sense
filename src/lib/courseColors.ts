@@ -15,6 +15,8 @@ export interface CoursePreset {
   /** Approximate hex of the same swatch, used only for the tint math below -
    * Tailwind's own JIT output is what actually renders the solid color. */
   hex: string;
+  /** Human-readable color name for accessible aria-labels in the form picker. */
+  label?: string;
 }
 
 /**
@@ -26,20 +28,20 @@ export interface CoursePreset {
  * back to a default color or breaking.
  */
 const ALL_COURSE_COLOR_PRESETS: CoursePreset[] = [
-  { value: 'bg-blue-500', hex: '#3b82f6' },
-  { value: 'bg-green-500', hex: '#22c55e' },
-  { value: 'bg-purple-500', hex: '#a855f7' },
-  { value: 'bg-red-500', hex: '#ef4444' },
-  { value: 'bg-orange-500', hex: '#f97316' },
-  { value: 'bg-teal-500', hex: '#14b8a6' },
-  { value: 'bg-pink-500', hex: '#ec4899' },
-  { value: 'bg-indigo-500', hex: '#6366f1' },
-  { value: 'bg-amber-500', hex: '#f59e0b' },
-  { value: 'bg-cyan-500', hex: '#06b6d4' },
-  { value: 'bg-rose-500', hex: '#f43f5e' },
-  { value: 'bg-lime-500', hex: '#84cc16' },
-  { value: 'bg-violet-500', hex: '#8b5cf6' },
-  { value: 'bg-emerald-500', hex: '#10b981' },
+  { value: 'bg-blue-500', hex: '#3b82f6', label: 'Blue' },
+  { value: 'bg-green-500', hex: '#22c55e', label: 'Green' },
+  { value: 'bg-purple-500', hex: '#a855f7', label: 'Purple' },
+  { value: 'bg-red-500', hex: '#ef4444', label: 'Red' },
+  { value: 'bg-orange-500', hex: '#f97316', label: 'Orange' },
+  { value: 'bg-teal-500', hex: '#14b8a6', label: 'Teal' },
+  { value: 'bg-pink-500', hex: '#ec4899', label: 'Pink' },
+  { value: 'bg-indigo-500', hex: '#6366f1', label: 'Indigo' },
+  { value: 'bg-amber-500', hex: '#f59e0b', label: 'Amber' },
+  { value: 'bg-cyan-500', hex: '#06b6d4', label: 'Cyan' },
+  { value: 'bg-rose-500', hex: '#f43f5e', label: 'Rose' },
+  { value: 'bg-lime-500', hex: '#84cc16', label: 'Lime' },
+  { value: 'bg-violet-500', hex: '#8b5cf6', label: 'Violet' },
+  { value: 'bg-emerald-500', hex: '#10b981', label: 'Emerald' },
 ];
 
 /**

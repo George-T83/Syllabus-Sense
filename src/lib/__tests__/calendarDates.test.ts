@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   toDayKey,
+  parseDayKey,
   isSameDay,
   addDays,
   addMonths,
@@ -123,4 +124,31 @@ describe('groupItemsByDay', () => {
     expect(grouped.has('2026-09-01')).toBe(true);
     expect(grouped.has('2026-09-02')).toBe(false);
   });
+
+  it('buckets bare date strings directly without UTC shift', () => {
+    const grouped = groupItemsByDay([
+      item('bare-1', '2026-08-25'),
+      item('bare-2', '2026-08-25'),
+      item('bare-3', '2026-12-31'),
+    ]);
+    expect(grouped.get('2026-08-25')?.length).toBe(2);
+    expect(grouped.get('2026-12-31')?.length).toBe(1);
+  });
 });
+
+describe('parseDayKey', () => {
+  it('parses YYYY-MM-DD into a local Date without UTC shift', () => {
+    const parsed = parseDayKey('2026-08-25');
+    expect(parsed.getFullYear()).toBe(2026);
+    expect(parsed.getMonth()).toBe(7); // August is 0-indexed 7
+    expect(parsed.getDate()).toBe(25);
+  });
+
+  it('handles year transitions', () => {
+    const parsed = parseDayKey('2027-01-01');
+    expect(parsed.getFullYear()).toBe(2027);
+    expect(parsed.getMonth()).toBe(0);
+    expect(parsed.getDate()).toBe(1);
+  });
+});
+

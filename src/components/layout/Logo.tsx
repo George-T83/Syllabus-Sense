@@ -1,3 +1,5 @@
+'use client';
+
 import { useId } from 'react';
 
 export default function Logo({ className }: { className?: string }) {

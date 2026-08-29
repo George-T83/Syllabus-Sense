@@ -1,0 +1,83 @@
+import { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'Syllabus Sense - AI Academic Planning & Schedule Command Center',
+    short_name: 'SyllabusSense',
+    description:
+      'Autonomous AI-powered syllabus management, cognitive workload planning, and academic productivity command center.',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#090D16',
+    theme_color: '#5B3DF5',
+    orientation: 'portrait-primary',
+    scope: '/',
+    categories: ['education', 'productivity', 'utilities'],
+    icons: [
+      {
+        src: '/icons/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icons/icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icons/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/apple-touch-icon.png',
+        sizes: '180x180',
+        type: 'image/png',
+      },
+      {
+        src: '/icon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+      },
+    ],
+    shortcuts: [
+      {
+        name: 'Dashboard',
+        short_name: 'Dashboard',
+        description: 'View academic dashboard and weekly workload',
+        url: '/dashboard',
+        icons: [{ src: '/icons/icon-192x192.png', sizes: '192x192' }],
+      },
+      {
+        name: 'Tasks',
+        short_name: 'Tasks',
+        description: 'Manage assignments and deadlines',
+        url: '/tasks',
+        icons: [{ src: '/icons/icon-192x192.png', sizes: '192x192' }],
+      },
+      {
+        name: 'Calendar',
+        short_name: 'Calendar',
+        description: 'Monthly schedule and exam calendar',
+        url: '/calendar',
+        icons: [{ src: '/icons/icon-192x192.png', sizes: '192x192' }],
+      },
+      {
+        name: 'Courses',
+        short_name: 'Courses',
+        description: 'Enrolled courses and syllabi',
+        url: '/courses',
+        icons: [{ src: '/icons/icon-192x192.png', sizes: '192x192' }],
+      },
+    ],
+  };
+}

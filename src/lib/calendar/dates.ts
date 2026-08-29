@@ -1,20 +1,57 @@
 import type { Priority, ScheduleItem } from '@/types/schedule';
 
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
 /**
  * Local-time calendar day key (YYYY-MM-DD).
  *
- * Deliberately NOT `toISOString().slice(0,10)` - that converts to UTC first, so
- * a task due 2026-09-01T23:59 local in a negative-UTC-offset zone would bucket
- * onto Sep 2. Calendar grids are a local-time concept, so we read the local
- * date components directly.
+ * Deliberately NOT `toISOString().slice(0,10)` on arbitrary Date objects - that
+ * converts to UTC first, so a task due 2026-09-01T23:59 local in a negative-UTC-offset
+ * zone would bucket onto Sep 2.
+ *
+ * Accepts either a Date or string (`YYYY-MM-DD` bare date or ISO string).
+ * Bare `YYYY-MM-DD` strings are returned directly to prevent timezone rollback
+ * when `new Date("YYYY-MM-DD")` is invoked in negative UTC offsets.
  */
-export function toDayKey(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
+export function toDayKey(input: Date | string): string {
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    const match = DATE_ONLY_PATTERN.exec(trimmed);
+    if (match) {
+      return match[0];
+    }
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+      const month = String(parsed.getMonth() + 1).padStart(2, '0');
+      const day = String(parsed.getDate()).padStart(2, '0');
+      return `${parsed.getFullYear()}-${month}-${day}`;
+    }
+    return trimmed.slice(0, 10);
+  }
+
+  const month = String(input.getMonth() + 1).padStart(2, '0');
+  const day = String(input.getDate()).padStart(2, '0');
+  return `${input.getFullYear()}-${month}-${day}`;
 }
 
-export function isSameDay(a: Date, b: Date): boolean {
+/**
+ * Parses a `YYYY-MM-DD` day key or ISO string into a local-midnight Date.
+ */
+export function parseDayKey(dayKey: string): Date {
+  const match = DATE_ONLY_PATTERN.exec(dayKey.trim());
+  if (match) {
+    const [, year, month, day] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+  const parsed = new Date(dayKey);
+  if (!isNaN(parsed.getTime())) {
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  }
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+export function isSameDay(a: Date | string, b: Date | string): boolean {
   return toDayKey(a) === toDayKey(b);
 }
 
@@ -84,7 +121,7 @@ export function sortItemsByUrgency(items: ScheduleItem[], referenceDate: Date): 
 export function groupItemsByDay(items: ScheduleItem[]): Map<string, ScheduleItem[]> {
   const grouped = new Map<string, ScheduleItem[]>();
   for (const item of items) {
-    const key = toDayKey(new Date(item.dueDate));
+    const key = toDayKey(item.dueDate);
     const existing = grouped.get(key);
     if (existing) {
       existing.push(item);

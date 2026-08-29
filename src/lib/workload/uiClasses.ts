@@ -1,4 +1,5 @@
 import type { WorkloadLevel } from '@/types/schedule';
+import { getWorkloadLevelLabel } from './constants';
 
 /**
  * Shared Tailwind class tokens for rendering a WorkloadLevel, so every
@@ -53,3 +54,49 @@ export const WORKLOAD_TEXT_CLASS: Record<WorkloadLevel, string> = {
   high: 'text-load-high',
   critical: 'text-load-critical',
 };
+
+/** Complete pill badge class combining border, background tint, text color, and layout tokens. */
+export const WORKLOAD_BADGE_CLASS: Record<WorkloadLevel, string> = {
+  low: 'border border-load-low/30 bg-load-low/10 text-load-low',
+  medium: 'border border-load-medium/30 bg-load-medium/10 text-load-medium',
+  high: 'border border-load-high/30 bg-load-high/10 text-load-high',
+  critical: 'border border-load-critical/30 bg-load-critical/10 text-load-critical',
+};
+
+/** High-contrast solid badge class for alert banners and prominent hero callouts. */
+export const WORKLOAD_SOLID_BADGE_CLASS: Record<WorkloadLevel, string> = {
+  low: 'bg-load-low text-white border-transparent',
+  medium: 'bg-load-medium text-white border-transparent',
+  high: 'bg-load-high text-white border-transparent',
+  critical: 'bg-load-critical text-white border-transparent',
+};
+
+/**
+ * Unified badge helper returning consistent tokens across dashboard, planner, calendar, and task views.
+ */
+export function getWorkloadBadgeTokens(
+  level: WorkloadLevel,
+  options: { solid?: boolean; labelVariant?: 'extreme' | 'critical' } = {},
+): {
+  level: WorkloadLevel;
+  label: string;
+  badgeClass: string;
+  swatchClass: string;
+  tintClass: string;
+  textClass: string;
+  chipClass: string;
+} {
+  const label = getWorkloadLevelLabel(level, options.labelVariant);
+  const badgeClass = options.solid
+    ? WORKLOAD_SOLID_BADGE_CLASS[level]
+    : WORKLOAD_BADGE_CLASS[level];
+  return {
+    level,
+    label,
+    badgeClass,
+    swatchClass: WORKLOAD_SWATCH_CLASS[level],
+    tintClass: WORKLOAD_TINT_CLASS[level],
+    textClass: WORKLOAD_TEXT_CLASS[level],
+    chipClass: WORKLOAD_CHIP_CLASS[level],
+  };
+}

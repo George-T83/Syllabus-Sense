@@ -23,22 +23,23 @@ const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
  * - A full ISO instant string - what `ScheduleItem.dueDate` actually is in
  *   production (`new Date(`${date}T23:59:00`).toISOString()`, i.e. 23:59 in
  *   whichever timezone created it, converted to UTC) - is read with *local*
- *   getters. This was the actual bug: reading it with UTC getters rolls any
- *   negative-UTC-offset user's evening due date into the next UTC day, so a
- *   Friday-due item's load/heat landed on Saturday. `lib/calendar/dates.ts`
- *   already reads the same values with local getters for exactly this
- *   reason; this brings the workload engine's day-bucketing in line with it.
+ *   getters. This brings the workload engine's day-bucketing in line with
+ *   `lib/calendar/dates.ts`.
  */
 export function toDateOnly(input: string | Date): Date {
   if (typeof input !== 'string') {
     return new Date(Date.UTC(input.getUTCFullYear(), input.getUTCMonth(), input.getUTCDate()));
   }
-  const dateOnly = DATE_ONLY_PATTERN.exec(input);
+  const dateOnly = DATE_ONLY_PATTERN.exec(input.trim());
   if (dateOnly) {
     const [, year, month, day] = dateOnly;
     return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
   }
   const d = new Date(input);
+  if (isNaN(d.getTime())) {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
@@ -68,3 +69,46 @@ export function enumerateDays(start: Date, end: Date): Date[] {
   }
   return days;
 }
+
+/**
+ * Checks whether a date falls within semester start and end dates (inclusive),
+ * timezone-invariant.
+ */
+export function isWithinSemesterRange(
+  date: string | Date,
+  semesterStart: string | Date,
+  semesterEnd: string | Date
+): boolean {
+  const target = toDateOnly(date).getTime();
+  const start = toDateOnly(semesterStart).getTime();
+  const end = toDateOnly(semesterEnd).getTime();
+  return target >= start && target <= end;
+}
+
+/**
+ * Computes remaining calendar days in a semester from a reference date.
+ * Returns 0 if reference date is past semester end.
+ */
+export function getSemesterDaysRemaining(
+  referenceDate: string | Date,
+  semesterEnd: string | Date
+): number {
+  const ref = toDateOnly(referenceDate);
+  const end = toDateOnly(semesterEnd);
+  const diff = diffInDays(end, ref);
+  return Math.max(0, diff);
+}
+
+/**
+ * Checks if a date falls within a semester transition threshold (e.g., transition week).
+ */
+export function isSemesterTransitionWindow(
+  date: string | Date,
+  semesterBoundary: string | Date,
+  windowDays: number = 7
+): boolean {
+  const target = toDateOnly(date);
+  const boundary = toDateOnly(semesterBoundary);
+  return Math.abs(diffInDays(target, boundary)) <= windowDays;
+}
+

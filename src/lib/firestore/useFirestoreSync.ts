@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
+import { reconcileScheduleItems } from '@/lib/firestore/scheduleItems';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 
 /**
@@ -15,7 +16,12 @@ import type { Contact, Course, ScheduleItem } from '@/types/schedule';
  */
 export function useFirestoreSync() {
   const { user } = useAuth();
-  const { dispatch } = useAppState();
+  const { state, dispatch } = useAppState();
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -26,9 +32,11 @@ export function useFirestoreSync() {
     const unsubItems = onSnapshot(
       collection(db, 'users', user.uid, 'scheduleItems'),
       (snapshot) => {
+        const remoteItems = snapshot.docs.map((d) => d.data() as ScheduleItem);
+        const reconciled = reconcileScheduleItems(remoteItems, stateRef.current.scheduleItems);
         dispatch({
           type: 'SET_SCHEDULE_ITEMS',
-          payload: snapshot.docs.map((d) => d.data() as ScheduleItem),
+          payload: reconciled,
         });
       },
     );

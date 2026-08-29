@@ -52,21 +52,33 @@ function courseLabel(course: Course | undefined): string {
   return `${course.code} — ${course.title}`;
 }
 
+import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmailDrafterModal';
+import { ContactShareModal } from '@/components/contacts/ContactShareModal';
+
 export function ContactsListView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const { contacts, courses } = state;
 
   const [search, setSearch] = useState('');
-  // Same "no explicit choice yet" / active-term-by-default pattern as
-  // CoursesListView (CO-2) - see that file for the full rationale. Contacts
-  // carry their own `term` (mirrored from the parent course at creation
-  // time), so filtering reads a contact's own field rather than joining
-  // back to its course on every render.
   const [termFilter, setTermFilter] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [drafterContact, setDrafterContact] = useState<Contact | null>(null);
+  const [shareContact, setShareContact] = useState<Contact | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && contacts.length > 0) {
+      if (window.location.search.includes('email=true')) {
+        setDrafterContact(contacts[0]);
+      }
+      if (window.location.search.includes('vcard=true') || window.location.search.includes('qr=true')) {
+        setShareContact(contacts[0]);
+      }
+    }
+  }, [contacts]);
+
 
   const courseById = useMemo(() => {
     const map = new Map<string, Course>();
@@ -191,7 +203,7 @@ export function ContactsListView() {
   };
 
   const selectClass =
-    'rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+    'rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
 
   return (
     <>
@@ -213,7 +225,7 @@ export function ContactsListView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or course..."
-            className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           />
           <select
             value={effectiveTermFilter}
@@ -237,7 +249,7 @@ export function ContactsListView() {
         </div>
 
         {hiddenByTermCount > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-foreground">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-foreground min-h-[44px]">
             <span>
               Showing <span className="font-semibold">{effectiveTermFilter}</span> ·{' '}
               {hiddenByTermCount} more {hiddenByTermCount === 1 ? 'contact' : 'contacts'} in other
@@ -246,7 +258,7 @@ export function ContactsListView() {
             <button
               type="button"
               onClick={() => setTermFilter('all')}
-              className="font-semibold text-primary hover:underline"
+              className="inline-flex min-h-[44px] items-center px-1 font-semibold text-primary hover:underline"
             >
               View all terms
             </button>
@@ -335,13 +347,13 @@ export function ContactsListView() {
                               <>
                                 <button
                                   onClick={() => handleDelete(record)}
-                                  className="font-semibold text-destructive hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-destructive hover:underline"
                                 >
                                   Confirm
                                 </button>
                                 <button
                                   onClick={() => setConfirmingDeleteId(null)}
-                                  className="text-muted-foreground hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 text-muted-foreground hover:underline"
                                 >
                                   Cancel
                                 </button>
@@ -349,14 +361,26 @@ export function ContactsListView() {
                             ) : (
                               <>
                                 <button
+                                  onClick={() => setDrafterContact(record)}
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
+                                >
+                                  Draft Email
+                                </button>
+                                <button
+                                  onClick={() => setShareContact(record)}
+                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
+                                >
+                                  vCard/QR
+                                </button>
+                                <button
                                   onClick={() => openEdit(record)}
-                                  className="font-semibold text-primary hover:underline"
+                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => setConfirmingDeleteId(record.id)}
-                                  className="font-semibold text-destructive hover:underline"
+                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 font-semibold text-destructive hover:underline"
                                 >
                                   Delete
                                 </button>
@@ -387,6 +411,19 @@ export function ContactsListView() {
         courses={courses}
         initialContact={editingContact}
       />
+      {drafterContact && (
+        <ProfessorEmailDrafterModal
+          contact={drafterContact}
+          onClose={() => setDrafterContact(null)}
+        />
+      )}
+      {shareContact && (
+        <ContactShareModal
+          isOpen={!!shareContact}
+          contact={shareContact}
+          onClose={() => setShareContact(null)}
+        />
+      )}
     </>
   );
 }
@@ -540,7 +577,7 @@ function ContactFormModal({
                       type="button"
                       onClick={() => setValues((s) => ({ ...s, role }))}
                       className={cn(
-                        'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                        'inline-flex min-h-[44px] items-center justify-center rounded-lg border px-4 py-2 text-xs font-medium transition-colors',
                         values.role === role
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border text-muted-foreground hover:bg-accent',
@@ -600,14 +637,14 @@ function ContactFormModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : initialContact ? 'Save Changes' : 'Add Contact'}
               </button>

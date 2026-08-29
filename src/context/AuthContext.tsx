@@ -81,10 +81,39 @@ function mapAuthError(err: unknown): string {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      typeof window !== 'undefined' &&
+      (window.localStorage.getItem('mock_auth') === 'true' ||
+        window.location.search.includes('mock=true'))
+    ) {
+      setUser({
+        uid: 'kyHjDg6iM5YokWhHTh071SW6Yds2',
+        email: 'dev-test@syllabussense.dev',
+        displayName: 'Dev Test Student',
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {},
+        providerData: [],
+        refreshToken: '',
+        tenantId: null,
+        delete: async () => {},
+        getIdToken: async () => 'mock-token',
+        getIdTokenResult: async () => ({}) as unknown as Record<string, unknown>,
+        reload: async () => {},
+        toJSON: () => ({}),
+        phoneNumber: null,
+        photoURL: null,
+        providerId: 'firebase',
+      } as unknown as User);
+      setLoading(false);
+      return;
+    }
+
     if (!auth) {
       setLoading(false);
       return;
@@ -94,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runAuthAction = async (action: () => Promise<unknown>): Promise<boolean> => {

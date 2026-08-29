@@ -34,6 +34,14 @@ export interface StudyStartRecommendation {
    * The middle tier between a comfortable day and a genuinely overloaded one.
    */
   tight: boolean;
+  /** True when the item is already past its due date relative to referenceDate. */
+  isOverdue: boolean;
+  /** Number of calendar days in the available runway from referenceDate to due date. */
+  runwayDays: number;
+  /** Effective hours that could not be scheduled within available daily capacity. */
+  deficitHours: number;
+  /** True when upcoming task has insufficient runway to fit without exceeding daily capacity. */
+  runwayExhausted: boolean;
 }
 
 /**
@@ -73,22 +81,36 @@ export function recommendStudyStartDate(
   const today = toDateOnly(referenceDate);
   const due = toDateOnly(item.dueDate);
   const dueDateKey = formatDateISO(due);
+  const diffDays = diffInDays(due, today);
 
-  if (diffInDays(due, today) < 0) {
+  if (diffDays < 0) {
     // Already overdue: no runway existed, so there's nothing to recommend
     // beyond "it should have started before now". Surface all hours on the
-    // due date and flag as overloaded.
+    // due date and flag as overdue.
     return {
       startDate: dueDateKey,
       dailyAllocation: { [dueDateKey]: totalHours },
       overloaded: true,
       tight: false,
+      isOverdue: true,
+      runwayDays: 0,
+      deficitHours: totalHours,
+      runwayExhausted: false,
     };
   }
 
   if (totalHours === 0) {
     // Nothing to schedule — recommend starting (and "finishing") on the due date.
-    return { startDate: dueDateKey, dailyAllocation: {}, overloaded: false, tight: false };
+    return {
+      startDate: dueDateKey,
+      dailyAllocation: {},
+      overloaded: false,
+      tight: false,
+      isOverdue: false,
+      runwayDays: diffDays + 1,
+      deficitHours: 0,
+      runwayExhausted: false,
+    };
   }
 
   const allocation = new Map<string, number>();
@@ -120,6 +142,7 @@ export function recommendStudyStartDate(
 
   const overloaded = remaining > 1e-9;
   const tight = !overloaded && peakUtilization >= TIGHT_UTILIZATION_RATIO;
+  const deficitHours = overloaded ? remaining : 0;
 
   // Sort chronologically for a stable, readable dailyAllocation record.
   const sortedEntries = Array.from(allocation.entries()).sort(([a], [b]) =>
@@ -129,5 +152,15 @@ export function recommendStudyStartDate(
 
   const startDate = sortedEntries.length > 0 ? sortedEntries[0][0] : formatDateISO(today);
 
-  return { startDate, dailyAllocation, overloaded, tight };
+  return {
+    startDate,
+    dailyAllocation,
+    overloaded,
+    tight,
+    isOverdue: false,
+    runwayDays: diffDays + 1,
+    deficitHours,
+    runwayExhausted: overloaded,
+  };
 }
+
