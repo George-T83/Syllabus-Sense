@@ -491,97 +491,117 @@ export function PlannerView() {
       <div className="max-w-4xl space-y-6">
         <WorkloadOverviewDashboard />
 
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Tasks</h1>
-          <p className="text-sm text-muted-foreground mt-1">All your tasks, across every course.</p>
-        </div>
+        {/* Header, stats, and filters as one panel (matching the Card
+         * language WorkloadOverviewDashboard already establishes above)
+         * instead of a bare heading + a plain text stats strip + a loose
+         * row of selects each doing their own thing. */}
+        <Card className="rounded-2xl p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Tasks</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                All your tasks, across every course.
+              </p>
+            </div>
 
-        {scheduleItems.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-accent/50 px-4 py-2.5 text-xs">
-            <span className="font-semibold text-foreground">{stats.pending} pending</span>
-            {stats.overdue > 0 && (
-              <span className="flex items-center gap-1 font-semibold text-destructive">
-                <svg
-                  className="h-3.5 w-3.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                {stats.overdue} overdue
-              </span>
+            {scheduleItems.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {stats.pending} pending
+                </span>
+                {stats.overdue > 0 && (
+                  <span className="flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive">
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    {stats.overdue} overdue
+                  </span>
+                )}
+                <span className="rounded-full border border-load-low/30 bg-load-low/10 px-3 py-1 text-xs font-semibold text-load-low">
+                  {stats.completed} completed
+                </span>
+              </div>
             )}
-            <span className="text-muted-foreground">{stats.completed} completed</span>
           </div>
-        )}
 
-        <div className="flex flex-wrap gap-2">
-          <select
-            value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            className={selectClass}
-          >
-            <option value="all">All Courses</option>
-            {courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.code}
-              </option>
-            ))}
-          </select>
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/60 pt-4">
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className={selectClass}
+            >
+              <option value="all">All Courses</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.code}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as 'all' | AssignmentType)}
-            className={selectClass}
-          >
-            <option value="all">All Types</option>
-            {Object.entries(TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as 'all' | AssignmentType)}
+              className={selectClass}
+            >
+              <option value="all">All Types</option>
+              {Object.entries(TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className={selectClass}
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-          </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className={selectClass}
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+            </select>
 
-          <select
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-            className={selectClass}
-          >
-            {Object.entries(GROUP_BY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                Group: {label}
-              </option>
-            ))}
-          </select>
+            {/* Group-by/sort-by are a conceptually distinct pair (how the
+             * list is organized, not what's included in it) from the three
+             * inclusion filters above - the divider reads that split at a
+             * glance instead of five identical-looking selects in a row. */}
+            <div className="hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
 
-          <select
-            value={withinSort}
-            onChange={(e) => setWithinSort(e.target.value as WithinSort)}
-            className={selectClass}
-          >
-            {Object.entries(WITHIN_SORT_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                Then by: {label}
-              </option>
-            ))}
-          </select>
-        </div>
+            <select
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+              className={selectClass}
+            >
+              {Object.entries(GROUP_BY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  Group: {label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={withinSort}
+              onChange={(e) => setWithinSort(e.target.value as WithinSort)}
+              className={selectClass}
+            >
+              {Object.entries(WITHIN_SORT_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  Then by: {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
 
         <Card className="rounded-2xl p-6">
           <div className="mb-4 flex items-center gap-3">
