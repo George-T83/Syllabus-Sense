@@ -1,11 +1,23 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { divideProjectIntoChunks, type ChunkableType, type ProjectChunk } from '@/lib/planner/projectChunker';
+import {
+  divideProjectIntoChunks,
+  type ChunkableType,
+  type ProjectChunk,
+} from '@/lib/planner/projectChunker';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/Card';
 import type { ScheduleItem, AssignmentType, Course } from '@/types/schedule';
 
 export interface ProjectChunkerModalProps {
@@ -17,19 +29,82 @@ export interface ProjectChunkerModalProps {
   initialTargetType?: ChunkableType;
 }
 
-const TYPE_CONFIG: Record<ChunkableType, { label: string; icon: string; defaultHours: number; defaultTitle: string }> = {
-  project: { label: 'Final Project / Capstone', icon: '🚀', defaultHours: 10, defaultTitle: 'Senior Capstone Project' },
-  exam: { label: 'Exam Study Plan', icon: '📝', defaultHours: 8, defaultTitle: 'Midterm Exam 1 Prep' },
-  quiz: { label: 'Quiz / Test Review', icon: '⚡', defaultHours: 3, defaultTitle: 'Chapter Quiz Review' },
-  assignment: { label: 'Large Assignment / Lab', icon: '📚', defaultHours: 5, defaultTitle: 'Lab Report & Data Analysis' },
-  paper: { label: 'Essay / Term Paper', icon: '📄', defaultHours: 7, defaultTitle: 'Term Research Paper' },
-  presentation: { label: 'Presentation / Slides', icon: '🎤', defaultHours: 6, defaultTitle: 'Class Slide Presentation' },
-  reading: { label: 'Textbook / Lit Reading', icon: '📖', defaultHours: 4, defaultTitle: 'Chapters 4-6 Required Reading' },
-  coding: { label: 'Coding / Repository', icon: '💻', defaultHours: 12, defaultTitle: 'Full-Stack Software Project' },
-  portfolio: { label: 'Design Portfolio', icon: '🎨', defaultHours: 8, defaultTitle: 'Portfolio Case Study' },
-  group: { label: 'Group Project', icon: '👥', defaultHours: 9, defaultTitle: 'Group Capstone Project' },
-  flashcards: { label: 'Flashcard Mastery', icon: '🃏', defaultHours: 3, defaultTitle: 'Key Definitions Deck' },
-  case_study: { label: 'Case Study Analysis', icon: '🔬', defaultHours: 6, defaultTitle: 'Business Case Study Audit' },
+const TYPE_CONFIG: Record<
+  ChunkableType,
+  { label: string; icon: string; defaultHours: number; defaultTitle: string }
+> = {
+  project: {
+    label: 'Final Project / Capstone',
+    icon: '🚀',
+    defaultHours: 10,
+    defaultTitle: 'Senior Capstone Project',
+  },
+  exam: {
+    label: 'Exam Study Plan',
+    icon: '📝',
+    defaultHours: 8,
+    defaultTitle: 'Midterm Exam 1 Prep',
+  },
+  quiz: {
+    label: 'Quiz / Test Review',
+    icon: '⚡',
+    defaultHours: 3,
+    defaultTitle: 'Chapter Quiz Review',
+  },
+  assignment: {
+    label: 'Large Assignment / Lab',
+    icon: '📚',
+    defaultHours: 5,
+    defaultTitle: 'Lab Report & Data Analysis',
+  },
+  paper: {
+    label: 'Essay / Term Paper',
+    icon: '📄',
+    defaultHours: 7,
+    defaultTitle: 'Term Research Paper',
+  },
+  presentation: {
+    label: 'Presentation / Slides',
+    icon: '🎤',
+    defaultHours: 6,
+    defaultTitle: 'Class Slide Presentation',
+  },
+  reading: {
+    label: 'Textbook / Lit Reading',
+    icon: '📖',
+    defaultHours: 4,
+    defaultTitle: 'Chapters 4-6 Required Reading',
+  },
+  coding: {
+    label: 'Coding / Repository',
+    icon: '💻',
+    defaultHours: 12,
+    defaultTitle: 'Full-Stack Software Project',
+  },
+  portfolio: {
+    label: 'Design Portfolio',
+    icon: '🎨',
+    defaultHours: 8,
+    defaultTitle: 'Portfolio Case Study',
+  },
+  group: {
+    label: 'Group Project',
+    icon: '👥',
+    defaultHours: 9,
+    defaultTitle: 'Group Capstone Project',
+  },
+  flashcards: {
+    label: 'Flashcard Mastery',
+    icon: '🃏',
+    defaultHours: 3,
+    defaultTitle: 'Key Definitions Deck',
+  },
+  case_study: {
+    label: 'Case Study Analysis',
+    icon: '🔬',
+    defaultHours: 6,
+    defaultTitle: 'Business Case Study Audit',
+  },
 };
 
 export function ProjectChunkerModal({
@@ -45,8 +120,12 @@ export function ProjectChunkerModal({
   const { user } = useAuth();
 
   const [chunkType, setChunkType] = useState<ChunkableType>(initialTargetType);
-  const [projectTitle, setProjectTitle] = useState(() => TYPE_CONFIG[initialTargetType]?.defaultTitle || 'Senior Capstone Project');
-  const [totalHours, setTotalHours] = useState(() => TYPE_CONFIG[initialTargetType]?.defaultHours || 10);
+  const [projectTitle, setProjectTitle] = useState(
+    () => TYPE_CONFIG[initialTargetType]?.defaultTitle || 'Senior Capstone Project',
+  );
+  const [totalHours, setTotalHours] = useState(
+    () => TYPE_CONFIG[initialTargetType]?.defaultHours || 10,
+  );
   const [dueDateStr, setDueDateStr] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 10);
@@ -94,12 +173,15 @@ export function ProjectChunkerModal({
             chunkType === 'exam'
               ? 'exam'
               : chunkType === 'quiz'
-              ? 'quiz'
-              : chunkType === 'reading'
-              ? 'reading'
-              : chunkType === 'project' || chunkType === 'coding' || chunkType === 'portfolio' || chunkType === 'group'
-              ? 'project'
-              : 'assignment';
+                ? 'quiz'
+                : chunkType === 'reading'
+                  ? 'reading'
+                  : chunkType === 'project' ||
+                      chunkType === 'coding' ||
+                      chunkType === 'portfolio' ||
+                      chunkType === 'group'
+                    ? 'project'
+                    : 'assignment';
 
           const itemData: ScheduleItem = {
             id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -129,43 +211,55 @@ export function ProjectChunkerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="project-chunker-title"
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl transition-all"
-      >
-        <div className="flex items-center justify-between border-b border-border pb-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-chunker-title"
+    >
+      <Card ref={dialogRef} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
               </svg>
             </div>
             <div>
-              <h2 id="project-chunker-title" className="text-lg font-bold text-foreground">
+              <CardTitle id="project-chunker-title" className="text-lg">
                 Study &amp; Project Bite-Sized Chunker
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Divide projects, exams, quizzes, coding tasks, papers, readings, and presentations into daily chunks
-              </p>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Divide projects, exams, quizzes, coding tasks, papers, readings, and presentations
+                into daily chunks
+              </CardDescription>
             </div>
           </div>
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             ✕
           </button>
-        </div>
+        </CardHeader>
 
-        <div className="mt-5 space-y-4">
+        <CardContent className="mt-1 space-y-4">
           {/* 12 Target Type selector grid */}
           <div>
-            <label className="text-xs font-semibold text-foreground">Select Target Type (12 Categories Available)</label>
+            <label className="text-xs font-semibold text-foreground">
+              Select Target Type (12 Categories Available)
+            </label>
             <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {(Object.keys(TYPE_CONFIG) as ChunkableType[]).map((t) => (
                 <button
@@ -209,7 +303,9 @@ export function ProjectChunkerModal({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground">Target Date / Exam Date</label>
+              <label className="text-xs font-semibold text-foreground">
+                Target Date / Exam Date
+              </label>
               <input
                 type="date"
                 value={dueDateStr}
@@ -279,7 +375,9 @@ export function ProjectChunkerModal({
                       {chunk.phase}
                     </span>
                     <p className="font-semibold text-foreground truncate">{chunk.title}</p>
-                    <p className="text-[11px] text-muted-foreground">Target Date: {chunk.targetDate}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Target Date: {chunk.targetDate}
+                    </p>
                   </div>
                   <div className="shrink-0 text-right">
                     <span className="rounded-lg bg-accent px-2.5 py-1 text-[11px] font-bold text-foreground">
@@ -290,30 +388,35 @@ export function ProjectChunkerModal({
               ))}
             </div>
           </div>
-        </div>
+        </CardContent>
 
-        <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+        <CardFooter className="flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
-            Total Work: <span className="font-bold text-foreground">{totalHours} hrs</span> spread across{' '}
+            Total Work: <span className="font-bold text-foreground">{totalHours} hrs</span> spread
+            across{' '}
             <span className="font-bold text-foreground">{previewChunks.length} sessions</span>
           </p>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
+              className="min-h-[44px] rounded-xl border border-border px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent"
             >
               Cancel
             </button>
             <button
               onClick={handlePersistChunks}
               disabled={saving || savedSuccess || previewChunks.length === 0}
-              className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90 disabled:opacity-50"
+              className="min-h-[44px] rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90 disabled:opacity-50"
             >
-              {saving ? 'Adding to Schedule...' : savedSuccess ? '✓ Chunks Added!' : 'Add Chunks to Task List'}
+              {saving
+                ? 'Adding to Schedule...'
+                : savedSuccess
+                  ? '✓ Chunks Added!'
+                  : 'Add Chunks to Task List'}
             </button>
           </div>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
