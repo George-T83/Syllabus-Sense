@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useAppState } from '@/context/AppStateContext';
+import { WORKLOAD_BADGE_CLASS } from '@/lib/workload/uiClasses';
 import type { Course, ScheduleItem } from '@/types/schedule';
 
 export interface RadarDimension {
@@ -19,18 +20,53 @@ export interface WorkloadRadarChartProps {
 }
 
 const RADAR_AXES: { key: string; label: string; shortLabel: string; description: string }[] = [
-  { key: 'exams', label: 'Exam Weight & Stakes', shortLabel: 'Exams', description: 'Impact of upcoming midterms, finals, and high-stakes tests' },
-  { key: 'volume', label: 'Deliverables Volume', shortLabel: 'Volume', description: 'Total number of pending assignments and tasks' },
-  { key: 'reading', label: 'Reading & Prep Density', shortLabel: 'Reading', description: 'Estimated textbook chapters, papers, and preparatory reading' },
-  { key: 'meetings', label: 'Meeting & Class Hours', shortLabel: 'Class Hours', description: 'Weekly recurring lecture, recitation, and lab attendance' },
-  { key: 'projects', label: 'Project Complexity', shortLabel: 'Projects', description: 'Multi-week term projects, codebases, and group work' },
-  { key: 'urgency', label: 'Deadline Proximity', shortLabel: 'Urgency', description: 'Runway pressure of deliverables due within 48-72 hours' },
+  {
+    key: 'exams',
+    label: 'Exam Weight & Stakes',
+    shortLabel: 'Exams',
+    description: 'Impact of upcoming midterms, finals, and high-stakes tests',
+  },
+  {
+    key: 'volume',
+    label: 'Deliverables Volume',
+    shortLabel: 'Volume',
+    description: 'Total number of pending assignments and tasks',
+  },
+  {
+    key: 'reading',
+    label: 'Reading & Prep Density',
+    shortLabel: 'Reading',
+    description: 'Estimated textbook chapters, papers, and preparatory reading',
+  },
+  {
+    key: 'meetings',
+    label: 'Meeting & Class Hours',
+    shortLabel: 'Class Hours',
+    description: 'Weekly recurring lecture, recitation, and lab attendance',
+  },
+  {
+    key: 'projects',
+    label: 'Project Complexity',
+    shortLabel: 'Projects',
+    description: 'Multi-week term projects, codebases, and group work',
+  },
+  {
+    key: 'urgency',
+    label: 'Deadline Proximity',
+    shortLabel: 'Urgency',
+    description: 'Runway pressure of deliverables due within 48-72 hours',
+  },
 ];
 
 /**
  * Converts polar coordinates to SVG Cartesian (x, y) coordinates.
  */
-function polarToCartesian(centerX: number, centerY: number, radius: number, angleInRadians: number) {
+function polarToCartesian(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angleInRadians: number,
+) {
   return {
     x: centerX + radius * Math.cos(angleInRadians),
     y: centerY + radius * Math.sin(angleInRadians),
@@ -43,7 +79,9 @@ export function WorkloadRadarChart({
   className = '',
 }: WorkloadRadarChartProps) {
   const { state } = useAppState();
-  const [timeframe, setTimeframe] = useState<'current_week' | 'next_week' | 'finals_season'>(initialTimeframe);
+  const [timeframe, setTimeframe] = useState<'current_week' | 'next_week' | 'finals_season'>(
+    initialTimeframe,
+  );
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourseFilter);
   const [showDataTable, setShowDataTable] = useState(false);
   const [hoveredAxis, setHoveredAxis] = useState<string | null>(null);
@@ -56,9 +94,10 @@ export function WorkloadRadarChart({
       return true;
     });
 
-    const courses: Course[] = selectedCourseId === 'all'
-      ? state.courses
-      : state.courses.filter((c) => c.id === selectedCourseId);
+    const courses: Course[] =
+      selectedCourseId === 'all'
+        ? state.courses
+        : state.courses.filter((c) => c.id === selectedCourseId);
 
     // 1. Exam Weight
     const examItems = items.filter((i) => i.type === 'exam' || i.type === 'quiz');
@@ -69,15 +108,19 @@ export function WorkloadRadarChart({
     const volumeScore = Math.min(100, Math.max(10, totalPending * 12));
 
     // 3. Reading & Prep Density
-    const readingItems = items.filter((i) => i.type === 'reading' || (i.notes && i.notes.toLowerCase().includes('read')));
-    const readingScore = Math.min(100, Math.max(20, (readingItems.length * 25) + (courses.length * 8)));
+    const readingItems = items.filter(
+      (i) => i.type === 'reading' || (i.notes && i.notes.toLowerCase().includes('read')),
+    );
+    const readingScore = Math.min(100, Math.max(20, readingItems.length * 25 + courses.length * 8));
 
     // 4. Meeting & Lecture Hours
     const totalMeetings = courses.reduce((acc, c) => acc + (c.meetingTimes?.length || 2), 0);
     const meetingScore = Math.min(100, Math.max(25, totalMeetings * 14));
 
     // 5. Project Complexity
-    const projectItems = items.filter((i) => i.type === 'project' || i.title.toLowerCase().includes('project'));
+    const projectItems = items.filter(
+      (i) => i.type === 'project' || i.title.toLowerCase().includes('project'),
+    );
     const projectScore = Math.min(100, Math.max(15, projectItems.length * 30));
 
     // 6. Urgency & Proximity (< 72 hours)
@@ -87,7 +130,10 @@ export function WorkloadRadarChart({
       const diff = new Date(i.dueDate).getTime() - now;
       return diff > 0 && diff <= 72 * 60 * 60 * 1000;
     });
-    const urgencyScore = Math.min(100, Math.max(15, urgentItems.length * 28 + (items.some((i) => i.priority === 'high') ? 20 : 0)));
+    const urgencyScore = Math.min(
+      100,
+      Math.max(15, urgentItems.length * 28 + (items.some((i) => i.priority === 'high') ? 20 : 0)),
+    );
 
     const scoreMap: Record<string, number> = {
       exams: Math.round(examScore),
@@ -116,8 +162,7 @@ export function WorkloadRadarChart({
       return {
         level: 'HIGH_BURNOUT_RISK' as const,
         label: 'High Burnout Warning',
-        badgeColor: 'bg-destructive/20 text-destructive border-destructive/40',
-        glowColor: 'rgba(239, 68, 68, 0.4)',
+        badgeColor: WORKLOAD_BADGE_CLASS.critical,
         advice: `Heavy cognitive spike in ${maxDimension.label} (${maxDimension.value}%). Stagger study sessions 2-3 days early to avoid cognitive overload.`,
       };
     }
@@ -125,17 +170,16 @@ export function WorkloadRadarChart({
       return {
         level: 'MODERATE_INTENSITY' as const,
         label: 'Optimal High Intensity',
-        badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-        glowColor: 'rgba(245, 158, 11, 0.3)',
+        badgeColor: WORKLOAD_BADGE_CLASS.medium,
         advice: `Balanced workload runway with moderate pressure in ${maxDimension.shortLabel}. Maintain structured daily review blocks.`,
       };
     }
     return {
       level: 'BALANCED' as const,
       label: 'Balanced Cognitive Load',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-      glowColor: 'rgba(16, 185, 129, 0.25)',
-      advice: 'Workload is well-distributed across all courses. Excellent opportunity to read ahead or complete backlog projects.',
+      badgeColor: WORKLOAD_BADGE_CLASS.low,
+      advice:
+        'Workload is well-distributed across all courses. Excellent opportunity to read ahead or complete backlog projects.',
     };
   }, [dimensions]);
 
@@ -172,7 +216,9 @@ export function WorkloadRadarChart({
             <h2 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
               Weekly Cognitive Workload Radar
             </h2>
-            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${stressAssessment.badgeColor}`}>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${stressAssessment.badgeColor}`}
+            >
               {stressAssessment.label}
             </span>
           </div>
@@ -187,9 +233,7 @@ export function WorkloadRadarChart({
             aria-label="Filter radar by timeframe"
             value={timeframe}
             onChange={(e) =>
-              setTimeframe(
-                e.target.value as 'current_week' | 'next_week' | 'finals_season'
-              )
+              setTimeframe(e.target.value as 'current_week' | 'next_week' | 'finals_season')
             }
             className="rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-medium"
           >
@@ -216,7 +260,6 @@ export function WorkloadRadarChart({
 
       {/* Main Radar Display Grid */}
       <div className="mt-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        
         {/* SVG Radar Spider Web (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col items-center justify-center relative">
           <svg
@@ -228,8 +271,8 @@ export function WorkloadRadarChart({
           >
             <defs>
               <radialGradient id="radarFillGrad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="#6366f1" stopOpacity="0.2" />
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.15" />
               </radialGradient>
               <filter id="radarGlow">
                 <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -255,7 +298,8 @@ export function WorkloadRadarChart({
                 <g key={lvlIdx}>
                   <polygon
                     points={ringPoints}
-                    fill={lvlIdx === 3 ? 'rgba(30, 41, 59, 0.3)' : 'none'}
+                    fill={lvlIdx === 3 ? 'hsl(var(--muted))' : 'none'}
+                    fillOpacity={lvlIdx === 3 ? 0.4 : undefined}
                     stroke="currentColor"
                     className="text-border/40"
                     strokeWidth={1}
@@ -313,7 +357,7 @@ export function WorkloadRadarChart({
             <polygon
               points={polygonPoints}
               fill="url(#radarFillGrad)"
-              stroke="#38bdf8"
+              stroke="hsl(var(--primary))"
               strokeWidth={2.5}
               filter="url(#radarGlow)"
               className="transition-all duration-300"
@@ -332,8 +376,14 @@ export function WorkloadRadarChart({
                   cx={pt.x}
                   cy={pt.y}
                   r={isHovered ? 6 : 4}
-                  fill={dim.value >= 80 ? '#ef4444' : dim.value >= 60 ? '#f59e0b' : '#38bdf8'}
-                  stroke="#ffffff"
+                  fill={
+                    dim.value >= 80
+                      ? 'hsl(var(--load-critical))'
+                      : dim.value >= 60
+                        ? 'hsl(var(--load-medium))'
+                        : 'hsl(var(--load-low))'
+                  }
+                  stroke="hsl(var(--card))"
                   strokeWidth={1.5}
                   className="transition-all duration-200 cursor-pointer"
                   onMouseEnter={() => setHoveredAxis(dim.key)}
@@ -386,7 +436,11 @@ export function WorkloadRadarChart({
                     <div className="w-16 h-2 rounded-full bg-muted overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          isHigh ? 'bg-destructive' : dim.value >= 50 ? 'bg-amber-500' : 'bg-primary'
+                          isHigh
+                            ? 'bg-load-critical'
+                            : dim.value >= 50
+                              ? 'bg-load-medium'
+                              : 'bg-load-low'
                         }`}
                         style={{ width: `${dim.value}%` }}
                       />
