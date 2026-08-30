@@ -278,6 +278,42 @@
     animation: syllabus-review-reveal 250ms ease-out both;
   }
 
+  /* Brand-gradient spinner ring: same purple-to-teal stops as
+     .bg-gradient-brand, painted as a conic sweep and masked down to a ring
+     (rather than a filled disc) so it drops into the same
+     `animate-spin`-timed element the flat border-t-primary ring used to
+     occupy. The mask's inner radius matches that ring's old 3px stroke. */
+  .spinner-gradient {
+    background-image: conic-gradient(
+      from 0deg,
+      #8c6eff 0%,
+      #5b3df5 55%,
+      #00bfa0 100%,
+      #8c6eff 100%
+    );
+    -webkit-mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+    mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  }
+
+  /* Staggered entrance for the syllabus autofill review list: each
+     course/meeting/materials/assignment row fades and lifts in on its own
+     delay (set inline per-row) instead of the whole review screen mounting
+     in one synchronous paint. `both` fill mode holds the 0%-keyframe state
+     through the delay so rows don't flash visible before their turn. */
+  @keyframes syllabus-review-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .review-reveal {
+    animation: syllabus-review-reveal 250ms ease-out both;
+  }
+
   /* Used on the fixed Navbar, which sits above scrolling page content -
      content with a strong, saturated color (e.g. Profile's cover-banner
      gradient) can pass directly underneath it. 94% opacity alone already
