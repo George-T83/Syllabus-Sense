@@ -71,6 +71,17 @@ const config: Config = {
         'glass-gap': '2rem',
       },
       fontSize: {
+        display: [
+          '2.25rem',
+          { lineHeight: '2.5rem', letterSpacing: '-0.025em', fontWeight: '700' },
+        ],
+        h1: ['1.75rem', { lineHeight: '2.125rem', letterSpacing: '-0.02em', fontWeight: '700' }],
+        h2: ['1.375rem', { lineHeight: '1.75rem', letterSpacing: '-0.015em', fontWeight: '600' }],
+        h3: ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em', fontWeight: '600' }],
+        body: ['1rem', { lineHeight: '1.5rem', letterSpacing: '0em', fontWeight: '400' }],
+        'body-sm': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0em', fontWeight: '400' }],
+        caption: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em', fontWeight: '500' }],
+        label: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.01em', fontWeight: '600' }],
         'glass-title': [
           '2.25rem',
           { lineHeight: '2.75rem', letterSpacing: '-0.02em', fontWeight: '700' },

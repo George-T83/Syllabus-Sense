@@ -339,7 +339,7 @@ function CardRow({
             )}
             <div
               className={cn(
-                'text-sm font-medium truncate',
+                'text-label truncate',
                 completed ? 'text-muted-foreground line-through' : 'text-foreground',
               )}
             >
@@ -347,7 +347,9 @@ function CardRow({
             </div>
             {!completed && <GradeWeightPill gradeWeight={gradeWeight} />}
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">{metaLine(courseCode, type)}</div>
+          <div className="mt-1 text-caption text-muted-foreground">
+            {metaLine(courseCode, type)}
+          </div>
           {status === 'in_progress' && <ProgressStrip percent={progressPct} />}
         </div>
       </div>
@@ -525,7 +527,7 @@ function TouchRow({
               />
               <div
                 className={cn(
-                  'text-sm font-semibold truncate',
+                  'text-label truncate',
                   completed ? 'text-muted-foreground line-through' : 'text-foreground',
                 )}
               >
@@ -533,7 +535,9 @@ function TouchRow({
               </div>
               {!completed && <GradeWeightPill gradeWeight={gradeWeight} />}
             </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{metaLine(courseCode, type)}</div>
+            <div className="mt-0.5 text-caption text-muted-foreground">
+              {metaLine(courseCode, type)}
+            </div>
             {status === 'in_progress' && <ProgressStrip percent={progressPct} />}
           </div>
         </div>
