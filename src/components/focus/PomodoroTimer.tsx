@@ -34,7 +34,10 @@ function saveSession(session: PomodoroSession): void {
 /** Plays a brief 880 Hz beep using the Web Audio API to signal a timer end. */
 function playBeep(): void {
   try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const ctx = new (
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    )();
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
     oscillator.connect(gain);
@@ -51,7 +54,9 @@ function playBeep(): void {
 }
 
 function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 }
@@ -160,13 +165,25 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
         onClick={() => setVisible(true)}
         aria-label="Open Pomodoro focus timer (Alt+P)"
         title="Focus Timer (Alt+P)"
-        className="fixed bottom-20 left-5 z-40 flex items-center gap-2 rounded-full border border-border bg-card/95 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-foreground shadow-lg transition-all duration-300 hover:scale-105 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:bottom-6 md:left-6"
+        className="fixed bottom-20 left-4 z-40 flex items-center gap-2.5 rounded-full border border-primary/30 bg-card px-4 py-2.5 text-xs font-bold text-foreground shadow-xl backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:bottom-6 md:left-6"
       >
-        <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-        <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <span className="flex h-2.5 w-2.5 items-center justify-center rounded-full bg-amber-500/20">
+          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+        </span>
+        <svg
+          className="h-4 w-4 text-primary shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2.2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
-        <span className="hidden sm:inline-block">Focus Timer</span>
+        <span className="font-semibold text-foreground tracking-wide">Focus Timer</span>
       </button>
     );
   }
@@ -187,7 +204,13 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
           aria-label="Close focus timer"
           className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -196,16 +219,29 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
       {/* Circular progress + time */}
       <div className="relative flex h-24 w-24 items-center justify-center">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
-          <circle cx="48" cy="48" r="40" fill="none" stroke="currentColor" strokeWidth="6" className="text-border" />
           <circle
-            cx="48" cy="48" r="40"
+            cx="48"
+            cy="48"
+            r="40"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="6"
+            className="text-border"
+          />
+          <circle
+            cx="48"
+            cy="48"
+            r="40"
             fill="none"
             stroke="currentColor"
             strokeWidth="6"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - progress)}
             strokeLinecap="round"
-            className={cn('transition-all duration-1000', isBreak ? 'text-emerald-500' : 'text-primary')}
+            className={cn(
+              'transition-all duration-1000',
+              isBreak ? 'text-emerald-500' : 'text-primary',
+            )}
           />
         </svg>
         <span

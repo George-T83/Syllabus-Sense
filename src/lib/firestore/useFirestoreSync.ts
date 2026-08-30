@@ -8,6 +8,7 @@ import { useAppState } from '@/context/AppStateContext';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 import { reconcileScheduleItems } from '@/lib/firestore/scheduleItems';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
+import { mockCourses, mockScheduleItems } from '@/lib/mock-data';
 
 /**
  * Keeps AppStateContext live-synced with the signed-in user's Firestore data.
@@ -25,6 +26,17 @@ export function useFirestoreSync() {
 
   useEffect(() => {
     if (!user || !db) return;
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      typeof window !== 'undefined' &&
+      window.localStorage.getItem('mock_auth') === 'true'
+    ) {
+      if (!stateRef.current.initialized) {
+        dispatch({ type: 'SET_COURSES', payload: mockCourses });
+        dispatch({ type: 'SET_SCHEDULE_ITEMS', payload: mockScheduleItems });
+      }
+      return;
+    }
 
     const unsubCourses = onSnapshot(collection(db, 'users', user.uid, 'courses'), (snapshot) => {
       dispatch({ type: 'SET_COURSES', payload: snapshot.docs.map((d) => d.data() as Course) });

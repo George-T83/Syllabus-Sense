@@ -91,6 +91,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (window.localStorage.getItem('mock_auth') === 'true' ||
         window.location.search.includes('mock=true'))
     ) {
+      if (window.location.search.includes('mock=true')) {
+        window.localStorage.setItem('mock_auth', 'true');
+      }
       setUser({
         uid: 'kyHjDg6iM5YokWhHTh071SW6Yds2',
         email: 'dev-test@syllabussense.dev',
@@ -119,6 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        typeof window !== 'undefined' &&
+        window.localStorage.getItem('mock_auth') === 'true'
+      ) {
+        return;
+      }
       setUser(u);
       setLoading(false);
     });
