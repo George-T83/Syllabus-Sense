@@ -62,7 +62,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           <FirestoreSync />
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <OfflineBanner />
-            <Navbar onOpenChat={() => setIsChatOpen(true)} showCopilot={copilotAvailable} />
+            <Navbar />
             <div className="flex flex-1 pt-20">
               <Sidebar />
               <main className="min-w-0 flex-1 p-6 pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)] md:pl-72 md:p-8 md:pb-8 max-w-7xl transition-all duration-300">

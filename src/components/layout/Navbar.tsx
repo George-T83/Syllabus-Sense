@@ -188,13 +188,7 @@ function NotificationBell({
   );
 }
 
-export default function Navbar({
-  onOpenChat,
-  showCopilot = true,
-}: {
-  onOpenChat?: () => void;
-  showCopilot?: boolean;
-}) {
+export default function Navbar() {
   const { resolvedTheme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const router = useRouter();
@@ -230,28 +224,6 @@ export default function Navbar({
 
       <div className="flex items-center gap-2 sm:gap-4">
         {mounted && user && <TermSwitcher />}
-        {mounted && user && showCopilot && (
-          <button
-            onClick={() => onOpenChat?.()}
-            aria-label="Open AI Syllabus Copilot Chat"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-              />
-            </svg>
-            <span>AI Copilot</span>
-          </button>
-        )}
         {mounted && user && (
           <>
             <button

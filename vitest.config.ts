@@ -12,7 +12,7 @@ export default defineConfig({
     // its own in-progress files) - without this, vitest's default glob picks
     // up their test files too and fails to resolve imports against this
     // tree's node_modules/aliases.
-    exclude: ['**/node_modules/**', '**/.claude/**'],
+    exclude: ['**/node_modules/**', '**/.claude/**', '**/e2e/**'],
   },
   resolve: {
     alias: {
