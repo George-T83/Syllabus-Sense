@@ -9,6 +9,8 @@ export interface ChatRequestBody {
   learningObjectives?: string[];
   instructor?: string;
   location?: string;
+  fileBase64?: string;
+  fileName?: string;
 }
 
 /**
