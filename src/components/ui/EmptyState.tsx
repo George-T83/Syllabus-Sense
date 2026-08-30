@@ -14,13 +14,13 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
         {icon}
       </div>
       <div>
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+        <p className="text-label text-foreground">{title}</p>
+        {description && <p className="text-caption text-muted-foreground mt-1">{description}</p>}
       </div>
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-1 rounded-lg bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 transition-opacity hover:opacity-90"
+          className="mt-1 rounded-lg bg-primary text-primary-foreground text-label px-4 py-2 transition-opacity hover:opacity-90"
         >
           {action.label}
         </button>
