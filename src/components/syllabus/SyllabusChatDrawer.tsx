@@ -3,13 +3,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import type { Course } from '@/types/schedule';
+import type { Course, AssignmentType } from '@/types/schedule';
+import { createScheduleItem } from '@/lib/firestore/scheduleItems';
+
+export interface SuggestedChunk {
+  title: string;
+  notes?: string;
+  estimatedHours: number;
+  dueDate: string;
+  type: AssignmentType;
+}
 
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
   text: string;
   citations?: string[];
+  suggestedChunks?: SuggestedChunk[];
   timestamp: string;
 }
 
@@ -34,6 +44,8 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; base64: string } | null>(null);
+  const [fileUploading, setFileUploading] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -46,6 +58,22 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileUploading(true);
+    try {
+      const base64 = await fileToBase64(file);
+      setUploadedFile({ name: file.name, base64 });
+    } catch (err) {
+      console.error('Failed to read upload file:', err);
+    } finally {
+      setFileUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Sync initial course
   useEffect(() => {
@@ -98,6 +126,9 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
       setInputQuery('');
       setIsLoading(true);
 
+      const attachedFile = uploadedFile;
+      setUploadedFile(null);
+
       try {
         const token = user ? await user.getIdToken().catch(() => null) : null;
         const res = await fetch('/api/syllabus/chat', {
@@ -116,6 +147,8 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             notes: selectedCourse?.notes,
             materials: selectedCourse?.materials,
             learningObjectives: selectedCourse?.learningObjectives,
+            fileBase64: attachedFile?.base64 || undefined,
+            fileName: attachedFile?.name || undefined,
           }),
         });
 
@@ -129,6 +162,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
           sender: 'assistant',
           text: data.reply || 'Here is the relevant syllabus information.',
           citations: data.citations || [],
+          suggestedChunks: data.suggestedChunks || undefined,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
 
@@ -149,7 +183,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
         setIsLoading(false);
       }
     },
-    [isLoading, user, selectedCourse],
+    [isLoading, user, selectedCourse, uploadedFile],
   );
 
   const handleCopy = (id: string, text: string) => {
@@ -316,6 +350,15 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
                         ))}
                       </div>
                     )}
+
+                    {/* Suggested Chunks Card */}
+                    {!isUser && msg.suggestedChunks && msg.suggestedChunks.length > 0 && (
+                      <SuggestedChunksCard
+                        chunks={msg.suggestedChunks}
+                        courseId={selectedCourseId}
+                        courseCode={selectedCourse?.code || 'Course'}
+                      />
+                    )}
                   </div>
 
                   {/* Message meta & copy button */}
@@ -361,6 +404,27 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             ))}
           </div>
 
+          {/* File Preview Badge */}
+          {uploadedFile && (
+            <div className="px-3 py-1.5 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 truncate">
+                <span>📄</span>
+                <span className="font-medium text-foreground truncate">{uploadedFile.name}</span>
+                <span className="text-[10px] text-muted-foreground font-semibold px-1.5 py-0.5 rounded bg-muted/70">
+                  Context Added
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUploadedFile(null)}
+                aria-label="Remove attached file"
+                className="text-muted-foreground hover:text-destructive transition-colors ml-2 font-bold px-1.5 py-0.5 rounded hover:bg-muted"
+              >
+                ✕ Remove
+              </button>
+            </div>
+          )}
+
           {/* Input Bar */}
           <form
             onSubmit={(e) => {
@@ -369,6 +433,38 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             }}
             className="border-t border-border/40 p-3 bg-card flex items-center gap-2"
           >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.docx"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || fileUploading}
+              aria-label="Upload syllabus or assignment rubric document"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+            >
+              {fileUploading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                  />
+                </svg>
+              )}
+            </button>
             <input
               ref={inputRef}
               type="text"
@@ -401,4 +497,123 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
   );
 }
 
+function SuggestedChunksCard({
+  chunks,
+  courseId,
+  courseCode,
+}: {
+  chunks: SuggestedChunk[];
+  courseId: string;
+  courseCode: string;
+}) {
+  const { user } = useAuth();
+  const { dispatch } = useAppState();
+  const [loading, setLoading] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  const handleApply = async () => {
+    if (!user || applied || loading) return;
+    setLoading(true);
+    try {
+      for (const chunk of chunks) {
+        const itemData = {
+          id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          title: chunk.title,
+          courseId: courseId || 'course-gen',
+          type: chunk.type || 'assignment',
+          dueDate: chunk.dueDate,
+          estimatedHours: chunk.estimatedHours,
+          completed: false,
+          priority: 'high' as const,
+          notes: chunk.notes
+            ? `${chunk.notes}\n[AI Rubric Extraction]`
+            : 'Auto-generated subtask from rubric upload.',
+          source: 'ai' as const,
+        };
+        await createScheduleItem(user.uid, itemData, dispatch);
+      }
+      setApplied(true);
+    } catch (err) {
+      console.error('Failed to apply suggested chunks:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-3.5 p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+      <div className="flex items-center justify-between border-b border-primary/10 pb-2">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
+          <span>⚡</span>
+          <span>Suggested Project Chunks ({chunks.length})</span>
+        </div>
+        <span className="text-[10px] text-muted-foreground font-mono">
+          {chunks.reduce((acc, curr) => acc + curr.estimatedHours, 0)} hrs total
+        </span>
+      </div>
+
+      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+        {chunks.map((chunk, idx) => (
+          <div
+            key={idx}
+            className="flex items-start justify-between text-xs p-1.5 rounded bg-card/60 border border-border/40"
+          >
+            <div className="space-y-0.5">
+              <div className="font-semibold text-foreground">{chunk.title}</div>
+              {chunk.notes && (
+                <div className="text-[10px] text-muted-foreground leading-normal">
+                  {chunk.notes}
+                </div>
+              )}
+            </div>
+            <div className="text-right shrink-0 ml-3">
+              <div className="font-mono text-[10px] font-semibold text-primary">
+                {chunk.estimatedHours}h
+              </div>
+              <div className="text-[9px] text-muted-foreground">{chunk.dueDate}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={handleApply}
+        disabled={loading || applied || !user}
+        className={`w-full py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+          applied
+            ? 'bg-load-low text-white cursor-default'
+            : 'bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-50'
+        }`}
+      >
+        {loading ? (
+          <>
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <span>Adding to Planner...</span>
+          </>
+        ) : applied ? (
+          <>
+            <span>✓ Applied to {courseCode}</span>
+          </>
+        ) : (
+          <>
+            <span>📅 Apply to Planner</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export default SyllabusChatDrawer;
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
