@@ -165,17 +165,18 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
         onClick={() => setVisible(true)}
         aria-label="Open Pomodoro focus timer (Alt+P)"
         title="Focus Timer (Alt+P)"
-        className="fixed bottom-20 left-4 z-50 flex items-center gap-2.5 rounded-full border border-amber-500/50 bg-slate-950 px-4 py-2.5 text-xs font-bold text-amber-400 shadow-2xl transition-all duration-300 hover:scale-105 hover:border-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 md:bottom-6 md:left-6 dark:bg-card dark:text-amber-400 dark:border-amber-500/40"
+        className="fixed bottom-20 left-4 z-50 flex items-center gap-2.5 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 px-4 py-2.5 text-xs font-semibold text-white shadow-[0_8px_25px_rgba(245,158,11,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:shadow-[0_12px_30px_rgba(245,158,11,0.6)] active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-400 md:bottom-6 md:left-6 dark:from-slate-900 dark:to-slate-800 dark:text-amber-400 dark:border-amber-500/40 dark:shadow-2xl"
       >
-        <span className="flex h-2.5 w-2.5 items-center justify-center rounded-full bg-amber-500/30">
-          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-        </span>
+        <div className="relative flex h-2 w-2 items-center justify-center">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+        </div>
         <svg
-          className="h-4 w-4 text-amber-400 shrink-0"
+          className="h-4 w-4 text-amber-100 dark:text-amber-400 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          strokeWidth={2.2}
+          strokeWidth={2}
         >
           <path
             strokeLinecap="round"
@@ -183,7 +184,10 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span className="font-bold text-amber-300 tracking-wide">Focus Timer</span>
+        <span className="font-bold tracking-wide text-white dark:text-amber-300">Focus Timer</span>
+        <span className="hidden rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-mono text-white/90 sm:inline-block dark:bg-amber-500/20 dark:text-amber-300">
+          Alt+P
+        </span>
       </button>
     );
   }
