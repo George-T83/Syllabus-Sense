@@ -14,6 +14,7 @@ vi.mock('@/lib/ai/anthropic', () => ({
       create: (...args: unknown[]) => mockAnthropicCreate(...args),
     },
   }),
+  SYLLABUS_EXTRACTION_MODEL: 'claude-sonnet-5',
 }));
 
 import { POST } from '../route';
@@ -95,5 +96,50 @@ Let me know if you need help with anything else!`;
     expect(secondChunk.title).toBe('Implement authentication endpoints');
     expect(secondChunk.estimatedHours).toBe(3.5);
     expect(secondChunk.type).toBe('coding');
+  });
+
+  it('never leaks a raw, truncated chunks block into the reply when the model hits max_tokens mid-JSON', async () => {
+    // Simulates a response cut off by max_tokens before the closing tag -
+    // a real failure mode observed with a large rubric: the model emits the
+    // start tag and partial JSON, then the response just stops.
+    const truncatedReply = `Here is your study plan:
+
+---SUGGESTED_CHUNKS_START---
+[
+  {
+    "title": "Setup outline & initial schema",
+    "notes": "Define tables and draft relationships from rubric page 2",
+    "estimatedHours": 2,
+    "dueDateOffsetDays": 3,
+    "type": "project"
+  },
+  {
+    "title": "Implement authentication end`;
+
+    mockAnthropicCreate.mockResolvedValue({
+      content: [{ type: 'text', text: truncatedReply }],
+    });
+
+    const req = new NextRequest('http://localhost:3000/api/syllabus/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: 'Break this rubric into subtasks',
+        courseCode: 'CSCI 313',
+        fileBase64: 'JVBERi0tLS10ZXN0LXBkZi1maWxlLWNvbnRlbnQtYmFzZTY0',
+        fileName: 'project-rubric.pdf',
+      }),
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    // The dangling tag and partial JSON must never reach the user, even
+    // though there's no closing tag to bound the extraction with.
+    expect(data.reply).not.toContain('---SUGGESTED_CHUNKS_START---');
+    expect(data.reply).not.toContain('"title"');
+    expect(data.reply).toContain('Here is your study plan:');
+    // An incomplete block can't be safely parsed - no chunks this turn,
+    // not a best-effort guess at the model's cut-off JSON.
+    expect(data.suggestedChunks).toBeUndefined();
   });
 });
