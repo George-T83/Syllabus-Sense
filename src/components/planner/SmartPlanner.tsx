@@ -1,13 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
-import { getWorkloadLevel, WORKLOAD_LEVEL_LABELS, WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS, toDateOnly } from '@/lib/workload';
+import {
+  getWorkloadLevel,
+  WORKLOAD_LEVEL_LABELS,
+  WORKLOAD_CHIP_CLASS,
+  WORKLOAD_TEXT_CLASS,
+  WORKLOAD_BADGE_CLASS,
+  toDateOnly,
+} from '@/lib/workload';
 import {
   computeSmartPlan,
   getLocalReferenceDate,
@@ -35,6 +42,55 @@ const dayDetailFormatter = new Intl.DateTimeFormat('en-US', {
 function formatPlanDateKey(dateKey: string): string {
   const d = toDateOnly(dateKey);
   return dueDateFormatter.format(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+/** Default number of task rows a section shows before collapsing the rest
+ * behind a "Show N more" toggle. A real semester's rollover/overdue backlog
+ * can run into the hundreds of items - rendering all of them unconditionally
+ * turned the Planner into a page that was, practically speaking, endless to
+ * scroll. Capping each section independently keeps the page skimmable while
+ * still making every item reachable in one click. */
+const DEFAULT_VISIBLE_COUNT = 6;
+
+/** Renders `items` (via `renderItem`) capped to `initialCount`, with a
+ * "Show N more" / "Show less" toggle when there's more than that to show.
+ * Each call site gets its own independent expand/collapse state. */
+function ExpandableTaskList<T>({
+  items,
+  renderItem,
+  initialCount = DEFAULT_VISIBLE_COUNT,
+}: {
+  items: T[];
+  renderItem: (item: T) => ReactNode;
+  initialCount?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? items : items.slice(0, initialCount);
+  const remaining = items.length - visible.length;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {visible.map(renderItem)}
+      {remaining > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-1 min-h-[44px] self-start rounded-lg px-2 text-xs font-semibold text-primary hover:underline"
+        >
+          Show {remaining} more
+        </button>
+      )}
+      {expanded && items.length > initialCount && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="min-h-[44px] self-start rounded-lg px-2 text-xs font-semibold text-muted-foreground hover:underline"
+        >
+          Show less
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function SmartPlanner() {
@@ -102,7 +158,12 @@ export function SmartPlanner() {
           </span>
           <div className="flex flex-wrap items-center gap-2">
             {plan.runwayExhaustedCount > 0 && (
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+              <span
+                className={cn(
+                  'rounded-full border px-2.5 py-1 text-xs font-semibold',
+                  WORKLOAD_BADGE_CLASS.critical,
+                )}
+              >
                 {plan.runwayExhaustedCount} Runway Exhausted
               </span>
             )}
@@ -152,8 +213,8 @@ export function SmartPlanner() {
             intelligence (type-weighted, progress-aware, stress-adjusted
             hours - see lib/workload) lives, and nothing on screen said so. */}
         <p className="mb-5 text-xs text-muted-foreground">
-          Calculated from your exams, projects, and readings - weighted by type and
-          progress, not just a headcount.
+          Calculated from your exams, projects, and readings - weighted by type and progress, not
+          just a headcount.
         </p>
 
         {plan.startToday.length === 0 ? (
@@ -173,8 +234,9 @@ export function SmartPlanner() {
             description="You're caught up - check back tomorrow."
           />
         ) : (
-          <div className="flex flex-col gap-2">
-            {plan.startToday.map(({ item, startDate, overloaded, tight, overdue }) => (
+          <ExpandableTaskList
+            items={plan.startToday}
+            renderItem={({ item, startDate, overloaded, tight, overdue }) => (
               <PlannedTaskRow
                 key={item.id}
                 variant={state.preferences.taskRowVariant}
@@ -186,8 +248,8 @@ export function SmartPlanner() {
                 overdue={overdue}
                 onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
       </Card>
 
@@ -212,8 +274,9 @@ export function SmartPlanner() {
             Past-due deliverables are separated from prospective 7-day runway planning. Complete or
             reschedule these items to clear debt.
           </p>
-          <div className="flex flex-col gap-2">
-            {plan.overdueItems.map(({ item, startDate, overloaded, tight, overdue }) => (
+          <ExpandableTaskList
+            items={plan.overdueItems}
+            renderItem={({ item, startDate, overloaded, tight, overdue }) => (
               <PlannedTaskRow
                 key={item.id}
                 item={item}
@@ -225,8 +288,8 @@ export function SmartPlanner() {
                 variant={state.preferences.taskRowVariant}
                 onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
               />
-            ))}
-          </div>
+            )}
+          />
         </Card>
       )}
 
@@ -280,10 +343,13 @@ export function SmartPlanner() {
               {dayDetailFormatter.format(selectedForecastDay.day)}
             </h3>
             {selectedDayItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nothing recommended to start this day.</p>
+              <p className="text-sm text-muted-foreground">
+                Nothing recommended to start this day.
+              </p>
             ) : (
-              <div className="flex flex-col gap-2">
-                {selectedDayItems.map(({ item, startDate, overloaded, tight, overdue }) => (
+              <ExpandableTaskList
+                items={selectedDayItems}
+                renderItem={({ item, startDate, overloaded, tight, overdue }) => (
                   <PlannedTaskRow
                     key={item.id}
                     variant={state.preferences.taskRowVariant}
@@ -295,8 +361,8 @@ export function SmartPlanner() {
                     overdue={overdue}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                   />
-                ))}
-              </div>
+                )}
+              />
             )}
           </div>
         )}
@@ -368,7 +434,12 @@ function PlannedTaskRow({
               Overdue
             </span>
           ) : overloaded ? (
-            <span className="whitespace-nowrap rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+            <span
+              className={cn(
+                'whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                WORKLOAD_BADGE_CLASS.critical,
+              )}
+            >
               Runway Exhausted
             </span>
           ) : (
@@ -406,8 +477,9 @@ function PlanSection({
   return (
     <Card className="rounded-2xl p-6">
       <h2 className="mb-3 text-sm font-semibold text-foreground">{title}</h2>
-      <div className="flex flex-col gap-2">
-        {items.map(({ item, startDate, overloaded, tight, overdue }) => (
+      <ExpandableTaskList
+        items={items}
+        renderItem={({ item, startDate, overloaded, tight, overdue }) => (
           <PlannedTaskRow
             key={item.id}
             item={item}
@@ -419,9 +491,8 @@ function PlanSection({
             variant={variant}
             onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}
           />
-        ))}
-      </div>
+        )}
+      />
     </Card>
   );
 }
-
