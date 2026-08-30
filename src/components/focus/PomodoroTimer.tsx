@@ -165,13 +165,13 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
         onClick={() => setVisible(true)}
         aria-label="Open Pomodoro focus timer (Alt+P)"
         title="Focus Timer (Alt+P)"
-        className="fixed bottom-20 left-4 z-40 flex items-center gap-2.5 rounded-full border border-primary/30 bg-card px-4 py-2.5 text-xs font-bold text-foreground shadow-xl backdrop-blur-md transition-all duration-300 hover:scale-105 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:bottom-6 md:left-6"
+        className="fixed bottom-20 left-4 z-50 flex items-center gap-2.5 rounded-full border border-amber-500/50 bg-slate-950 px-4 py-2.5 text-xs font-bold text-amber-400 shadow-2xl transition-all duration-300 hover:scale-105 hover:border-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 md:bottom-6 md:left-6 dark:bg-card dark:text-amber-400 dark:border-amber-500/40"
       >
-        <span className="flex h-2.5 w-2.5 items-center justify-center rounded-full bg-amber-500/20">
-          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+        <span className="flex h-2.5 w-2.5 items-center justify-center rounded-full bg-amber-500/30">
+          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
         </span>
         <svg
-          className="h-4 w-4 text-primary shrink-0"
+          className="h-4 w-4 text-amber-400 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -183,7 +183,7 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span className="font-semibold text-foreground tracking-wide">Focus Timer</span>
+        <span className="font-bold text-amber-300 tracking-wide">Focus Timer</span>
       </button>
     );
   }
