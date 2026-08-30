@@ -176,10 +176,10 @@ export function DashboardView() {
     <>
       <div className="max-w-5xl space-y-6">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+          <h1 className="text-display text-foreground">
             {greeting}, <span className="text-gradient-brand">{firstName}</span>
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
+          <p className="mt-1.5 text-body-sm text-muted-foreground">
             {currentTerm || courses[0]?.term || 'No courses yet'}
           </p>
         </div>
@@ -187,8 +187,10 @@ export function DashboardView() {
         <div className="relative overflow-hidden rounded-2xl bg-gradient-brand p-6 text-white shadow-card">
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-bold">Got a syllabus? Let Claude set it up.</h2>
-              <p className="mt-1 text-sm text-white/80">
+              <h2 className="text-h3 text-white font-bold">
+                Got a syllabus? Let Claude set it up.
+              </h2>
+              <p className="mt-1 text-body-sm text-white/80">
                 Upload the PDF or Word doc and get a course plus every assignment drafted for you to
                 review.
               </p>
@@ -196,7 +198,7 @@ export function DashboardView() {
             <button
               type="button"
               onClick={() => setAutofillOpen(true)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition-transform hover:scale-[1.02]"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-label text-primary shadow-sm transition-transform hover:scale-[1.02]"
             >
               <svg
                 className="h-4 w-4"
@@ -222,21 +224,15 @@ export function DashboardView() {
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
                 <div className="flex items-center gap-3">
                   <SectionIcon icon="tasks" />
-                  <h2 className="text-lg font-bold text-foreground">Upcoming Tasks</h2>
+                  <h2 className="text-h2 text-foreground">Upcoming Tasks</h2>
                 </div>
                 {overdueCount > 0 && (
-                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-caption text-destructive">
                     {overdueCount} overdue
                   </span>
                 )}
-                {/* VA-5: pair the alarming overdue count with a real, positive
-                    number so the dashboard doesn't only ever talk in red
-                    pills. Scoped to the current term, same as the count
-                    above - "this term" rather than "this week" since
-                    ScheduleItem has no completion timestamp to narrow it
-                    further. */}
                 {completedTasksCount > 0 && (
-                  <span className="rounded-full bg-load-low/10 px-2 py-0.5 text-[10px] font-semibold text-load-low">
+                  <span className="rounded-full bg-load-low/10 px-2 py-0.5 text-caption text-load-low">
                     {completedTasksCount} completed this term
                   </span>
                 )}
