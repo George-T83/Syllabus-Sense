@@ -147,7 +147,7 @@ export function SmartPlanner() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl space-y-6 sm:space-y-8">
       {/* Hero: today's load is the single most useful glanceable fact on this
           page, so it gets a large number instead of being buried in the
           7-day strip alongside every other day. */}

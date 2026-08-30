@@ -73,12 +73,14 @@ export function ContactsListView() {
       if (window.location.search.includes('email=true')) {
         setDrafterContact(contacts[0]);
       }
-      if (window.location.search.includes('vcard=true') || window.location.search.includes('qr=true')) {
+      if (
+        window.location.search.includes('vcard=true') ||
+        window.location.search.includes('qr=true')
+      ) {
         setShareContact(contacts[0]);
       }
     }
   }, [contacts]);
-
 
   const courseById = useMemo(() => {
     const map = new Map<string, Course>();
@@ -207,7 +209,7 @@ export function ContactsListView() {
 
   return (
     <>
-      <div className="max-w-4xl space-y-6">
+      <div className="max-w-5xl space-y-6 sm:space-y-8">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Contacts</h1>
