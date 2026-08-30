@@ -488,7 +488,7 @@ export function PlannerView() {
 
   return (
     <>
-      <div className="max-w-4xl space-y-6">
+      <div className="max-w-5xl space-y-6 sm:space-y-8">
         <WorkloadOverviewDashboard />
 
         {/* Header, stats, and filters as one panel (matching the Card

@@ -43,7 +43,10 @@ export function CoursesListView() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      if (window.location.search.includes('simulator=true') || window.location.search.includes('grade=true')) {
+      if (
+        window.location.search.includes('simulator=true') ||
+        window.location.search.includes('grade=true')
+      ) {
         setSimulatorOpen(true);
       }
       if (window.location.search.includes('diff=true')) {
@@ -51,7 +54,6 @@ export function CoursesListView() {
       }
     }
   }, []);
-
 
   const terms = useMemo(
     () => Array.from(new Set(courses.map((c) => c.term).filter(Boolean))) as string[],
@@ -117,7 +119,7 @@ export function CoursesListView() {
 
   return (
     <>
-      <div className="max-w-4xl space-y-6">
+      <div className="max-w-5xl space-y-6 sm:space-y-8">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Courses</h1>
@@ -348,7 +350,12 @@ export function CoursesListView() {
       />
       <SyllabusAutofillModal open={autofillOpen} onClose={() => setAutofillOpen(false)} />
       <GradeCalculatorModal isOpen={simulatorOpen} onClose={() => setSimulatorOpen(false)} />
-      <SyllabusDiffModal isOpen={diffOpen} onClose={() => setDiffOpen(false)} originalSyllabusText="" revisedSyllabusText="" />
+      <SyllabusDiffModal
+        isOpen={diffOpen}
+        onClose={() => setDiffOpen(false)}
+        originalSyllabusText=""
+        revisedSyllabusText=""
+      />
     </>
   );
 }
