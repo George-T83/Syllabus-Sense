@@ -18,6 +18,7 @@ const {
   deleteUserMock,
   reauthenticateWithCredentialMock,
   credentialMock,
+  sendPasswordResetEmailMock,
 } = vi.hoisted(() => ({
   mockCurrentUser: {
     uid: 'u1',
@@ -29,6 +30,7 @@ const {
   deleteUserMock: vi.fn(),
   reauthenticateWithCredentialMock: vi.fn(),
   credentialMock: vi.fn((email: string, password: string) => ({ email, password })),
+  sendPasswordResetEmailMock: vi.fn(),
 }));
 
 vi.mock('firebase/app', () => ({
@@ -45,6 +47,7 @@ vi.mock('firebase/auth', () => ({
   }),
   signInWithEmailAndPassword: vi.fn(),
   createUserWithEmailAndPassword: vi.fn(),
+  sendPasswordResetEmail: (...args: unknown[]) => sendPasswordResetEmailMock(...args),
   signInWithPopup: vi.fn(),
   GoogleAuthProvider: vi.fn(),
   signOut: vi.fn(),
@@ -68,10 +71,13 @@ vi.mock('firebase/storage', () => ({
 }));
 
 function TestConsumer() {
-  const { error, changePassword, deleteAccount } = useAuth();
+  const { error, changePassword, deleteAccount, resetPassword } = useAuth();
   return (
     <div>
       <span data-testid="auth-error">{error ?? 'none'}</span>
+      <button data-testid="reset-password-btn" onClick={() => resetPassword('test@student.edu')}>
+        Reset password
+      </button>
       <button
         data-testid="change-password-btn"
         onClick={() => changePassword('oldpass123', 'newpass456')}
@@ -158,6 +164,35 @@ describe('AuthContext - deleteAccount', () => {
     });
 
     expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('auth-error').textContent).toMatch(/incorrect email or password/i);
+  });
+});
+
+describe('AuthContext - resetPassword', () => {
+  beforeEach(() => {
+    sendPasswordResetEmailMock.mockReset();
+  });
+
+  it('calls sendPasswordResetEmail with target email and clears error on success', async () => {
+    sendPasswordResetEmailMock.mockResolvedValue(undefined);
+    renderAuth();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('reset-password-btn'));
+    });
+
+    expect(sendPasswordResetEmailMock).toHaveBeenCalledWith(expect.anything(), 'test@student.edu');
+    expect(screen.getByTestId('auth-error').textContent).toBe('none');
+  });
+
+  it('surfaces friendly error message when reset email fails', async () => {
+    sendPasswordResetEmailMock.mockRejectedValue({ code: 'auth/user-not-found' });
+    renderAuth();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('reset-password-btn'));
+    });
+
     expect(screen.getByTestId('auth-error').textContent).toMatch(/incorrect email or password/i);
   });
 });
