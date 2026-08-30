@@ -25,7 +25,7 @@ const COLUMNS: readonly KanbanColumnDef[] = [
   {
     id: 'this_week',
     title: 'Due This Week',
-    badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    badgeColor: 'bg-load-medium/15 text-load-medium border-load-medium/30',
     icon: '⚡',
     description: 'Deliverables due within the next 7 days',
   },
@@ -39,7 +39,7 @@ const COLUMNS: readonly KanbanColumnDef[] = [
   {
     id: 'done',
     title: 'Completed',
-    badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    badgeColor: 'bg-load-low/15 text-load-low border-load-low/30',
     icon: '✓',
     description: 'Finished tasks and submitted assignments',
   },
@@ -184,7 +184,7 @@ export function TaskKanbanBoard({ onSelectTask, className = '' }: TaskKanbanBoar
         );
       case 'medium':
         return (
-          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-500">
+          <span className="rounded bg-load-medium/15 px-1.5 py-0.5 text-[10px] font-bold text-load-medium">
             MED
           </span>
         );
@@ -339,7 +339,7 @@ export function TaskKanbanBoard({ onSelectTask, className = '' }: TaskKanbanBoar
                             aria-label={`Mark ${task.title} as ${task.completed ? 'incomplete' : 'complete'}`}
                             className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
                               task.completed
-                                ? 'bg-emerald-500 border-emerald-500 text-white'
+                                ? 'bg-primary border-primary text-primary-foreground'
                                 : 'border-border hover:border-primary'
                             }`}
                           >
