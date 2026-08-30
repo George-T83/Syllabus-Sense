@@ -153,14 +153,14 @@ export function SmartPlanner() {
           7-day strip alongside every other day. */}
       <Card accent className="rounded-2xl p-4 sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
             Today&apos;s Load
           </span>
           <div className="flex flex-wrap items-center gap-2">
             {plan.runwayExhaustedCount > 0 && (
               <span
                 className={cn(
-                  'rounded-full border px-2.5 py-1 text-xs font-semibold',
+                  'rounded-full border px-2.5 py-1 text-caption font-semibold',
                   WORKLOAD_BADGE_CLASS.critical,
                 )}
               >
@@ -169,7 +169,7 @@ export function SmartPlanner() {
             )}
             <span
               className={cn(
-                'rounded-full border px-2.5 py-1 text-xs font-semibold',
+                'rounded-full border px-2.5 py-1 text-caption font-semibold',
                 WORKLOAD_CHIP_CLASS[todayLevel],
                 WORKLOAD_TEXT_CLASS[todayLevel],
               )}
@@ -178,33 +178,23 @@ export function SmartPlanner() {
             </span>
           </div>
         </div>
-        {/* PL-1: split into two figures instead of one. The old single
-            "Today's Load" number only ever summed items due today through
-            +6 days (weekLoad) - an overdue item's hours land on its own
-            PAST due date and never made it into this number, even though
-            the Overdue-badged rows sit directly underneath it. Showing the
-            backlog total alongside it (rather than folding it in) keeps the
-            "due today" figure meaningful on its own while making the
-            catch-up debt visible instead of silently dropped. */}
         <div className="mb-1 flex flex-wrap items-end gap-x-6 gap-y-3">
           <div className="flex items-end gap-2">
-            <span className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            <span className="text-display text-foreground sm:text-5xl">
               {todayLoad.hours.toFixed(1)}
-              <span className="text-lg font-semibold text-muted-foreground sm:text-xl">h</span>
+              <span className="text-h3 text-muted-foreground sm:text-xl">h</span>
             </span>
-            <span className="pb-1.5 text-xs font-medium text-muted-foreground sm:text-sm">
-              due today
-            </span>
+            <span className="pb-1.5 text-body-sm text-muted-foreground">due today</span>
           </div>
           {hasOverdueBacklog && (
             <div className="flex items-end gap-2">
-              <span className="text-2xl font-bold tracking-tight text-destructive sm:text-3xl">
+              <span className="text-h1 text-destructive sm:text-3xl">
                 {plan.overdueHours.toFixed(1)}
-                <span className="text-sm font-semibold text-destructive/70 sm:text-base">h</span>
+                <span className="text-body-sm font-semibold text-destructive/70 sm:text-base">
+                  h
+                </span>
               </span>
-              <span className="pb-1 text-xs font-medium text-muted-foreground sm:text-sm">
-                overdue backlog
-              </span>
+              <span className="pb-1 text-body-sm text-muted-foreground">overdue backlog</span>
             </div>
           )}
         </div>
