@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
-import { getAnthropicClient } from '@/lib/ai/anthropic';
+import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { generateOfflineSyllabusAnswer, type ChatRequestBody } from '@/lib/syllabus/chatEngine';
 
 export const runtime = 'nodejs';
@@ -119,8 +119,8 @@ Format the main body of your answer with clear markdown headings, bullet points,
       });
 
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 2048,
+        model: SYLLABUS_EXTRACTION_MODEL,
+        max_tokens: 4096,
         messages: [{ role: 'user', content: contentBlocks }],
       });
 
@@ -140,32 +140,38 @@ Format the main body of your answer with clear markdown headings, bullet points,
       const startIndex = textResponse.indexOf(startTag);
       const endIndex = textResponse.indexOf(endTag);
 
-      if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-        const jsonStr = textResponse.slice(startIndex + startTag.length, endIndex).trim();
-        try {
-          const parsedChunks = JSON.parse(jsonStr);
-          if (Array.isArray(parsedChunks)) {
-            suggestedChunks = parsedChunks.map((chunk: Record<string, unknown>) => {
-              const daysOffset = Number(chunk.dueDateOffsetDays) || 1;
-              const targetDate = new Date();
-              targetDate.setDate(targetDate.getDate() + daysOffset);
-              return {
-                title: typeof chunk.title === 'string' ? chunk.title : 'Subtask',
-                notes: typeof chunk.notes === 'string' ? chunk.notes : '',
-                estimatedHours: Number(chunk.estimatedHours) || 1,
-                dueDate: targetDate.toISOString().split('T')[0],
-                type: typeof chunk.type === 'string' ? chunk.type : 'assignment',
-              };
-            });
+      // A response that hit max_tokens mid-JSON emits the start tag with no
+      // matching end tag - strip from the start tag onward regardless of
+      // whether the block is complete, so a truncated (or otherwise
+      // unparseable) chunk block never leaks as raw JSON into the user-
+      // visible reply. Only a *complete, valid* block gets parsed into
+      // suggestedChunks; an incomplete one just means no chunks this turn.
+      if (startIndex !== -1) {
+        const hasEndTag = endIndex !== -1 && endIndex > startIndex;
+        if (hasEndTag) {
+          const jsonStr = textResponse.slice(startIndex + startTag.length, endIndex).trim();
+          try {
+            const parsedChunks = JSON.parse(jsonStr);
+            if (Array.isArray(parsedChunks)) {
+              suggestedChunks = parsedChunks.map((chunk: Record<string, unknown>) => {
+                const daysOffset = Number(chunk.dueDateOffsetDays) || 1;
+                const targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() + daysOffset);
+                return {
+                  title: typeof chunk.title === 'string' ? chunk.title : 'Subtask',
+                  notes: typeof chunk.notes === 'string' ? chunk.notes : '',
+                  estimatedHours: Number(chunk.estimatedHours) || 1,
+                  dueDate: targetDate.toISOString().split('T')[0],
+                  type: typeof chunk.type === 'string' ? chunk.type : 'assignment',
+                };
+              });
+            }
+          } catch (err) {
+            console.warn('Failed to parse suggested chunks JSON from AI:', err);
           }
-          // Remove the raw JSON block from the text response
-          textResponse =
-            textResponse.slice(0, startIndex).trim() +
-            '\n' +
-            textResponse.slice(endIndex + endTag.length).trim();
-        } catch (err) {
-          console.warn('Failed to parse suggested chunks JSON from AI:', err);
         }
+        const tail = hasEndTag ? textResponse.slice(endIndex + endTag.length).trim() : '';
+        textResponse = (textResponse.slice(0, startIndex).trim() + '\n' + tail).trim();
       }
 
       return NextResponse.json({
