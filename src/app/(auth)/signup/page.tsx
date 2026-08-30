@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import Logo from '@/components/layout/Logo';
 
 export default function SignupPage() {
   const { signUp, signInWithGoogle, error, clearError } = useAuth();
+  const { showError } = useToast();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,20 +22,30 @@ export default function SignupPage() {
     e.preventDefault();
     setFormError(null);
     if (password !== confirmPassword) {
-      setFormError('Passwords do not match.');
+      const err = 'Passwords do not match.';
+      setFormError(err);
+      showError('Validation Error', err);
       return;
     }
     setSubmitting(true);
     const success = await signUp(email, password);
     setSubmitting(false);
-    if (success) router.push('/dashboard');
+    if (success) {
+      router.push('/dashboard');
+    } else {
+      showError('Sign Up Failed', 'Unable to create account with provided details.');
+    }
   };
 
   const handleGoogle = async () => {
     setSubmitting(true);
     const success = await signInWithGoogle();
     setSubmitting(false);
-    if (success) router.push('/dashboard');
+    if (success) {
+      router.push('/dashboard');
+    } else {
+      showError('Google Sign Up Failed', 'Unable to sign up with Google.');
+    }
   };
 
   const displayedError = formError || error;

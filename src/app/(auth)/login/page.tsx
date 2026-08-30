@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import Logo from '@/components/layout/Logo';
 
 export default function LoginPage() {
   const { signIn, signInWithGoogle, error, clearError } = useAuth();
+  const { showError } = useToast();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,14 +21,22 @@ export default function LoginPage() {
     setSubmitting(true);
     const success = await signIn(email, password);
     setSubmitting(false);
-    if (success) router.push('/dashboard');
+    if (success) {
+      router.push('/dashboard');
+    } else {
+      showError('Sign In Failed', 'Please check your email and password.');
+    }
   };
 
   const handleGoogle = async () => {
     setSubmitting(true);
     const success = await signInWithGoogle();
     setSubmitting(false);
-    if (success) router.push('/dashboard');
+    if (success) {
+      router.push('/dashboard');
+    } else {
+      showError('Google Sign In Failed', 'Unable to sign in with Google.');
+    }
   };
 
   return (
