@@ -174,7 +174,7 @@ export function DashboardView() {
 
   return (
     <>
-      <div className="max-w-5xl space-y-6">
+      <div className="max-w-5xl space-y-6 sm:space-y-8">
         <div>
           <h1 className="text-display text-foreground">
             {greeting}, <span className="text-gradient-brand">{firstName}</span>

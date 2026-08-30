@@ -453,7 +453,7 @@ export function MonthCalendar() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-5xl space-y-6 sm:space-y-8">
       <Card className="rounded-2xl p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h2 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
