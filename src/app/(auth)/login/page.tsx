@@ -9,12 +9,14 @@ import { useToast } from '@/components/ui/Toast';
 import Logo from '@/components/layout/Logo';
 
 export default function LoginPage() {
-  const { user, loading, signIn, signInWithGoogle, error, clearError } = useAuth();
-  const { showError } = useToast();
+  const { user, loading, signIn, resetPassword, signInWithGoogle, error, clearError } = useAuth();
+  const { showSuccess, showError } = useToast();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (user && !loading) {
@@ -31,6 +33,23 @@ export default function LoginPage() {
       router.push('/dashboard');
     } else {
       showError('Sign In Failed', 'Please check your email and password.');
+    }
+  };
+
+  const handleResetPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      showError('Email Required', 'Please enter your email address to reset password.');
+      return;
+    }
+    setSubmitting(true);
+    const success = await resetPassword(email);
+    setSubmitting(false);
+    if (success) {
+      setResetSent(true);
+      showSuccess('Reset Link Sent', `Password reset instructions sent to ${email}.`);
+    } else {
+      showError('Reset Failed', 'Unable to send reset email. Please verify the address.');
     }
   };
 
@@ -55,8 +74,12 @@ export default function LoginPage() {
           <Logo className="h-12 w-12" />
           <span className="text-2xl font-bold text-foreground tracking-tight">Syllabus Sense</span>
         </div>
-        <CardTitle>Welcome back</CardTitle>
-        <CardDescription>Sign in to your Syllabus Sense account</CardDescription>
+        <CardTitle>{isResetMode ? 'Reset password' : 'Welcome back'}</CardTitle>
+        <CardDescription>
+          {isResetMode
+            ? 'Enter your email address to receive password reset instructions'
+            : 'Sign in to your Syllabus Sense account'}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -65,65 +88,129 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
+        {isResetMode ? (
+          <form onSubmit={handleResetPassword} className="space-y-3">
+            <div className="space-y-1.5">
+              <label htmlFor="reset-email" className="text-sm font-medium text-foreground">
+                Email
+              </label>
+              <input
+                id="reset-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="student@university.edu"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) clearError();
+                }}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {resetSent ? (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                Password reset link has been sent to <strong>{email}</strong>. Check your inbox and
+                follow the link to reset your password.
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-lg bg-primary text-primary-foreground text-sm font-semibold py-2.5 transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {submitting ? 'Sending email...' : 'Send Reset Link'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsResetMode(false);
+                setResetSent(false);
                 if (error) clearError();
               }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (error) clearError();
-              }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-lg bg-primary text-primary-foreground text-sm font-semibold py-2.5 transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {submitting ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+              className="w-full text-center text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline py-1"
+            >
+              ← Back to Sign In
+            </button>
+          </form>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-sm font-medium text-foreground">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) clearError();
+                  }}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="text-sm font-medium text-foreground">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsResetMode(true);
+                      if (error) clearError();
+                    }}
+                    className="text-xs font-semibold text-primary hover:underline focus:outline-none focus:ring-1 focus:ring-primary rounded"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) clearError();
+                  }}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-lg bg-primary text-primary-foreground text-sm font-semibold py-2.5 transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {submitting ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
 
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <div className="h-px flex-1 bg-border" />
-          or
-          <div className="h-px flex-1 bg-border" />
-        </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              or
+              <div className="h-px flex-1 bg-border" />
+            </div>
 
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-        >
-          <GoogleIcon className="h-4 w-4" />
-          Continue with Google
-        </button>
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+            >
+              <GoogleIcon className="h-4 w-4" />
+              Continue with Google
+            </button>
+          </>
+        )}
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
