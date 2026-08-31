@@ -4,6 +4,7 @@
  * client bundle.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { AI_MODELS } from './models';
 
 if (typeof window !== 'undefined') {
   throw new Error('Internal Error: lib/ai/anthropic must not be imported in client-side code.');
@@ -24,4 +25,4 @@ export function getAnthropicClient(): Anthropic {
 /** Latest, most capable Claude model - syllabus extraction benefits from
  * strong document understanding and instruction-following on an unusual,
  * multi-part JSON schema. */
-export const SYLLABUS_EXTRACTION_MODEL = 'claude-sonnet-5';
+export const SYLLABUS_EXTRACTION_MODEL = AI_MODELS.SYLLABUS_EXTRACTION;
