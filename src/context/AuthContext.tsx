@@ -5,6 +5,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
@@ -23,6 +24,7 @@ interface AuthContextType {
   error: string | null;
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<boolean>;
   signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<boolean>;
   updateDisplayName: (displayName: string) => Promise<boolean>;
@@ -157,6 +159,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = (email: string, password: string) =>
     runAuthAction(() => createUserWithEmailAndPassword(auth!, email, password));
 
+  const resetPassword = (email: string) =>
+    runAuthAction(() => sendPasswordResetEmail(auth!, email));
+
   const signInWithGoogle = () =>
     runAuthAction(() => signInWithPopup(auth!, new GoogleAuthProvider()));
 
@@ -202,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
         signIn,
         signUp,
+        resetPassword,
         signInWithGoogle,
         signOut,
         updateDisplayName,
