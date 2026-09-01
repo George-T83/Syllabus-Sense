@@ -3,9 +3,18 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { generateOfflineSyllabusAnswer, type ChatRequestBody } from '@/lib/syllabus/chatEngine';
+import { checkRateLimit } from '@/lib/security/rateLimit';
+import { getClientIp, rateLimitedResponse } from '@/lib/security/rateLimitResponse';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+// Auth is only enforced here when FIREBASE_ADMIN_PROJECT_ID is set in
+// production (see requireUser below) - in dev, or if that env var is
+// unset, this route is reachable with no token at all. Limited per-uid
+// when authenticated, per-IP otherwise, so an unauthenticated caller can't
+// hide behind "no uid" and skip the limit entirely.
+const CHAT_RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
 function detectFileKind(fileBase64: string): 'pdf' | 'docx' | null {
   if (fileBase64.startsWith('JVBERi0')) return 'pdf';
@@ -43,6 +52,11 @@ export async function POST(req: NextRequest) {
   if (isProd && !user && process.env.FIREBASE_ADMIN_PROJECT_ID) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
+
+  const rateLimitKey = user ? `uid:${user.uid}:chat` : `ip:${getClientIp(req)}:chat`;
+  const limitResult = await checkRateLimit(rateLimitKey, CHAT_RATE_LIMIT);
+  const blocked = rateLimitedResponse(limitResult);
+  if (blocked) return blocked;
 
   // Parse file if provided
   let fileKind: 'pdf' | 'docx' | null = null;

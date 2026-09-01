@@ -1,9 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 import { renderPasswordResetEmailHtml } from '@/lib/email/passwordResetEmailTemplate';
+import { checkRateLimit } from '@/lib/security/rateLimit';
+import { getClientIp, rateLimitedResponse } from '@/lib/security/rateLimitResponse';
 import nodemailer from 'nodemailer';
 
-export async function POST(request: Request) {
+// No auth token exists yet at this point in the flow (that's the whole
+// point of password reset), so this is the most exposed route in the app -
+// anyone can POST an arbitrary email and trigger a Firebase Admin call plus
+// an outbound email send. Limited tightly (5 / 10 min) per client IP to stop
+// both a spam/cost DDoS and email-enumeration-by-timing abuse.
+const RESET_PASSWORD_RATE_LIMIT = { limit: 5, windowMs: 10 * 60_000 };
+
+export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const limitResult = await checkRateLimit(`ip:${ip}:reset-password`, RESET_PASSWORD_RATE_LIMIT);
+  const blocked = rateLimitedResponse(limitResult);
+  if (blocked) return blocked;
+
   try {
     const { email } = await request.json();
     if (!email) {

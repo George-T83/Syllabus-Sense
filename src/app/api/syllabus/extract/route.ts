@@ -7,11 +7,19 @@ import {
   SYLLABUS_EXTRACTION_TOOL,
 } from '@/lib/ai/syllabusExtractionTool';
 import { syllabusExtractionSchema } from '@/types/extraction';
+import { checkRateLimit } from '@/lib/security/rateLimit';
+import { rateLimitedResponse } from '@/lib/security/rateLimitResponse';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+// A full extraction call is an expensive Anthropic request (up to 8000
+// output tokens against a whole document) - limited per-uid to bound both
+// cost and abuse from a single compromised or scripted account, not just
+// unauthenticated traffic.
+const EXTRACT_RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 
 /**
  * Detected from magic bytes, not the client-declared MIME type (spoofable)
@@ -44,6 +52,10 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
+
+  const limitResult = await checkRateLimit(`uid:${user.uid}:extract`, EXTRACT_RATE_LIMIT);
+  const blocked = rateLimitedResponse(limitResult);
+  if (blocked) return blocked;
 
   let body: { fileBase64?: string; fileName?: string };
   try {

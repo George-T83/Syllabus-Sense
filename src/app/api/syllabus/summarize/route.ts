@@ -5,9 +5,15 @@ import { adminStorage } from '@/lib/firebase/adminStorage';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { COURSE_SUMMARY_SYSTEM_PROMPT, COURSE_SUMMARY_TOOL } from '@/lib/ai/courseSummaryTool';
 import { courseSummarySchema } from '@/types/courseSummary';
+import { checkRateLimit } from '@/lib/security/rateLimit';
+import { rateLimitedResponse } from '@/lib/security/rateLimitResponse';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
+
+// Same rationale as extract/route.ts - an expensive per-request Anthropic
+// call, limited per-uid to bound cost and abuse.
+const SUMMARIZE_RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 
 async function requireUser(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -38,6 +44,10 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
+
+  const limitResult = await checkRateLimit(`uid:${user.uid}:summarize`, SUMMARIZE_RATE_LIMIT);
+  const blocked = rateLimitedResponse(limitResult);
+  if (blocked) return blocked;
 
   let body: { storagePath?: string; fileName?: string };
   try {

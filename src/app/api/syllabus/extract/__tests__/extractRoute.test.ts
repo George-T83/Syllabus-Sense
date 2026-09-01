@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { __resetMemoryRateLimitStore } from '@/lib/security/rateLimit';
 
 const mockVerifyToken = vi.fn();
 const mockAnthropicCreate = vi.fn();
@@ -22,6 +23,7 @@ import { POST } from '@/app/api/syllabus/extract/route';
 describe('/api/syllabus/extract route contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __resetMemoryRateLimitStore();
     process.env.FIREBASE_ADMIN_PROJECT_ID = 'test-project';
     mockVerifyToken.mockResolvedValue({ uid: 'user-123' });
   });
@@ -112,5 +114,29 @@ describe('/api/syllabus/extract route contract', () => {
     expect(json.result.course.code).toBe('CS 101');
     expect(json.result.scheduleItems).toHaveLength(1);
     expect(json.result.scheduleItems[0].title).toBe('Problem Set 1');
+  });
+
+  it('rate-limits a single account after 10 requests within a minute (429)', async () => {
+    mockVerifyToken.mockResolvedValue({ uid: 'rate-limit-test-user' });
+    const makeRequest = () =>
+      new NextRequest('http://localhost:3000/api/syllabus/extract', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer valid-token', 'Content-Type': 'application/json' },
+        // Deliberately not a valid PDF/DOCX - the rate-limit check runs
+        // before file-kind validation, so this only needs to exercise the
+        // request count, not produce a successful extraction.
+        body: JSON.stringify({ fileBase64: 'bm90LWEtcmVhbC1maWxl', fileName: 'x.txt' }),
+      });
+
+    for (let i = 0; i < 10; i++) {
+      const res = await POST(makeRequest());
+      expect(res.status).not.toBe(429);
+    }
+
+    const blockedRes = await POST(makeRequest());
+    expect(blockedRes.status).toBe(429);
+    expect(blockedRes.headers.get('Retry-After')).toBeTruthy();
+    const json = await blockedRes.json();
+    expect(json.error).toMatch(/too many requests/i);
   });
 });

@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { adminStorage } from '@/lib/firebase/adminStorage';
+import { checkRateLimit } from '@/lib/security/rateLimit';
+import { rateLimitedResponse } from '@/lib/security/rateLimitResponse';
 
 export const runtime = 'nodejs';
+
+// Cheaper per-request than the AI routes, but still a real storage-download
+// cost and a path-enumeration vector - a looser per-uid budget than the AI
+// routes rather than no limit at all.
+const FILE_RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
 /**
  * Same-origin relay for a syllabus file's bytes, authenticated per-request
@@ -54,6 +61,10 @@ export async function GET(req: NextRequest) {
   if (!path.startsWith(`users/${uid}/`)) {
     return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
   }
+
+  const limitResult = await checkRateLimit(`uid:${uid}:file`, FILE_RATE_LIMIT);
+  const blocked = rateLimitedResponse(limitResult);
+  if (blocked) return blocked;
 
   if (!adminStorage) {
     return NextResponse.json({ error: 'Storage is not configured.' }, { status: 500 });
