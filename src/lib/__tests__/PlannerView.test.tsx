@@ -44,13 +44,23 @@ const courses: Course[] = [
   { id: 'c2', code: 'MATH 301', title: 'Linear Algebra', color: 'bg-green-500' },
 ];
 
+/** Due dates relative to whenever the test actually runs, not hardcoded
+ * calendar dates - a fixed future date eventually becomes "today" (or the
+ * past) as real time passes, which silently flips which status bucket an
+ * item lands in and breaks this file with no code change involved. */
+function daysFromNow(offset: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + offset);
+  return date.toISOString();
+}
+
 const scheduleItems: ScheduleItem[] = [
   {
     id: 'i1',
     courseId: 'c1',
     title: 'Recursion HW',
     type: 'assignment',
-    dueDate: '2026-09-10T00:00:00.000Z',
+    dueDate: daysFromNow(14),
     completed: false,
     priority: 'low',
     progress: 30,
@@ -60,7 +70,7 @@ const scheduleItems: ScheduleItem[] = [
     courseId: 'c2',
     title: 'Midterm Exam',
     type: 'exam',
-    dueDate: '2026-09-01T00:00:00.000Z',
+    dueDate: daysFromNow(7),
     completed: false,
     priority: 'high',
   },
@@ -69,7 +79,7 @@ const scheduleItems: ScheduleItem[] = [
     courseId: 'c1',
     title: 'Finished Reading',
     type: 'reading',
-    dueDate: '2026-08-20T00:00:00.000Z',
+    dueDate: daysFromNow(-14),
     completed: true,
     priority: 'medium',
   },
