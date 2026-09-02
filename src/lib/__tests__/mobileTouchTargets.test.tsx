@@ -106,7 +106,9 @@ describe('Item 21: Mobile Touch Targets Minimum 44x44px Audit', () => {
   it('PlannerView select filters and action buttons meet the 44px touch target requirement', () => {
     render(
       <AuthProvider>
-        <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: mockItems }}>
+        <AppStateProvider
+          initialState={{ courses: mockCourses, scheduleItems: mockItems, initialized: true }}
+        >
           <PlannerView />
         </AppStateProvider>
       </AuthProvider>,
@@ -133,7 +135,12 @@ describe('Item 21: Mobile Touch Targets Minimum 44x44px Audit', () => {
     render(
       <AuthProvider>
         <AppStateProvider
-          initialState={{ courses: mockCourses, contacts: mockContacts, selectedTerm: 'Fall 2026' }}
+          initialState={{
+            courses: mockCourses,
+            contacts: mockContacts,
+            selectedTerm: 'Fall 2026',
+            initialized: true,
+          }}
         >
           <ContactsListView />
         </AppStateProvider>

@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { SectionIcon } from '@/components/ui/SectionIcon';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
@@ -68,7 +69,22 @@ export function DashboardView() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
 
+  useEffect(() => {
+    // CommandPalette's "Add New Task" action - the Tasks page itself has no
+    // create-task flow (only editing), so this is the real destination for
+    // that quick action, matching the ?chat=true / ?simulator=true pattern
+    // used elsewhere in the app.
+    if (typeof window !== 'undefined' && window.location.search.includes('new=1')) {
+      setAddTaskOpen(true);
+    }
+  }, []);
+
   const { courses, scheduleItems } = state;
+  // The Firestore listener's first snapshot hasn't landed yet - every
+  // collection defaults to [] the same as "genuinely has none", so without
+  // this every empty-state branch below briefly shows "no data" copy (with
+  // working "add" buttons) to a returning user who actually has real data.
+  const dataLoading = !state.initialized;
 
   const currentTerm = useMemo(
     () => resolveActiveTerm(state.selectedTerm, courses),
@@ -244,7 +260,9 @@ export function DashboardView() {
                 </CardActionButton>
               </div>
             </div>
-            {upcomingTasks.length === 0 ? (
+            {dataLoading ? (
+              <SkeletonCard />
+            ) : upcomingTasks.length === 0 ? (
               <EmptyState
                 icon={
                   <svg
@@ -335,7 +353,9 @@ export function DashboardView() {
                 </div>
               </div>
 
-              {courseLoad.length === 0 ? (
+              {dataLoading ? (
+                <SkeletonCard />
+              ) : courseLoad.length === 0 ? (
                 <EmptyState
                   icon={
                     <svg
@@ -399,7 +419,9 @@ export function DashboardView() {
                 <SectionIcon icon="star" className="h-6 w-6" />
                 <h2 className="text-sm font-semibold text-foreground">Term Progress</h2>
               </div>
-              {courses.length === 0 ? (
+              {dataLoading ? (
+                <SkeletonCard />
+              ) : courses.length === 0 ? (
                 // MO-4: a brand-new account with zero courses/zero everything
                 // used to render this same ring-at-0%-plus-zeros grid, which
                 // reads as "something failed to load" rather than "welcome".
@@ -497,7 +519,9 @@ export function DashboardView() {
             </div>
             <QuietLink href="/planner">Open planner</QuietLink>
           </div>
-          {plannerPreview.length === 0 ? (
+          {dataLoading ? (
+            <SkeletonCard />
+          ) : plannerPreview.length === 0 ? (
             <EmptyState
               icon={
                 <svg
