@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
@@ -51,6 +52,15 @@ export function CoursesListView() {
       }
       if (window.location.search.includes('diff=true')) {
         setDiffOpen(true);
+      }
+      // CommandPalette's "Add New Course" / "Upload Syllabus" actions - both
+      // previously navigated here with no query param this page read, so
+      // the user just landed on the plain list with no modal opening.
+      if (window.location.search.includes('new=1')) {
+        setAddCourseOpen(true);
+      }
+      if (window.location.search.includes('autofill=true')) {
+        setAutofillOpen(true);
       }
     }
   }, []);
@@ -207,7 +217,17 @@ export function CoursesListView() {
           </div>
         )}
 
-        {filteredCourses.length === 0 ? (
+        {!state.initialized ? (
+          // The Firestore listener's first snapshot hasn't landed yet -
+          // courses defaults to [] the same as "genuinely has none", so
+          // without this branch a student with real courses briefly sees
+          // "No courses yet" (and a working "+ Add Course" button) for
+          // however long the network takes, not just an instant.
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        ) : filteredCourses.length === 0 ? (
           <Card className="rounded-2xl p-6">
             <EmptyState
               icon={

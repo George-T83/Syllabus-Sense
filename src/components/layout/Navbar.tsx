@@ -188,7 +188,14 @@ function NotificationBell({
   );
 }
 
-export default function Navbar() {
+export interface NavbarProps {
+  /** Forwarded to CommandPalette's onAction - handles actions (AI Copilot,
+   * Pomodoro) whose state lives in LayoutWrapper, outside what Navbar or
+   * CommandPalette can reach on their own. */
+  onCommandPaletteAction?: (actionId: string) => void;
+}
+
+export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
   const { resolvedTheme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const router = useRouter();
@@ -250,6 +257,7 @@ export default function Navbar() {
               isOpen={isCommandPaletteOpen}
               onClose={() => setIsCommandPaletteOpen(false)}
               onOpen={() => setIsCommandPaletteOpen(true)}
+              onAction={onCommandPaletteAction}
             />
           </>
         )}

@@ -171,4 +171,50 @@ describe('CommandPalette (Item 34)', () => {
 
     expect(onAction).toHaveBeenCalledWith('theme-toggle');
   });
+
+  // Regression coverage for the CommandPalette findings from the Round 2
+  // audit: "Upload Syllabus" 404'd (no /syllabus route exists), "Add New
+  // Task" navigated to a page with no create-task flow, and ai-copilot/
+  // grade-simulator/pomodoro had no consumer for onAction at all.
+  it('navigates "Upload Syllabus" to the real Autofill entry point, not the dead /syllabus route', () => {
+    renderWithProviders(<CommandPalette isOpen={true} />);
+
+    fireEvent.click(screen.getByText('Upload Syllabus'));
+
+    expect(pushMock).toHaveBeenCalledWith('/courses?autofill=true');
+  });
+
+  it('navigates "Add New Task" to the Dashboard, which has a real create-task modal', () => {
+    renderWithProviders(<CommandPalette isOpen={true} />);
+
+    fireEvent.click(screen.getByText('Add New Task / Assignment'));
+
+    expect(pushMock).toHaveBeenCalledWith('/dashboard?new=1');
+  });
+
+  it('navigates "What-If Grade Simulator" to its real query-param entry point', () => {
+    const onAction = vi.fn();
+    renderWithProviders(<CommandPalette isOpen={true} onAction={onAction} />);
+
+    fireEvent.click(screen.getByText('What-If Grade Simulator'));
+
+    expect(pushMock).toHaveBeenCalledWith('/courses?simulator=true');
+    expect(onAction).toHaveBeenCalledWith('grade-simulator');
+  });
+
+  it('fires onAction for ai-copilot, whose open/closed state lives outside the palette', () => {
+    const onAction = vi.fn();
+    renderWithProviders(<CommandPalette isOpen={true} onAction={onAction} />);
+
+    fireEvent.click(screen.getByText('Ask AI Syllabus Copilot'));
+    expect(onAction).toHaveBeenCalledWith('ai-copilot');
+  });
+
+  it('fires onAction for pomodoro, whose open/closed state lives outside the palette', () => {
+    const onAction = vi.fn();
+    renderWithProviders(<CommandPalette isOpen={true} onAction={onAction} />);
+
+    fireEvent.click(screen.getByText('Start Pomodoro Focus Timer'));
+    expect(onAction).toHaveBeenCalledWith('pomodoro');
+  });
 });

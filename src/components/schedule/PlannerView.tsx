@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionIcon } from '@/components/ui/SectionIcon';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
@@ -611,7 +612,15 @@ export function PlannerView() {
             </h2>
           </div>
 
-          {filteredItems.length === 0 ? (
+          {!state.initialized ? (
+            // See the identical guard in CoursesListView.tsx - without it, a
+            // student with real tasks briefly sees "No tasks match these
+            // filters" before the first Firestore snapshot lands.
+            <div className="space-y-3">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          ) : filteredItems.length === 0 ? (
             <EmptyState
               icon={
                 <svg
