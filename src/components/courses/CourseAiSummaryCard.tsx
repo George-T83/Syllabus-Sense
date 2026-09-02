@@ -84,7 +84,8 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
   // A summary generated from a since-deleted/replaced file is still shown -
   // it's better to have slightly stale info clearly labeled with its source
   // than to silently discard a real Anthropic result.
-  const isStale = !!summary && !!latestSyllabus && summary.sourceFileName !== latestSyllabus.fileName;
+  const isStale =
+    !!summary && !!latestSyllabus && summary.sourceFileName !== latestSyllabus.fileName;
 
   // CO-4: this card used to return null with no syllabus on file, so a fresh
   // course page showed nothing between the dropzone and Tasks - zero
@@ -95,7 +96,7 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
   // "broken/missing".
   if (!latestSyllabus) {
     return (
-      <Card className="rounded-2xl border-dashed p-6 opacity-90">
+      <Card accent="none" className="rounded-2xl border-dashed p-6 opacity-90">
         <div className="flex items-center gap-2.5">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <svg
