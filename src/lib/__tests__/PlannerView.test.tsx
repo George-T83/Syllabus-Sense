@@ -90,7 +90,7 @@ const scheduleItems: ScheduleItem[] = [
 function renderPlanner() {
   return render(
     <AuthProvider>
-      <AppStateProvider initialState={{ courses, scheduleItems }}>
+      <AppStateProvider initialState={{ courses, scheduleItems, initialized: true }}>
         <PlannerView />
       </AppStateProvider>
     </AuthProvider>,

@@ -64,6 +64,10 @@ function formatTime(seconds: number): string {
 export interface PomodoroTimerProps {
   /** Optional task ID to associate sessions with a specific task. */
   taskId?: string;
+  /** Bump this (e.g. a counter) to force the widget open from outside -
+   * the CommandPalette's "Start Pomodoro Focus Timer" action has no other
+   * way to reach this component's local `visible` state. */
+  openSignal?: number;
 }
 
 /**
@@ -74,7 +78,7 @@ export interface PomodoroTimerProps {
  * 25-minute work sessions and 5-minute breaks. Persists session history to
  * localStorage for later analysis.
  */
-export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
+export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
   const [visible, setVisible] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [remaining, setRemaining] = useState(WORK_DURATION);
@@ -82,6 +86,17 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
   const [sessionCount, setSessionCount] = useState(0);
   const sessionStartRef = useRef<Date | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // External open trigger (CommandPalette's "Start Pomodoro" action) - skips
+  // the initial mount so passing openSignal={0} doesn't force it open.
+  const isFirstOpenSignal = useRef(true);
+  useEffect(() => {
+    if (isFirstOpenSignal.current) {
+      isFirstOpenSignal.current = false;
+      return;
+    }
+    if (openSignal !== undefined) setVisible(true);
+  }, [openSignal]);
 
   // Alt+P keyboard shortcut to toggle the widget
   useEffect(() => {

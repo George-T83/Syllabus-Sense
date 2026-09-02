@@ -173,7 +173,9 @@ export function CommandPalette({
         badge: 'AI',
         badgeVariant: 'primary',
         perform: () => {
-          router.push('/syllabus');
+          // There is no dedicated /syllabus route - "Autofill from Syllabus"
+          // lives on the Courses page. This previously 404'd.
+          router.push('/courses?autofill=true');
           closePalette();
         },
       },
@@ -199,7 +201,9 @@ export function CommandPalette({
         badge: 'New',
         badgeVariant: 'primary',
         perform: () => {
-          router.push('/tasks?new=1');
+          // The Tasks page itself only supports editing, not creating - the
+          // Dashboard's "+ Add Task" modal is the real destination.
+          router.push('/dashboard?new=1');
           onAction?.('new-task');
           closePalette();
         },
@@ -225,6 +229,10 @@ export function CommandPalette({
         badge: 'AI Copilot',
         badgeVariant: 'primary',
         perform: () => {
+          // The chat drawer's open/closed state lives in LayoutWrapper, not
+          // here - onAction is the only path to it. Previously nothing
+          // consumed this callback, so the palette just closed and nothing
+          // else happened.
           onAction?.('ai-copilot');
           closePalette();
         },
@@ -236,6 +244,7 @@ export function CommandPalette({
         category: 'Actions',
         badge: 'Calc',
         perform: () => {
+          router.push('/courses?simulator=true');
           onAction?.('grade-simulator');
           closePalette();
         },
@@ -247,6 +256,8 @@ export function CommandPalette({
         category: 'Actions',
         badge: 'Focus',
         perform: () => {
+          // The timer widget's open/closed state is local to PomodoroTimer,
+          // not reachable from here - onAction is the only path to it.
           onAction?.('pomodoro');
           closePalette();
         },

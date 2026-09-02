@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
@@ -267,7 +268,13 @@ export function ContactsListView() {
           </div>
         )}
 
-        {personGroups.length === 0 ? (
+        {!state.initialized ? (
+          // See the identical guard in CoursesListView.tsx.
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        ) : personGroups.length === 0 ? (
           <Card className="rounded-2xl p-6">
             <EmptyState
               icon={

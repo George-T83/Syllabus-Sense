@@ -23,7 +23,16 @@ const COPILOT_EXCLUDED_ROUTES = ['/profile'];
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  // Incremented (never read for its value) to force PomodoroTimer open from
+  // the CommandPalette's "Start Pomodoro" action - see PomodoroTimer's
+  // `openSignal` prop.
+  const [pomodoroOpenSignal, setPomodoroOpenSignal] = useState(0);
   const modKey = usePlatformKey();
+
+  const handleCommandPaletteAction = (actionId: string) => {
+    if (actionId === 'ai-copilot') setIsChatOpen(true);
+    if (actionId === 'pomodoro') setPomodoroOpenSignal((n) => n + 1);
+  };
   const pathname = usePathname();
   const copilotAvailable = !COPILOT_EXCLUDED_ROUTES.some(
     (route) => pathname === route || pathname?.startsWith(`${route}/`),
@@ -62,7 +71,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
           <FirestoreSync />
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <OfflineBanner />
-            <Navbar />
+            <Navbar onCommandPaletteAction={handleCommandPaletteAction} />
             <div className="flex flex-1 pt-20">
               <Sidebar />
               <main className="min-w-0 flex-1 p-6 pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)] md:pl-72 md:p-8 md:pb-8 max-w-7xl transition-all duration-300">
@@ -104,7 +113,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             )}
 
             <SyllabusChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-            <PomodoroTimer />
+            <PomodoroTimer openSignal={pomodoroOpenSignal} />
           </div>
         </AppStateProvider>
       </SidebarProvider>
