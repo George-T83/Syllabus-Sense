@@ -11,7 +11,11 @@ export interface SyllabusListProps {
   courseId: string;
 }
 
-function formatSize(bytes: number): string {
+function formatSize(bytes: number | undefined): string {
+  // A legacy/partial-upload document can be missing sizeBytes entirely -
+  // without this guard, `undefined / (1024*1024)` renders literally "NaN MB"
+  // to the user instead of degrading gracefully.
+  if (typeof bytes !== 'number' || Number.isNaN(bytes)) return 'Unknown size';
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
