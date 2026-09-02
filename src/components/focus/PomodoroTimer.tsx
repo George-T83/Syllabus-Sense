@@ -197,7 +197,7 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
       role="dialog"
       aria-label="Pomodoro focus timer"
       className={cn(
-        'fixed bottom-20 left-5 z-50 rounded-2xl bg-card p-4 shadow-2xl w-52 md:bottom-6 md:left-6',
+        'fixed bottom-20 left-5 z-50 rounded-2xl bg-card p-4 shadow-2xl w-60 md:bottom-6 md:left-6',
         // Neon Edge "actively processing" sweep - only while genuinely
         // counting down. Paused or idle, this is just a plain bordered
         // card; running is the one state where "time is passing" is true.
