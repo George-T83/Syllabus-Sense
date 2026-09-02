@@ -404,9 +404,17 @@
      card whose entire reason for being on screen is "something real is
      happening right now" (the Focus Timer while running, AI syllabus
      extraction, a Smart Plan recalculation, a post-edit syllabus re-diff) -
-     never to a static/settled card, no matter how important. */
+     never to a static/settled card, no matter how important.
+
+     Deliberately does NOT set `position` here: the ::after pseudo-element
+     only needs SOME positioning context on its parent (relative, fixed,
+     absolute, or sticky all work), and every real caller already has one
+     (Card.tsx is always `relative`; PomodoroTimer's floating widget is
+     `fixed`). Forcing `position: relative` here previously won the cascade
+     over Tailwind's `fixed` utility (same "utilities" layer, later in
+     source), silently breaking the Pomodoro widget out of its fixed
+     viewport position and letting it scroll away with the page. */
   .spin-border {
-    position: relative;
     border: 1px solid hsl(var(--border));
     overflow: hidden;
   }
