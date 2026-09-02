@@ -185,7 +185,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {submitError && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
                   {submitError}
                 </div>
               )}
@@ -361,7 +361,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                               onChange={(e) =>
                                 updateMeetingTime(index, { dayOfWeek: Number(e.target.value) })
                               }
-                              className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             >
                               {WEEKDAY_OPTIONS.map((d) => (
                                 <option key={d.value} value={d.value}>
@@ -373,7 +373,9 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                               aria-label={`Meeting ${index + 1} start time`}
                               type="time"
                               value={meeting.startTime}
-                              onChange={(e) => updateMeetingTime(index, { startTime: e.target.value })}
+                              onChange={(e) =>
+                                updateMeetingTime(index, { startTime: e.target.value })
+                              }
                               className={cn(
                                 'rounded-md border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
                                 timeInvalid ? 'border-destructive' : 'border-border',
@@ -384,7 +386,9 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                               aria-label={`Meeting ${index + 1} end time`}
                               type="time"
                               value={meeting.endTime}
-                              onChange={(e) => updateMeetingTime(index, { endTime: e.target.value })}
+                              onChange={(e) =>
+                                updateMeetingTime(index, { endTime: e.target.value })
+                              }
                               className={cn(
                                 'rounded-md border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
                                 timeInvalid ? 'border-destructive' : 'border-border',
@@ -393,9 +397,11 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                             <input
                               aria-label={`Meeting ${index + 1} location`}
                               value={meeting.location ?? ''}
-                              onChange={(e) => updateMeetingTime(index, { location: e.target.value })}
+                              onChange={(e) =>
+                                updateMeetingTime(index, { location: e.target.value })
+                              }
                               placeholder="Location (optional)"
-                              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="min-w-0 flex-1 rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                             <button
                               type="button"
@@ -433,9 +439,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                 type="submit"
                 disabled={
                   submitting ||
-                  meetingTimes.some(
-                    (m) => !!m.startTime && !!m.endTime && m.endTime <= m.startTime,
-                  )
+                  meetingTimes.some((m) => !!m.startTime && !!m.endTime && m.endTime <= m.startTime)
                 }
                 className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
               >

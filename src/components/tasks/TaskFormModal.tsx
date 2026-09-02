@@ -143,7 +143,7 @@ export function TaskFormModal({
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {submitError && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
                   {submitError}
                 </div>
               )}
@@ -172,7 +172,7 @@ export function TaskFormModal({
                         id="courseId"
                         value={values.courseId}
                         onChange={(e) => updateField('courseId', e.target.value)}
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {courses.map((course) => (
                           <option key={course.id} value={course.id}>
@@ -190,7 +190,7 @@ export function TaskFormModal({
                         id="type"
                         value={values.type}
                         onChange={(e) => updateField('type', e.target.value as AssignmentType)}
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         {TYPE_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
