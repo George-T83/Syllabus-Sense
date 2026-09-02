@@ -72,6 +72,20 @@ jobs:
             exit 1
           fi
 
+      # Gated at "critical" only, not the repo's current baseline of high/
+      # moderate findings (all in transitive deps requiring a major-version
+      # bump tracked separately) - this exists to catch a *new* critical
+      # regression, not to silently pass while masking the known gap.
+      - name: Check for Critical Dependency Vulnerabilities
+        id: audit
+        run: |
+          if npm audit --audit-level=critical; then
+            echo "status=Pass" >> $GITHUB_OUTPUT
+          else
+            echo "status=Fail" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
       - name: Generate Job Summary
         if: always()
         run: |
@@ -83,3 +97,4 @@ jobs:
           echo "| Build | ${{ steps.build.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ steps.test.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Firestore Rules Tests | ${{ steps.rules-test.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Audit (critical) | ${{ steps.audit.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY

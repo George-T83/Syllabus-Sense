@@ -92,10 +92,14 @@ Let me know if you need help with anything else!`;
     const expectedDateStr = expectedDate.toISOString().split('T')[0];
     expect(firstChunk.dueDate).toBe(expectedDateStr);
 
+    // A model reply naming a type outside the real AssignmentType union
+    // (here "coding", which isn't a member) must be coerced to the union's
+    // own catch-all rather than persisted verbatim - createScheduleItem has
+    // no further validation downstream, so this route is the only guard.
     const secondChunk = data.suggestedChunks[1];
     expect(secondChunk.title).toBe('Implement authentication endpoints');
     expect(secondChunk.estimatedHours).toBe(3.5);
-    expect(secondChunk.type).toBe('coding');
+    expect(secondChunk.type).toBe('other');
   });
 
   it('never leaks a raw, truncated chunks block into the reply when the model hits max_tokens mid-JSON', async () => {

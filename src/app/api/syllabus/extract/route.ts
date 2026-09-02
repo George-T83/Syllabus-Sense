@@ -138,10 +138,10 @@ export async function POST(req: NextRequest) {
       messages: [{ role: 'user', content: documentContent }],
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Extraction request failed.' },
-      { status: 502 },
-    );
+    // Logged server-side only - the raw SDK error can include request-shape
+    // or account-tier detail that shouldn't reach the client.
+    console.error('Anthropic call failed in syllabus extraction:', err);
+    return NextResponse.json({ error: 'Extraction request failed.' }, { status: 502 });
   }
 
   const toolUse = message.content.find(
