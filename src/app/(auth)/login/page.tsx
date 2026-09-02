@@ -83,7 +83,7 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
             {error}
           </div>
         )}
@@ -105,7 +105,7 @@ export default function LoginPage() {
                   setEmail(e.target.value);
                   if (error) clearError();
                 }}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -153,7 +153,7 @@ export default function LoginPage() {
                     setEmail(e.target.value);
                     if (error) clearError();
                   }}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div className="space-y-1.5">
@@ -182,7 +182,7 @@ export default function LoginPage() {
                     setPassword(e.target.value);
                     if (error) clearError();
                   }}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <button

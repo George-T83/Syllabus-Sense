@@ -222,7 +222,7 @@ export function TaskKanbanBoard({ onSelectTask, className = '' }: TaskKanbanBoar
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search tasks, notes, or milestones..."
             aria-label="Search tasks in kanban"
-            className="w-full rounded-xl border border-border bg-background px-3.5 py-2 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl border border-border bg-input px-3.5 py-2 pl-9 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <svg
             className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"

@@ -823,7 +823,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                 same message inline with the retained file, so the generic
                 banner is suppressed there to avoid saying it twice. */}
             {error && !(step === 'upload' && file) && (
-              <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
+              <div className="flex items-start gap-2 rounded-xl border border-load-critical/30 bg-load-critical/10 px-3.5 py-2.5 text-sm text-load-critical">
                 <svg
                   className="mt-0.5 h-4 w-4 shrink-0"
                   fill="none"
@@ -846,7 +846,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
               // originally-picked file retained and named - never the bare
               // "drop a file" prompt again, which read as if nothing had
               // been chosen at all.
-              <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-destructive/30 bg-destructive/5 px-4 py-16 text-center">
+              <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-load-critical/30 bg-destructive/5 px-4 py-16 text-center">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
                   <svg
                     className="h-6 w-6"
@@ -1164,7 +1164,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                         <select
                           value={m.dayOfWeek}
                           onChange={(e) => updateMeeting(i, { dayOfWeek: Number(e.target.value) })}
-                          className="rounded-md border border-border bg-background px-2 py-1 text-foreground"
+                          className="rounded-md border border-border bg-input px-2 py-1 text-foreground"
                         >
                           {WEEKDAY_ABBR.map((label, d) => (
                             <option key={d} value={d}>
@@ -1176,20 +1176,20 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                           type="time"
                           value={m.startTime}
                           onChange={(e) => updateMeeting(i, { startTime: e.target.value })}
-                          className="rounded-md border border-border bg-background px-2 py-1 text-foreground"
+                          className="rounded-md border border-border bg-input px-2 py-1 text-foreground"
                         />
                         <span className="text-muted-foreground">to</span>
                         <input
                           type="time"
                           value={m.endTime}
                           onChange={(e) => updateMeeting(i, { endTime: e.target.value })}
-                          className="rounded-md border border-border bg-background px-2 py-1 text-foreground"
+                          className="rounded-md border border-border bg-input px-2 py-1 text-foreground"
                         />
                         <input
                           value={m.location ?? ''}
                           onChange={(e) => updateMeeting(i, { location: e.target.value })}
                           placeholder="Location"
-                          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-foreground"
+                          className="min-w-0 flex-1 rounded-md border border-border bg-input px-2 py-1 text-foreground"
                         />
                         <button
                           type="button"
@@ -1214,7 +1214,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                           <input
                             value={m}
                             onChange={(e) => updateMaterial(i, e.target.value)}
-                            className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground"
+                            className="flex-1 rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground"
                           />
                           <button
                             type="button"
@@ -1622,7 +1622,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                             <input
                               value={it.title}
                               onChange={(e) => updateItem(it.key, { title: e.target.value })}
-                              className="w-full min-w-0 rounded-md border border-border bg-background px-2 py-1 font-medium text-foreground sm:order-2 sm:flex-1"
+                              className="w-full min-w-0 rounded-md border border-border bg-input px-2 py-1 font-medium text-foreground sm:order-2 sm:flex-1"
                             />
                             <div className="flex flex-wrap items-center gap-2 sm:contents">
                               <div className="flex shrink-0 overflow-hidden rounded-full border border-border sm:order-1">
@@ -1657,7 +1657,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                                 onChange={(e) =>
                                   updateItem(it.key, { type: e.target.value as AssignmentType })
                                 }
-                                className="rounded-md border border-border bg-background px-1.5 py-1 text-foreground sm:order-3"
+                                className="rounded-md border border-border bg-input px-1.5 py-1 text-foreground sm:order-3"
                               >
                                 {Object.entries(TYPE_LABELS).map(([value, label]) => (
                                   <option key={value} value={value}>
@@ -1674,7 +1674,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                                     approved: e.target.value ? it.approved : false,
                                   })
                                 }
-                                className="rounded-md border border-border bg-background px-1.5 py-1 text-foreground sm:order-4"
+                                className="rounded-md border border-border bg-input px-1.5 py-1 text-foreground sm:order-4"
                               />
                             </div>
                           </div>

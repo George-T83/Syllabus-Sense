@@ -205,7 +205,7 @@ export function ContactsListView() {
   };
 
   const selectClass =
-    'rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
+    'rounded-lg border border-border bg-input px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
 
   return (
     <>
@@ -227,7 +227,7 @@ export function ContactsListView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or course..."
-            className="flex-1 min-w-[200px] rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+            className="flex-1 min-w-[200px] rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           />
           <select
             value={effectiveTermFilter}
@@ -533,7 +533,7 @@ function ContactFormModal({
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               {submitError && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
                   {submitError}
                 </div>
               )}

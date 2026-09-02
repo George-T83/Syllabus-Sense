@@ -59,7 +59,7 @@ function renderInlineBold(text: string) {
 }
 
 const inputClass =
-  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+  'w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
 
 interface ContactFormState {
   fullName: string;
@@ -786,7 +786,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         if (e.key === 'Enter') handleCommitObjectiveEdit(i);
                         if (e.key === 'Escape') setEditingObjectiveIndex(null);
                       }}
-                      className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="flex-1 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                       autoFocus
                     />
                     <button
@@ -904,7 +904,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   if (e.key === 'Escape') setAddingObjective(false);
                 }}
                 placeholder="e.g. **Design** multi-tier web applications"
-                className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">

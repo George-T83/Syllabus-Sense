@@ -307,7 +307,7 @@ export function ProfileView() {
                   setName(e.target.value);
                   clearError();
                 }}
-                className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="flex-1 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
                 type="submit"
@@ -331,7 +331,7 @@ export function ProfileView() {
           )}
 
           {error && !changingPassword && !deleting && (
-            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className="mt-4 rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
               {error}
             </div>
           )}
@@ -580,7 +580,7 @@ export function ProfileView() {
                         setPasswordFormError(null);
                         clearError();
                       }}
-                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                   <div>
@@ -597,7 +597,7 @@ export function ProfileView() {
                         setPasswordFormError(null);
                         clearError();
                       }}
-                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                   <div>
@@ -614,12 +614,12 @@ export function ProfileView() {
                         setPasswordFormError(null);
                         clearError();
                       }}
-                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
 
                   {(passwordFormError || error) && (
-                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
                       {passwordFormError || error}
                     </div>
                   )}
@@ -731,7 +731,7 @@ export function ProfileView() {
               </div>
 
               {error && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
                   {error}
                 </div>
               )}

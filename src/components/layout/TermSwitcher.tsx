@@ -70,11 +70,14 @@ export function TermSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Select term"
-        className="flex h-11 min-w-[7rem] items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
+        className="flex h-11 min-w-[7rem] items-center justify-between gap-2 rounded-lg border border-border bg-input px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <span className="truncate">{displayLabel}</span>
         <svg
-          className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+            open && 'rotate-180',
+          )}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

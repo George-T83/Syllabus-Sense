@@ -166,7 +166,7 @@ const solidButtonClass =
 const outlineButtonClass =
   'inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-accent';
 const destructiveButtonClass =
-  'inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/20';
+  'inline-flex items-center gap-1.5 rounded-lg border border-load-critical/30 bg-load-critical/10 px-3.5 py-2 text-sm font-semibold text-load-critical transition-colors hover:bg-load-critical/20';
 
 export function TaskDetailView({ taskId }: { taskId: string }) {
   const { state, dispatch } = useAppState();
