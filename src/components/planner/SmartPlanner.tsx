@@ -245,7 +245,10 @@ export function SmartPlanner() {
 
       {/* Dedicated Overdue Backlog Section */}
       {plan.overdueItems.length > 0 && (
-        <Card className="rounded-2xl border-destructive/30 bg-destructive/5 p-4 sm:p-6">
+        <Card
+          accent="none"
+          className="rounded-2xl border-destructive/30 bg-destructive/5 p-4 sm:p-6"
+        >
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground">
