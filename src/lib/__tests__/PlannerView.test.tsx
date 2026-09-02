@@ -44,13 +44,25 @@ const courses: Course[] = [
   { id: 'c2', code: 'MATH 301', title: 'Linear Algebra', color: 'bg-green-500' },
 ];
 
+// Due dates are relative to whenever the suite actually runs, not hardcoded
+// calendar dates - a hardcoded date eventually lands in the past and flips
+// items between the Overdue/In Progress/Upcoming buckets, breaking the
+// 'groups by status' assertions below. Recursion HW and Midterm Exam both
+// stay comfortably in the future (isOverdue only trips once dueDate < now),
+// while keeping Midterm Exam's due date earlier than Recursion HW's
+// preserves the due-date ordering the other tests assert on.
+const DAY_MS = 24 * 60 * 60 * 1000;
+function daysFromNow(days: number): string {
+  return new Date(Date.now() + days * DAY_MS).toISOString();
+}
+
 const scheduleItems: ScheduleItem[] = [
   {
     id: 'i1',
     courseId: 'c1',
     title: 'Recursion HW',
     type: 'assignment',
-    dueDate: '2026-09-10T00:00:00.000Z',
+    dueDate: daysFromNow(30),
     completed: false,
     priority: 'low',
     progress: 30,
@@ -60,7 +72,7 @@ const scheduleItems: ScheduleItem[] = [
     courseId: 'c2',
     title: 'Midterm Exam',
     type: 'exam',
-    dueDate: '2026-09-01T00:00:00.000Z',
+    dueDate: daysFromNow(10),
     completed: false,
     priority: 'high',
   },
@@ -69,7 +81,7 @@ const scheduleItems: ScheduleItem[] = [
     courseId: 'c1',
     title: 'Finished Reading',
     type: 'reading',
-    dueDate: '2026-08-20T00:00:00.000Z',
+    dueDate: daysFromNow(-14),
     completed: true,
     priority: 'medium',
   },
