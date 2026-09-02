@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useAppState } from '@/context/AppStateContext';
 import {
   calculateWorkloadBreakdown,
@@ -13,7 +13,12 @@ import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { toLocalDateStr } from '@/lib/planner/projectChunker';
-import { WORKLOAD_BADGE_CLASS } from '@/lib/workload';
+import {
+  WORKLOAD_BADGE_CLASS,
+  WORKLOAD_SWATCH_CLASS,
+  WORKLOAD_TEXT_CLASS,
+  WORKLOAD_GLOW_CLASS,
+} from '@/lib/workload';
 import type { ScheduleItem, WorkloadLevel } from '@/types/schedule';
 
 // This dashboard's "how busy is this day" scale comes from the chunker's own
@@ -27,16 +32,6 @@ const INTENSITY_TO_LEVEL: Record<WorkloadIntensity, WorkloadLevel> = {
   light: 'low',
   moderate: 'medium',
   heavy: 'critical',
-};
-
-/** Day-tile border/background per level, including hover - kept as literal
- * class strings (not built with template interpolation) so Tailwind's
- * static scanner can see them. */
-const DAY_TILE_LEVEL_CLASS: Record<WorkloadLevel, string> = {
-  low: 'border-load-low/30 bg-load-low/10 hover:bg-load-low/15',
-  medium: 'border-load-medium/30 bg-load-medium/10 hover:bg-load-medium/15',
-  high: 'border-load-high/30 bg-load-high/10 hover:bg-load-high/15',
-  critical: 'border-load-critical/40 bg-load-critical/10 hover:bg-load-critical/15',
 };
 
 export interface WorkloadOverviewDashboardProps {
@@ -81,6 +76,24 @@ export function WorkloadOverviewDashboard({
   }, [selectedDayDate, breakdown]);
 
   const activeDayHours = (activeDay.totalMinutes / 60).toFixed(1);
+
+  // Forecast bar widths are relative to the busiest of the visible 7 days,
+  // not an absolute hour scale - so the shape of the week reads clearly
+  // whether it's a light syllabus-free week or exam season. Floored at 4%
+  // so a genuinely empty day still shows a sliver rather than nothing.
+  const maxMinutes = useMemo(
+    () => Math.max(...breakdown.next7Days.map((d) => d.totalMinutes), 1),
+    [breakdown.next7Days],
+  );
+
+  // The Workload Load card's Neon Edge glow escalates with how heavy the
+  // inspected day actually is - a rollover/overdue task forces it to the
+  // loudest (critical) tier regardless of computed intensity, since an
+  // overdue item is urgent no matter how few hours it's estimated at.
+  const hasRollover = activeDay.items.some((item) => item.isRollover);
+  const glowLevel: WorkloadLevel = hasRollover
+    ? 'critical'
+    : INTENSITY_TO_LEVEL[activeDay.intensity];
 
   const handleToggleTask = async (taskId: string) => {
     if (onToggleComplete) {
@@ -164,22 +177,41 @@ export function WorkloadOverviewDashboard({
         </button>
       </Card>
 
-      {/* Grid: Day Details & Workload Load + 7-Day Forecast Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Selected Day Workload Meter & Task Inspector */}
-        <Card className="lg:col-span-1 p-5">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between">
+      {/* Grid: Day Details & Workload Load + 7-Day Forecast Grid. Stacks
+          full-width up through `lg` (1024px) and only splits into columns
+          at `xl` (1280px) - at `lg` a 1/3-width Workload Load card is too
+          narrow for its own header badge, stat, and the task list's date-
+          shifter row to sit comfortably, so the extra headroom matters more
+          than an earlier-triggering two-column layout. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {/* Selected Day Workload Meter & Task Inspector - Neon Edge glow
+            escalates with glowLevel (low = calm brand violet and still;
+            medium/high/critical progress through amber/orange/red and
+            breathe), so a genuinely heavy or overdue day is visibly louder
+            than a merely busy one instead of every non-quiet day getting
+            an identical fixed "urgent" treatment. */}
+        <Card className={cn('xl:col-span-1 p-5', WORKLOAD_GLOW_CLASS[glowLevel])}>
+          <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 border-b border-border p-0 pb-5">
             <div>
-              <CardTitle className="text-sm font-bold text-foreground">
-                Workload Load ({activeDay.dayName}, {activeDay.formattedDate})
-              </CardTitle>
-              {activeDay.dateStr === breakdown.today.dateStr && (
-                <span className="text-[10px] font-bold text-primary">● Today</span>
-              )}
+              <CardTitle>Workload Load</CardTitle>
+              {/* "Today" reads as a suffix on the date rather than its own
+                  floating badge - two differently-styled pills stacked on
+                  top of each other read as clutter, not information. */}
+              <CardDescription className="mt-1 flex flex-wrap items-center gap-1.5">
+                <span>
+                  {activeDay.dayName}, {activeDay.formattedDate}
+                </span>
+                {activeDay.dateStr === breakdown.today.dateStr && (
+                  <span className="inline-flex items-center gap-1 font-bold text-primary">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    Today
+                  </span>
+                )}
+              </CardDescription>
             </div>
             <span
               className={cn(
-                'rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize',
+                'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold capitalize',
                 WORKLOAD_BADGE_CLASS[INTENSITY_TO_LEVEL[activeDay.intensity]],
               )}
             >
@@ -187,14 +219,14 @@ export function WorkloadOverviewDashboard({
             </span>
           </CardHeader>
 
-          <CardContent className="p-0 pt-2 space-y-4">
-            <div className="flex items-baseline justify-between border-b border-border/50 pb-3">
-              <div>
-                <span className="text-3xl font-extrabold text-foreground">
-                  {activeDayHours} hrs
-                </span>
-                <span className="text-xs text-muted-foreground"> total scheduled study load</span>
-              </div>
+          <CardContent className="p-0 pt-5 space-y-4">
+            <div className="border-b border-border/50 pb-4">
+              <span className="block text-3xl font-extrabold text-foreground">
+                {activeDayHours} hrs
+              </span>
+              <span className="mt-2 block text-xs font-semibold text-muted-foreground">
+                total scheduled study load
+              </span>
             </div>
 
             {/* Task list for selected day with manual date shifter */}
@@ -299,56 +331,62 @@ export function WorkloadOverviewDashboard({
           </CardContent>
         </Card>
 
-        {/* Weekly Workload Schedule (Interactive 7-Day Forecast Grid) */}
-        <Card className="lg:col-span-2 p-5">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-sm font-bold text-foreground">
-                7-Day Workload Forecast ({breakdown.thisWeek.weekLabel})
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Click any day to inspect tasks or manually shift bites to balance heavy days.
-              </p>
-            </div>
+        {/* Weekly Workload Schedule - a single scannable list of rows
+            (day/date, a bar proportional to the week's busiest day, hours,
+            item count, intensity) rather than seven separate tiles, so
+            relative load reads top-to-bottom instead of being eyeballed
+            across seven disconnected boxes. Always the calm, static brand
+            Neon Edge (accent="glow") - this card never pulses; severity
+            escalation belongs to the Workload Load card's own glow. */}
+        <Card accent="glow" className="xl:col-span-2 p-5">
+          <CardHeader className="space-y-0 border-b border-border p-0 pb-5">
+            <CardTitle>7-Day Forecast</CardTitle>
+            <CardDescription className="mt-1">{breakdown.thisWeek.weekLabel}</CardDescription>
           </CardHeader>
-          <CardContent className="p-0 pt-3">
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+          <CardContent className="p-0 pt-1">
+            <div className="divide-y divide-border">
               {breakdown.next7Days.map((day) => {
                 const hrs = (day.totalMinutes / 60).toFixed(1);
                 const isSelected = activeDay.dateStr === day.dateStr;
+                const level = INTENSITY_TO_LEVEL[day.intensity];
+                const barPct = Math.max(4, (day.totalMinutes / maxMinutes) * 100);
 
                 return (
                   <button
                     key={day.dateStr}
                     type="button"
                     onClick={() => setSelectedDayDate(day.dateStr)}
+                    aria-current={isSelected}
                     className={cn(
-                      'flex flex-col justify-between rounded-2xl border p-3 text-center transition-all focus:outline-none focus:ring-2 focus:ring-primary',
-                      isSelected && 'ring-2 ring-primary border-primary',
-                      DAY_TILE_LEVEL_CLASS[INTENSITY_TO_LEVEL[day.intensity]],
+                      'grid w-full grid-cols-[3.25rem_1fr_auto] items-center gap-3 px-1 py-3 text-left transition-colors hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-inset sm:grid-cols-[4rem_1fr_auto_auto_4.5rem]',
+                      isSelected && 'bg-primary/5',
                     )}
                   >
-                    <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        {day.dayName}
-                      </span>
-                      <p className="text-xs font-semibold text-foreground mt-0.5">
+                    <span className="text-xs font-bold text-foreground">
+                      {day.dayName}
+                      <span className="block text-[10px] font-medium text-muted-foreground">
                         {day.formattedDate}
-                      </p>
-                    </div>
-
-                    <div className="my-3">
-                      <span className="text-lg font-extrabold text-foreground">{hrs}h</span>
-                      <p className="text-[10px] text-muted-foreground">{day.items.length} items</p>
-                    </div>
-
+                      </span>
+                    </span>
+                    <span className="hidden h-1.5 overflow-hidden rounded-full bg-muted sm:block">
+                      <span
+                        className={cn('block h-full rounded-full', WORKLOAD_SWATCH_CLASS[level])}
+                        style={{ width: `${barPct}%` }}
+                      />
+                    </span>
+                    <span className="text-right text-sm font-bold tabular-nums text-foreground sm:text-left">
+                      {hrs}h
+                    </span>
+                    <span className="hidden whitespace-nowrap text-[11px] text-muted-foreground sm:block">
+                      {day.items.length} {day.items.length === 1 ? 'item' : 'items'}
+                    </span>
                     <span
                       className={cn(
-                        'mt-auto rounded-full py-0.5 text-[9px] font-bold uppercase',
-                        WORKLOAD_BADGE_CLASS[INTENSITY_TO_LEVEL[day.intensity]],
+                        'hidden text-right text-[10px] font-bold uppercase tracking-wide sm:block',
+                        WORKLOAD_TEXT_CLASS[level],
                       )}
                     >
-                      {day.intensity === 'heavy' ? '⚠️ Heavy Peak' : day.intensity}
+                      {day.intensity === 'heavy' ? '⚠️ Heavy' : day.intensity}
                     </span>
                   </button>
                 );
