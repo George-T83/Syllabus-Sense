@@ -223,7 +223,7 @@ export function DocumentViewerModal({ syllabus, onClose }: DocumentViewerModalPr
                   onChange={(e) => setPageInput(e.target.value)}
                   onBlur={commitPageInput}
                   onKeyDown={(e) => e.key === 'Enter' && commitPageInput()}
-                  className="h-7 w-9 rounded-md border border-border bg-background text-center text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-7 w-9 rounded-md border border-border bg-input text-center text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   aria-label="Page number"
                 />
                 <span>/ {pdfState.numPages}</span>

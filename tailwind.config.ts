@@ -52,6 +52,7 @@ const config: Config = {
           foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)',
         },
         border: 'hsl(var(--border) / <alpha-value>)',
+        input: 'hsl(var(--input) / <alpha-value>)',
         load: {
           low: 'hsl(var(--load-low) / <alpha-value>)',
           medium: 'hsl(var(--load-medium) / <alpha-value>)',

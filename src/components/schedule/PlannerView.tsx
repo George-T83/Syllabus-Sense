@@ -399,7 +399,7 @@ export function PlannerView() {
   };
 
   const selectClass =
-    'rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
+    'rounded-lg border border-border bg-input px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]';
 
   // Factored out of the group-rendering loop so the same row (with its
   // trailing Overdue/Due/Edit/Delete controls) can be rendered both for a
@@ -510,7 +510,7 @@ export function PlannerView() {
                   {stats.pending} pending
                 </span>
                 {stats.overdue > 0 && (
-                  <span className="flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive">
+                  <span className="flex items-center gap-1 rounded-full border border-load-critical/30 bg-load-critical/10 px-3 py-1 text-xs font-semibold text-load-critical">
                     <svg
                       className="h-3.5 w-3.5"
                       fill="none"
