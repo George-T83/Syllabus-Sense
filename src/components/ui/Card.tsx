@@ -7,10 +7,14 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Renders a brand accent marking this card as visually important.
    * `true` (or `"top"`) draws a gradient bar along the top edge; `"left"`
-   * draws a solid primary-colored border down the left edge instead - used
-   * to promote a single card as the dominant/primary one in a section.
+   * draws a solid primary-colored border down the left edge instead; `"glow"`
+   * draws the full-perimeter brand-gradient "Neon Edge" border + ambient
+   * glow (globals.css `.glow-edge-low`) - the calm, static everyday
+   * treatment. A card whose glow should escalate with real severity
+   * (medium/high/critical, breathing) uses WORKLOAD_GLOW_CLASS
+   * (lib/workload/uiClasses.ts) as `className` instead of this prop.
    */
-  accent?: boolean | 'top' | 'left';
+  accent?: boolean | 'top' | 'left' | 'glow';
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
@@ -18,11 +22,15 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     const isInteractive = interactive || hoverable;
     const accentTop = accent === true || accent === 'top';
     const accentLeft = accent === 'left';
+    const accentGlow = accent === 'glow';
     return (
       <div
         ref={ref}
         className={cn(
-          'relative rounded-glass border border-border bg-card/90 backdrop-blur-md shadow-card overflow-hidden',
+          'relative rounded-glass overflow-hidden',
+          accentGlow
+            ? 'glow-edge glow-edge-low'
+            : 'border border-border bg-card/90 backdrop-blur-md shadow-card',
           isInteractive &&
             'transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover',
           accentLeft && 'border-l-[3px] border-l-primary',
@@ -49,7 +57,11 @@ CardHeader.displayName = 'CardHeader';
 export type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 export const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn('text-h3 font-semibold text-foreground', className)} {...props} />
+    <h3
+      ref={ref}
+      className={cn('text-h3 font-extrabold tracking-tight text-foreground', className)}
+      {...props}
+    />
   ),
 );
 CardTitle.displayName = 'CardTitle';
