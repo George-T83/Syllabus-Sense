@@ -69,7 +69,7 @@ describe('Card Component Suite', () => {
 
     const title = screen.getByText('Card Title Text');
     expect(title.className).toContain('title-custom');
-    expect(title.className).toContain('font-semibold');
+    expect(title.className).toContain('font-extrabold');
 
     const desc = screen.getByText('Card Description Text');
     expect(desc.className).toContain('desc-custom');

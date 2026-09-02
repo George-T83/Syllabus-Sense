@@ -78,13 +78,28 @@ function getRelativeDateStr(offsetDays: number): string {
   return toLocalDateStr(d);
 }
 
-function renderDashboard(items: ScheduleItem[] = [], props: Partial<React.ComponentProps<typeof WorkloadOverviewDashboard>> = {}) {
+/** The 7-Day Forecast renders one row-button per day, each always showing
+ * an "X.Xh" hours figure - unlike the item count ("1 item" vs "N items"),
+ * the hour format never changes shape based on the count, so filtering on
+ * it reliably selects exactly the 7 forecast rows regardless of how many
+ * items happen to fall on any given day. */
+function getForecastDayButtons(): HTMLElement[] {
+  // No trailing \b: the item count's digit runs directly into this "h"
+  // with no separator in the concatenated textContent (e.g. "...0.0h0
+  // items..."), which would make a word-boundary assertion after "h" fail.
+  return screen.getAllByRole('button').filter((btn) => /\d+\.\d+h/.test(btn.textContent ?? ''));
+}
+
+function renderDashboard(
+  items: ScheduleItem[] = [],
+  props: Partial<React.ComponentProps<typeof WorkloadOverviewDashboard>> = {},
+) {
   return render(
     <AuthProvider>
       <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: items }}>
         <WorkloadOverviewDashboard {...props} />
       </AppStateProvider>
-    </AuthProvider>
+    </AuthProvider>,
   );
 }
 
@@ -102,21 +117,26 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       renderDashboard();
       expect(screen.getByText(/Daily & Weekly Workload Center/i)).toBeDefined();
       expect(screen.getByText(/Academic Workload & Pace Advisor/i)).toBeDefined();
-      expect(screen.getByText(/7-Day Workload Forecast/i)).toBeDefined();
+      expect(screen.getByText(/7-Day Forecast/i)).toBeDefined();
     });
 
     it('F4-2: renders exactly 7 day buttons in forecast grid', () => {
       renderDashboard();
-      const forecastButtons = screen.getAllByRole('button').filter(
-        (btn) => btn.textContent?.includes('items') || btn.textContent?.includes('0.0h')
-      );
+      const forecastButtons = getForecastDayButtons();
       expect(forecastButtons).toHaveLength(7);
     });
 
     it('F4-3: displays light pace indicator for days with <= 2.5h workload', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 't1', title: 'Light Reading', dueDate: todayStr, estimatedHours: 1.5, completed: false, type: 'reading' }),
+        createItem({
+          id: 't1',
+          title: 'Light Reading',
+          dueDate: todayStr,
+          estimatedHours: 1.5,
+          completed: false,
+          type: 'reading',
+        }),
       ];
       renderDashboard(items);
       const lightBadges = screen.getAllByText(/light/i);
@@ -126,7 +146,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F4-4: displays moderate pace indicator for days with 2.5h - 5.0h workload', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 't1', title: 'Moderate Problem Set', dueDate: todayStr, estimatedHours: 3.5, completed: false, type: 'assignment' }),
+        createItem({
+          id: 't1',
+          title: 'Moderate Problem Set',
+          dueDate: todayStr,
+          estimatedHours: 3.5,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText(/moderate Pace/i)).toBeDefined();
@@ -135,8 +162,22 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F4-5: displays heavy peak indicator for days with > 5.0h workload', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 't1', title: 'Algorithms Study', dueDate: todayStr, estimatedHours: 4, completed: false, type: 'exam' }),
-        createItem({ id: 't2', title: 'Math Homework', dueDate: todayStr, estimatedHours: 3, completed: false, type: 'assignment' }),
+        createItem({
+          id: 't1',
+          title: 'Algorithms Study',
+          dueDate: todayStr,
+          estimatedHours: 4,
+          completed: false,
+          type: 'exam',
+        }),
+        createItem({
+          id: 't2',
+          title: 'Math Homework',
+          dueDate: todayStr,
+          estimatedHours: 3,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getAllByText(/⚠️ Heavy Peak/i).length).toBeGreaterThan(0);
@@ -146,18 +187,25 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
   describe('Tier 1: Feature F5 - 1-Click Day Inspection', () => {
     it('F5-1: defaults active day inspector to Today', () => {
       renderDashboard();
-      expect(screen.getByText(/● Today/i)).toBeDefined();
+      expect(screen.getByText(/Today/i)).toBeDefined();
       expect(screen.getByText(/Workload Load/i)).toBeDefined();
     });
 
     it('F5-2: clicking a day in the 7-day forecast updates active day inspector', () => {
       const tomorrowStr = getRelativeDateStr(1);
       const items: ScheduleItem[] = [
-        createItem({ id: 'tom-1', title: 'Tomorrow Chemistry Lab', dueDate: tomorrowStr, estimatedHours: 3, completed: false, type: 'assignment' }),
+        createItem({
+          id: 'tom-1',
+          title: 'Tomorrow Chemistry Lab',
+          dueDate: tomorrowStr,
+          estimatedHours: 3,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
 
-      const buttons = screen.getAllByRole('button').filter((btn) => btn.textContent?.includes('items'));
+      const buttons = getForecastDayButtons();
       const tomorrowBtn = buttons[1];
       fireEvent.click(tomorrowBtn);
 
@@ -168,8 +216,22 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F5-3: active day displays total scheduled hours and task count', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 't1', title: 'Task 1', dueDate: todayStr, estimatedHours: 1, completed: false, type: 'reading' }),
-        createItem({ id: 't2', title: 'Task 2', dueDate: todayStr, estimatedHours: 1.5, completed: false, type: 'quiz' }),
+        createItem({
+          id: 't1',
+          title: 'Task 1',
+          dueDate: todayStr,
+          estimatedHours: 1,
+          completed: false,
+          type: 'reading',
+        }),
+        createItem({
+          id: 't2',
+          title: 'Task 2',
+          dueDate: todayStr,
+          estimatedHours: 1.5,
+          completed: false,
+          type: 'quiz',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText('2.5 hrs')).toBeDefined();
@@ -183,12 +245,12 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
 
     it('F5-5: clicking back to Today updates active day inspector to Today', () => {
       renderDashboard();
-      const buttons = screen.getAllByRole('button').filter((btn) => btn.textContent?.includes('items'));
+      const buttons = getForecastDayButtons();
       fireEvent.click(buttons[2]); // click day 3
-      expect(screen.queryByText(/● Today/i)).toBeNull();
+      expect(screen.queryByText(/Today/i)).toBeNull();
 
       fireEvent.click(buttons[0]); // click day 1 (today)
-      expect(screen.getByText(/● Today/i)).toBeDefined();
+      expect(screen.getByText(/Today/i)).toBeDefined();
     });
   });
 
@@ -196,7 +258,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F6-1: uncompleted tasks display date picker and quick-shift buttons (-1d, Today, +1d)', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'shiftable-1', title: 'Shiftable Project Task', dueDate: todayStr, estimatedHours: 2, completed: false, type: 'project' }),
+        createItem({
+          id: 'shiftable-1',
+          title: 'Shiftable Project Task',
+          dueDate: todayStr,
+          estimatedHours: 2,
+          completed: false,
+          type: 'project',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText(/Move to another day:/i)).toBeDefined();
@@ -208,12 +277,21 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     });
 
     it('F6-2: changing date input calls updateScheduleItem with new dueDate', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const todayStr = getRelativeDateStr(0);
       const targetNewDate = getRelativeDateStr(3);
 
       const items: ScheduleItem[] = [
-        createItem({ id: 'item-to-shift', title: 'Research Draft', dueDate: todayStr, estimatedHours: 2, completed: false, type: 'assignment' }),
+        createItem({
+          id: 'item-to-shift',
+          title: 'Research Draft',
+          dueDate: todayStr,
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
 
@@ -230,12 +308,21 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     });
 
     it('F6-3: clicking +1d quick shift button shifts task forward by 1 day', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const todayStr = getRelativeDateStr(0);
       const tomorrowStr = getRelativeDateStr(1);
 
       const items: ScheduleItem[] = [
-        createItem({ id: 'quick-shift-item', title: 'Quick Shift Task', dueDate: todayStr, estimatedHours: 2, completed: false, type: 'project' }),
+        createItem({
+          id: 'quick-shift-item',
+          title: 'Quick Shift Task',
+          dueDate: todayStr,
+          estimatedHours: 2,
+          completed: false,
+          type: 'project',
+        }),
       ];
       renderDashboard(items);
 
@@ -251,7 +338,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F6-4: completed tasks do not display date shifter controls', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'completed-item', title: 'Finished Lab', dueDate: todayStr, estimatedHours: 2, completed: true, type: 'assignment' }),
+        createItem({
+          id: 'completed-item',
+          title: 'Finished Lab',
+          dueDate: todayStr,
+          estimatedHours: 2,
+          completed: true,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.queryByText(/Move to another day:/i)).toBeNull();
@@ -261,7 +355,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       const onShiftDateMock = vi.fn();
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'prop-shift-item', title: 'Prop Shift Task', dueDate: todayStr, estimatedHours: 2, completed: false, type: 'assignment' }),
+        createItem({
+          id: 'prop-shift-item',
+          title: 'Prop Shift Task',
+          dueDate: todayStr,
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items, { scheduleItems: items, onShiftDate: onShiftDateMock });
 
@@ -276,7 +377,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F7-1: completed task displays line-through title and completed checkbox', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'done-task', title: 'Completed Synthesis Notes', dueDate: todayStr, estimatedHours: 2, completed: true, type: 'reading' }),
+        createItem({
+          id: 'done-task',
+          title: 'Completed Synthesis Notes',
+          dueDate: todayStr,
+          estimatedHours: 2,
+          completed: true,
+          type: 'reading',
+        }),
       ];
       renderDashboard(items);
       const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
@@ -285,10 +393,19 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     });
 
     it('F7-2: clicking checkbox on uncompleted task calls updateScheduleItem to complete it', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'pending-task', title: 'Pending Synthesis Notes', dueDate: todayStr, estimatedHours: 2, completed: false, type: 'reading' }),
+        createItem({
+          id: 'pending-task',
+          title: 'Pending Synthesis Notes',
+          dueDate: todayStr,
+          estimatedHours: 2,
+          completed: false,
+          type: 'reading',
+        }),
       ];
       renderDashboard(items);
 
@@ -304,10 +421,19 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     });
 
     it('F7-3: clicking checkbox on completed task calls updateScheduleItem to uncomplete it', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'uncomplete-task', title: 'Done Task', dueDate: todayStr, estimatedHours: 1, completed: true, type: 'quiz' }),
+        createItem({
+          id: 'uncomplete-task',
+          title: 'Done Task',
+          dueDate: todayStr,
+          estimatedHours: 1,
+          completed: true,
+          type: 'quiz',
+        }),
       ];
       renderDashboard(items);
 
@@ -323,7 +449,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F7-4: past completed tasks do not trigger rollover warning alert', () => {
       const pastStr = getRelativeDateStr(-2);
       const items: ScheduleItem[] = [
-        createItem({ id: 'past-done', title: 'Past Done Homework', dueDate: pastStr, estimatedHours: 2, completed: true, type: 'assignment' }),
+        createItem({
+          id: 'past-done',
+          title: 'Past Done Homework',
+          dueDate: pastStr,
+          estimatedHours: 2,
+          completed: true,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.queryByText(/Rollover Task/i)).toBeNull();
@@ -332,7 +465,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F7-5: completed task maintains estimated duration badge in task list', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'done-badge-task', title: 'Done Lab', dueDate: todayStr, estimatedHours: 2.5, completed: true, type: 'assignment' }),
+        createItem({
+          id: 'done-badge-task',
+          title: 'Done Lab',
+          dueDate: todayStr,
+          estimatedHours: 2.5,
+          completed: true,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText('150m')).toBeDefined();
@@ -343,7 +483,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F8-1: uncompleted past task displays rollover alert badge in header', () => {
       const yesterdayStr = getRelativeDateStr(-1);
       const items: ScheduleItem[] = [
-        createItem({ id: 'missed-1', title: 'Missed Chapter Reading', dueDate: yesterdayStr, estimatedHours: 2, completed: false, type: 'reading' }),
+        createItem({
+          id: 'missed-1',
+          title: 'Missed Chapter Reading',
+          dueDate: yesterdayStr,
+          estimatedHours: 2,
+          completed: false,
+          type: 'reading',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText(/⚠️ 1 Rollover Task/i)).toBeDefined();
@@ -353,8 +500,22 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       const past1 = getRelativeDateStr(-1);
       const past2 = getRelativeDateStr(-2);
       const items: ScheduleItem[] = [
-        createItem({ id: 'm1', title: 'Missed 1', dueDate: past1, estimatedHours: 1, completed: false, type: 'quiz' }),
-        createItem({ id: 'm2', title: 'Missed 2', dueDate: past2, estimatedHours: 2, completed: false, type: 'assignment' }),
+        createItem({
+          id: 'm1',
+          title: 'Missed 1',
+          dueDate: past1,
+          estimatedHours: 1,
+          completed: false,
+          type: 'quiz',
+        }),
+        createItem({
+          id: 'm2',
+          title: 'Missed 2',
+          dueDate: past2,
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText(/⚠️ 2 Rollover Tasks/i)).toBeDefined();
@@ -363,7 +524,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F8-3: rollover task appears in Today task list with "(Rollover)" appended', () => {
       const yesterdayStr = getRelativeDateStr(-1);
       const items: ScheduleItem[] = [
-        createItem({ id: 'missed-lab', title: 'Physics Lab 1', dueDate: yesterdayStr, estimatedHours: 3, completed: false, type: 'assignment' }),
+        createItem({
+          id: 'missed-lab',
+          title: 'Physics Lab 1',
+          dueDate: yesterdayStr,
+          estimatedHours: 3,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText('Physics Lab 1 (Rollover)')).toBeDefined();
@@ -372,7 +540,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F8-4: rollover tasks display date shifter to allow rescheduling to future day', () => {
       const yesterdayStr = getRelativeDateStr(-1);
       const items: ScheduleItem[] = [
-        createItem({ id: 'rollover-shift', title: 'Missed Vocab Quiz', dueDate: yesterdayStr, estimatedHours: 1, completed: false, type: 'quiz' }),
+        createItem({
+          id: 'rollover-shift',
+          title: 'Missed Vocab Quiz',
+          dueDate: yesterdayStr,
+          estimatedHours: 1,
+          completed: false,
+          type: 'quiz',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText(/Move to another day:/i)).toBeDefined();
@@ -381,7 +556,14 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('F8-5: uncompleted past tasks add to Today total hours calculation', () => {
       const yesterdayStr = getRelativeDateStr(-1);
       const items: ScheduleItem[] = [
-        createItem({ id: 'missed-big', title: 'Missed Exam Review', dueDate: yesterdayStr, estimatedHours: 4, completed: false, type: 'exam' }),
+        createItem({
+          id: 'missed-big',
+          title: 'Missed Exam Review',
+          dueDate: yesterdayStr,
+          estimatedHours: 4,
+          completed: false,
+          type: 'exam',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText('4.0 hrs')).toBeDefined();
@@ -402,7 +584,9 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
 
     it('B2: opens ProjectChunkerModal when clicking "Divide Project/Exam into Bite Chunks"', () => {
       renderDashboard([]);
-      const chunkBtn = screen.getByRole('button', { name: /Divide Project\/Exam into Bite Chunks/i });
+      const chunkBtn = screen.getByRole('button', {
+        name: /Divide Project\/Exam into Bite Chunks/i,
+      });
       fireEvent.click(chunkBtn);
       expect(screen.getByRole('dialog')).toBeDefined();
       expect(screen.getByText(/Study & Project Bite-Sized Chunker/i)).toBeDefined();
@@ -411,7 +595,13 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     it('B3: handles item with missing estimatedHours applying fallback', () => {
       const todayStr = getRelativeDateStr(0);
       const items: ScheduleItem[] = [
-        createItem({ id: 'no-hrs-item', title: 'Exam Without Hours', dueDate: todayStr, completed: false, type: 'exam' }),
+        createItem({
+          id: 'no-hrs-item',
+          title: 'Exam Without Hours',
+          dueDate: todayStr,
+          completed: false,
+          type: 'exam',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText('2.0 hrs')).toBeDefined(); // 120m fallback for exam
@@ -428,7 +618,7 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
           estimatedHours: 0.5,
           completed: false,
           type: 'assignment',
-        })
+        }),
       );
       renderDashboard(items);
       expect(screen.getByText('7.5 hrs')).toBeDefined();
@@ -437,7 +627,13 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
 
     it('B5: handles item without dueDate gracefully without breaking forecast', () => {
       const items: ScheduleItem[] = [
-        createItem({ id: 'floating-task', title: 'Unscheduled Floating Task', dueDate: '', completed: false, type: 'assignment' }),
+        createItem({
+          id: 'floating-task',
+          title: 'Unscheduled Floating Task',
+          dueDate: '',
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
       expect(screen.getByText('0.0 hrs')).toBeDefined();
@@ -450,17 +646,26 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
 
   describe('Tier 3: Pairwise & Cross-Feature Interactions', () => {
     it('P1: Inspect Day 3 -> Shift Task to Day 5 -> Verified through updateScheduleItem', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const day3Str = getRelativeDateStr(3);
       const day5Str = getRelativeDateStr(5);
 
       const items: ScheduleItem[] = [
-        createItem({ id: 'd3-task', title: 'Day 3 Capstone Part', dueDate: day3Str, estimatedHours: 3, completed: false, type: 'project' }),
+        createItem({
+          id: 'd3-task',
+          title: 'Day 3 Capstone Part',
+          dueDate: day3Str,
+          estimatedHours: 3,
+          completed: false,
+          type: 'project',
+        }),
       ];
       renderDashboard(items);
 
       // Inspect Day 3
-      const buttons = screen.getAllByRole('button').filter((btn) => btn.textContent?.includes('items'));
+      const buttons = getForecastDayButtons();
       fireEvent.click(buttons[3]);
 
       // Shift to Day 5
@@ -474,10 +679,19 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     });
 
     it('P2: Rollover task toggled completed via checkbox', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const yesterdayStr = getRelativeDateStr(-1);
       const items: ScheduleItem[] = [
-        createItem({ id: 'rollover-toggle', title: 'Missed Coding HW', dueDate: yesterdayStr, estimatedHours: 2, completed: false, type: 'assignment' }),
+        createItem({
+          id: 'rollover-toggle',
+          title: 'Missed Coding HW',
+          dueDate: yesterdayStr,
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       renderDashboard(items);
 
@@ -492,7 +706,9 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
 
     it('P3: Open Chunker Modal -> Close Chunker Modal -> Dashboard remains interactive', () => {
       renderDashboard([]);
-      const chunkBtn = screen.getByRole('button', { name: /Divide Project\/Exam into Bite Chunks/i });
+      const chunkBtn = screen.getByRole('button', {
+        name: /Divide Project\/Exam into Bite Chunks/i,
+      });
       fireEvent.click(chunkBtn);
       expect(screen.getByRole('dialog')).toBeDefined();
 
@@ -514,9 +730,30 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       const day4Str = getRelativeDateStr(4);
 
       const items: ScheduleItem[] = [
-        createItem({ id: 'cs-exam-chunk', title: 'CS 310 Mock Exam', dueDate: todayStr, estimatedHours: 3, completed: false, type: 'exam' }),
-        createItem({ id: 'math-exam-chunk', title: 'Discrete Math Formula Drill', dueDate: day2Str, estimatedHours: 2.5, completed: false, type: 'exam' }),
-        createItem({ id: 'cs-project-chunk', title: 'Algorithms Project Code', dueDate: day4Str, estimatedHours: 4, completed: false, type: 'project' }),
+        createItem({
+          id: 'cs-exam-chunk',
+          title: 'CS 310 Mock Exam',
+          dueDate: todayStr,
+          estimatedHours: 3,
+          completed: false,
+          type: 'exam',
+        }),
+        createItem({
+          id: 'math-exam-chunk',
+          title: 'Discrete Math Formula Drill',
+          dueDate: day2Str,
+          estimatedHours: 2.5,
+          completed: false,
+          type: 'exam',
+        }),
+        createItem({
+          id: 'cs-project-chunk',
+          title: 'Algorithms Project Code',
+          dueDate: day4Str,
+          estimatedHours: 4,
+          completed: false,
+          type: 'project',
+        }),
       ];
 
       renderDashboard(items);
@@ -526,7 +763,7 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       expect(screen.getByText('CS 310 Mock Exam')).toBeDefined();
 
       // Inspect Day 2 (Discrete Math)
-      const buttons = screen.getAllByRole('button').filter((btn) => btn.textContent?.includes('items'));
+      const buttons = getForecastDayButtons();
       fireEvent.click(buttons[2]);
       expect(screen.getByText('Discrete Math Formula Drill')).toBeDefined();
       expect(screen.getByText('2.5 hrs')).toBeDefined();
@@ -538,14 +775,30 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     });
 
     it('Scenario 2: Post-Illness Rollover Task Recovery and Date Shifting', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const dayMinus2 = getRelativeDateStr(-2);
       const dayMinus1 = getRelativeDateStr(-1);
       const dayPlus2 = getRelativeDateStr(2);
 
       const items: ScheduleItem[] = [
-        createItem({ id: 'sick-1', title: 'Missed Lecture Notes Review', dueDate: dayMinus2, estimatedHours: 2, completed: false, type: 'reading' }),
-        createItem({ id: 'sick-2', title: 'Missed Practice Problems', dueDate: dayMinus1, estimatedHours: 3, completed: false, type: 'assignment' }),
+        createItem({
+          id: 'sick-1',
+          title: 'Missed Lecture Notes Review',
+          dueDate: dayMinus2,
+          estimatedHours: 2,
+          completed: false,
+          type: 'reading',
+        }),
+        createItem({
+          id: 'sick-2',
+          title: 'Missed Practice Problems',
+          dueDate: dayMinus1,
+          estimatedHours: 3,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
 
       renderDashboard(items);
@@ -564,9 +817,30 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
 
     it('Scenario 3: Senior Capstone Milestone Tracking Across 7-Day Window', () => {
       const items: ScheduleItem[] = [
-        createItem({ id: 'cap-1', title: 'Capstone: Research & Architecture', dueDate: getRelativeDateStr(0), estimatedHours: 3, completed: true, type: 'project' }),
-        createItem({ id: 'cap-2', title: 'Capstone: Core Feature Implementation', dueDate: getRelativeDateStr(2), estimatedHours: 5, completed: false, type: 'project' }),
-        createItem({ id: 'cap-3', title: 'Capstone: Testing & Bug Fixes', dueDate: getRelativeDateStr(5), estimatedHours: 4, completed: false, type: 'project' }),
+        createItem({
+          id: 'cap-1',
+          title: 'Capstone: Research & Architecture',
+          dueDate: getRelativeDateStr(0),
+          estimatedHours: 3,
+          completed: true,
+          type: 'project',
+        }),
+        createItem({
+          id: 'cap-2',
+          title: 'Capstone: Core Feature Implementation',
+          dueDate: getRelativeDateStr(2),
+          estimatedHours: 5,
+          completed: false,
+          type: 'project',
+        }),
+        createItem({
+          id: 'cap-3',
+          title: 'Capstone: Testing & Bug Fixes',
+          dueDate: getRelativeDateStr(5),
+          estimatedHours: 4,
+          completed: false,
+          type: 'project',
+        }),
       ];
 
       renderDashboard(items);
@@ -577,20 +851,36 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       expect(checkbox.checked).toBe(true);
 
       // Inspect Day 2 (Core Feature - 5 hours)
-      const buttons = screen.getAllByRole('button').filter((btn) => btn.textContent?.includes('items'));
+      const buttons = getForecastDayButtons();
       fireEvent.click(buttons[2]);
       expect(screen.getByText('Capstone: Core Feature Implementation')).toBeDefined();
       expect(screen.getByText('5.0 hrs')).toBeDefined();
     });
 
     it('Scenario 4: Rebalancing Heavy Peak Day to Avoid Burnout', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const todayStr = getRelativeDateStr(0);
       const tomorrowStr = getRelativeDateStr(1);
 
       const items: ScheduleItem[] = [
-        createItem({ id: 'heavy-1', title: 'Exam Cram 1', dueDate: todayStr, estimatedHours: 3.5, completed: false, type: 'exam' }),
-        createItem({ id: 'heavy-2', title: 'Exam Cram 2', dueDate: todayStr, estimatedHours: 3.0, completed: false, type: 'exam' }),
+        createItem({
+          id: 'heavy-1',
+          title: 'Exam Cram 1',
+          dueDate: todayStr,
+          estimatedHours: 3.5,
+          completed: false,
+          type: 'exam',
+        }),
+        createItem({
+          id: 'heavy-2',
+          title: 'Exam Cram 2',
+          dueDate: todayStr,
+          estimatedHours: 3.0,
+          completed: false,
+          type: 'exam',
+        }),
       ];
 
       renderDashboard(items);
@@ -609,12 +899,28 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
     });
 
     it('Scenario 5: Complete Interactive Inspection and Task Completion Run', async () => {
-      const updateSpy = vi.spyOn(scheduleItemsLib, 'updateScheduleItem').mockResolvedValue(undefined);
+      const updateSpy = vi
+        .spyOn(scheduleItemsLib, 'updateScheduleItem')
+        .mockResolvedValue(undefined);
       const todayStr = getRelativeDateStr(0);
 
       const items: ScheduleItem[] = [
-        createItem({ id: 'run-1', title: 'Task A', dueDate: todayStr, estimatedHours: 1, completed: false, type: 'reading' }),
-        createItem({ id: 'run-2', title: 'Task B', dueDate: todayStr, estimatedHours: 1, completed: false, type: 'quiz' }),
+        createItem({
+          id: 'run-1',
+          title: 'Task A',
+          dueDate: todayStr,
+          estimatedHours: 1,
+          completed: false,
+          type: 'reading',
+        }),
+        createItem({
+          id: 'run-2',
+          title: 'Task B',
+          dueDate: todayStr,
+          estimatedHours: 1,
+          completed: false,
+          type: 'quiz',
+        }),
       ];
 
       renderDashboard(items);

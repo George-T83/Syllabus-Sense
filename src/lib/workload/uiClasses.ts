@@ -72,6 +72,22 @@ export const WORKLOAD_SOLID_BADGE_CLASS: Record<WorkloadLevel, string> = {
 };
 
 /**
+ * Card border + ambient glow that escalates with real severity (globals.css
+ * defines the actual .glow-edge* rules) - 'low' stays the calm, static
+ * brand-gradient look used everywhere else a card just needs to look
+ * "important" (Card.tsx's accent="glow"); medium/high/critical progress
+ * through amber -> orange -> red and start breathing, so a genuinely
+ * urgent day is louder than a merely busy one instead of every non-quiet
+ * day getting the same fixed "urgent" treatment.
+ */
+export const WORKLOAD_GLOW_CLASS: Record<WorkloadLevel, string> = {
+  low: 'glow-edge glow-edge-low',
+  medium: 'glow-edge glow-edge-medium glow-edge-pulse',
+  high: 'glow-edge glow-edge-high glow-edge-pulse',
+  critical: 'glow-edge glow-edge-critical glow-edge-pulse',
+};
+
+/**
  * Unified badge helper returning consistent tokens across dashboard, planner, calendar, and task views.
  */
 export function getWorkloadBadgeTokens(

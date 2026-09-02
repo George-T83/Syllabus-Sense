@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Registered as an <angle> so `.spin-border`'s keyframe can smoothly tween
+   the conic-gradient's rotation instead of the browser treating it as an
+   opaque, non-interpolable custom property value. */
+@property --spin-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
 @layer base {
   :root {
     --background: 240 20% 98%;
@@ -333,6 +342,103 @@
   .dark .glass {
     background-color: rgba(18, 18, 24, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* Neon Edge: a padding-box/border-box gradient (or solid) card border
+     plus a matching ambient glow, driven entirely by --glow-border/
+     --glow-color so one base rule serves every color variant below.
+     --glow-color is a raw "H S% L%" triple (no hsl() wrapper) so the pulse
+     keyframe can apply its own alpha at each breathing stage. Card.tsx's
+     `accent="glow"` uses .glow-edge-low (the calm, static brand look);
+     WORKLOAD_GLOW_CLASS (lib/workload/uiClasses.ts) picks the level-
+     matched variant for a card whose color should track real severity. */
+  .glow-edge {
+    position: relative;
+    border: 1.5px solid transparent;
+    background:
+      linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+      var(--glow-border) border-box;
+    box-shadow:
+      var(--card-shadow),
+      0 0 28px -6px hsl(var(--glow-color) / 0.35);
+  }
+  .glow-edge-low {
+    --glow-border: linear-gradient(135deg, #8c6eff, #5b3df5, #00bfa0);
+    --glow-color: var(--primary);
+  }
+  .glow-edge-medium {
+    --glow-border: linear-gradient(135deg, hsl(var(--load-medium)), hsl(var(--load-medium)));
+    --glow-color: var(--load-medium);
+  }
+  .glow-edge-high {
+    --glow-border: linear-gradient(135deg, hsl(var(--load-high)), hsl(var(--load-high)));
+    --glow-color: var(--load-high);
+  }
+  .glow-edge-critical {
+    --glow-border: linear-gradient(135deg, hsl(var(--load-critical)), hsl(var(--load-critical)));
+    --glow-color: var(--load-critical);
+  }
+  /* Only medium/high/critical breathe (WORKLOAD_GLOW_CLASS applies this
+     alongside the color above) - low/calm stays still, matching the
+     Default (locked) static look everywhere else this class is used. */
+  .glow-edge-pulse {
+    animation: glow-edge-pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes glow-edge-pulse {
+    0%,
+    100% {
+      box-shadow:
+        var(--card-shadow),
+        0 0 18px -6px hsl(var(--glow-color) / 0.28);
+    }
+    50% {
+      box-shadow:
+        var(--card-shadow),
+        0 0 52px -2px hsl(var(--glow-color) / 0.65);
+    }
+  }
+
+  /* Reusable "actively processing" card edge: a comet-like arc in the brand
+     gradient continuously sweeps the card's own perimeter, built by masking
+     a rotating conic-gradient down to just the border ring. Apply to any
+     card whose entire reason for being on screen is "something real is
+     happening right now" (the Focus Timer while running, AI syllabus
+     extraction, a Smart Plan recalculation, a post-edit syllabus re-diff) -
+     never to a static/settled card, no matter how important. */
+  .spin-border {
+    position: relative;
+    border: 1px solid hsl(var(--border));
+    overflow: hidden;
+  }
+  .spin-border::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--spin-angle),
+      transparent 0deg,
+      hsl(var(--primary) / 0) 0deg,
+      #8c6eff 20deg,
+      #5b3df5 45deg,
+      #00bfa0 65deg,
+      hsl(var(--primary) / 0) 95deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: spin-border-sweep 3.4s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes spin-border-sweep {
+    to {
+      --spin-angle: 360deg;
+    }
   }
 
   /* Respect the OS-level "reduce motion" preference by collapsing every

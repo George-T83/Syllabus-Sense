@@ -196,108 +196,123 @@ export function PomodoroTimer({ taskId }: PomodoroTimerProps = {}) {
     <div
       role="dialog"
       aria-label="Pomodoro focus timer"
-      className="fixed bottom-20 left-5 z-50 flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl w-52 md:bottom-6 md:left-6"
-    >
-      {/* Header */}
-      <div className="flex w-full items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {isBreak ? '☕ Break' : '🍅 Focus'}
-        </span>
-        <button
-          onClick={() => setVisible(false)}
-          aria-label="Close focus timer"
-          className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Circular progress + time */}
-      <div className="relative flex h-24 w-24 items-center justify-center">
-        <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
-          <circle
-            cx="48"
-            cy="48"
-            r="40"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="6"
-            className="text-border"
-          />
-          <circle
-            cx="48"
-            cy="48"
-            r="40"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="6"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - progress)}
-            strokeLinecap="round"
-            className={cn(
-              'transition-all duration-1000',
-              isBreak ? 'text-emerald-500' : 'text-primary',
-            )}
-          />
-        </svg>
-        <span
-          aria-live="polite"
-          aria-label={`${formatTime(remaining)} remaining`}
-          className="text-2xl font-mono font-bold text-foreground tabular-nums"
-        >
-          {formatTime(remaining)}
-        </span>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-1.5">
-        {running ? (
-          <button
-            onClick={handlePause}
-            aria-label="Pause timer"
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-accent"
-          >
-            Pause
-          </button>
-        ) : (
-          <button
-            onClick={handleStart}
-            aria-label="Start timer"
-            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            Start
-          </button>
-        )}
-        <button
-          onClick={handleReset}
-          aria-label="Reset timer"
-          className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
-        >
-          Reset
-        </button>
-        <button
-          onClick={handleSkip}
-          aria-label={`Skip to ${isBreak ? 'work' : 'break'}`}
-          className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
-        >
-          Skip
-        </button>
-      </div>
-
-      {/* Session counter */}
-      {sessionCount > 0 && (
-        <p className="text-center text-[10px] text-muted-foreground">
-          {sessionCount} session{sessionCount !== 1 ? 's' : ''} today 🎉
-        </p>
+      className={cn(
+        'fixed bottom-20 left-5 z-50 rounded-2xl bg-card p-4 shadow-2xl w-52 md:bottom-6 md:left-6',
+        // Neon Edge "actively processing" sweep - only while genuinely
+        // counting down. Paused or idle, this is just a plain bordered
+        // card; running is the one state where "time is passing" is true.
+        running ? 'spin-border' : 'border border-border',
       )}
+    >
+      <div className="relative z-10 flex flex-col items-center gap-3">
+        {/* Header */}
+        <div className="flex w-full items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {isBreak ? '☕ Break' : '🍅 Focus'}
+          </span>
+          <button
+            onClick={() => setVisible(false)}
+            aria-label="Close focus timer"
+            className="rounded-md p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Circular progress + time - the focus ring's stroke is always the
+            brand gradient (Neon Edge identity, visible even while paused);
+            a break keeps its own distinct emerald so "resting" never reads
+            as "focusing." */}
+        <div className="relative flex h-24 w-24 items-center justify-center">
+          <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
+            <defs>
+              <linearGradient id="pomodoroFocusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8c6eff" />
+                <stop offset="55%" stopColor="#5b3df5" />
+                <stop offset="100%" stopColor="#00bfa0" />
+              </linearGradient>
+            </defs>
+            <circle
+              cx="48"
+              cy="48"
+              r="40"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="6"
+              className="text-border"
+            />
+            <circle
+              cx="48"
+              cy="48"
+              r="40"
+              fill="none"
+              stroke={isBreak ? undefined : 'url(#pomodoroFocusGradient)'}
+              strokeWidth="6"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - progress)}
+              strokeLinecap="round"
+              className={cn('transition-all duration-1000', isBreak && 'text-emerald-500')}
+            />
+          </svg>
+          <span
+            aria-live="polite"
+            aria-label={`${formatTime(remaining)} remaining`}
+            className="text-2xl font-mono font-bold text-foreground tabular-nums"
+          >
+            {formatTime(remaining)}
+          </span>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-1.5">
+          {running ? (
+            <button
+              onClick={handlePause}
+              aria-label="Pause timer"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-accent"
+            >
+              Pause
+            </button>
+          ) : (
+            <button
+              onClick={handleStart}
+              aria-label="Start timer"
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Start
+            </button>
+          )}
+          <button
+            onClick={handleReset}
+            aria-label="Reset timer"
+            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
+          >
+            Reset
+          </button>
+          <button
+            onClick={handleSkip}
+            aria-label={`Skip to ${isBreak ? 'work' : 'break'}`}
+            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
+          >
+            Skip
+          </button>
+        </div>
+
+        {/* Session counter */}
+        {sessionCount > 0 && (
+          <p className="text-center text-[10px] text-muted-foreground">
+            {sessionCount} session{sessionCount !== 1 ? 's' : ''} today 🎉
+          </p>
+        )}
+      </div>
     </div>
   );
 }
