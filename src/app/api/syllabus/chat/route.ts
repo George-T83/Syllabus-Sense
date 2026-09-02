@@ -7,6 +7,8 @@ import { generateOfflineSyllabusAnswer, type ChatRequestBody } from '@/lib/sylla
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 function detectFileKind(fileBase64: string): 'pdf' | 'docx' | null {
   if (fileBase64.startsWith('JVBERi0')) return 'pdf';
   if (fileBase64.startsWith('UEsDB')) return 'docx';
@@ -42,6 +44,12 @@ export async function POST(req: NextRequest) {
   const isProd = process.env.NODE_ENV === 'production';
   if (isProd && !user && process.env.FIREBASE_ADMIN_PROJECT_ID) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  // Rough size check on the base64 payload (base64 is ~4/3 the byte size) -
+  // this route had no ceiling at all, unlike its sibling extract route.
+  if (body.fileBase64 && body.fileBase64.length > MAX_FILE_BYTES * 1.4) {
+    return NextResponse.json({ error: 'File is too large (max 10MB).' }, { status: 400 });
   }
 
   // Parse file if provided
@@ -109,7 +117,7 @@ To suggest these subtasks, you must output a JSON structure at the very end of y
 where:
 - "estimatedHours" is the estimated time to complete that subtask (numbers like 1.5, 2, 0.5).
 - "dueDateOffsetDays" is the recommended relative offset in days from today's date to complete this task (e.g. 2 means due in 2 days).
-- "type" is one of: "project", "exam", "quiz", "assignment", "reading", "coding", "paper".
+- "type" must be exactly one of: "assignment", "exam", "quiz", "project", "reading", "other" (use "other" for anything that doesn't fit, e.g. coding work or a paper).
 
 Format the main body of your answer with clear markdown headings, bullet points, and specific citations in brackets (e.g. [Syllabus § 3 - Grading Policy] or [Rubric - Format Requirements]). Be concise, encouraging, and academically precise.`;
 
@@ -126,6 +134,18 @@ Format the main body of your answer with clear markdown headings, bullet points,
 
       const firstBlock = response.content[0];
       let textResponse = firstBlock && 'text' in firstBlock ? firstBlock.text : '';
+      // Kept in sync with AssignmentType (src/types/schedule.ts) - a chunk
+      // whose type doesn't survive this check would otherwise persist an
+      // out-of-union value via createScheduleItem with no other validation
+      // anywhere in the chain, invisible to every type-based filter forever.
+      const VALID_ASSIGNMENT_TYPES = new Set([
+        'assignment',
+        'exam',
+        'quiz',
+        'project',
+        'reading',
+        'other',
+      ]);
       interface SuggestedChunkType {
         title: string;
         notes: string;
@@ -162,7 +182,10 @@ Format the main body of your answer with clear markdown headings, bullet points,
                   notes: typeof chunk.notes === 'string' ? chunk.notes : '',
                   estimatedHours: Number(chunk.estimatedHours) || 1,
                   dueDate: targetDate.toISOString().split('T')[0],
-                  type: typeof chunk.type === 'string' ? chunk.type : 'assignment',
+                  type:
+                    typeof chunk.type === 'string' && VALID_ASSIGNMENT_TYPES.has(chunk.type)
+                      ? chunk.type
+                      : 'other',
                 };
               });
             }
@@ -174,9 +197,17 @@ Format the main body of your answer with clear markdown headings, bullet points,
         textResponse = (textResponse.slice(0, startIndex).trim() + '\n' + tail).trim();
       }
 
+      // Only claim a syllabus citation when real syllabus/rubric content was
+      // actually in the prompt - otherwise the prompt fell back to a generic
+      // boilerplate description, and tagging that as "[Course Syllabus]"
+      // would assert a source the reply was never actually grounded in.
+      const hasRealSyllabusContext = Boolean(body.syllabusText || body.notes || docxText);
+
       return NextResponse.json({
         reply: textResponse || generateOfflineSyllabusAnswer(body).reply,
-        citations: [`[${body.courseCode || 'Course'} Syllabus]`],
+        citations: hasRealSyllabusContext
+          ? [`[${body.courseCode || 'Course'} Syllabus]`]
+          : undefined,
         suggestedChunks: suggestedChunks.length > 0 ? suggestedChunks : undefined,
         suggestions: [
           'What is the late work policy?',
