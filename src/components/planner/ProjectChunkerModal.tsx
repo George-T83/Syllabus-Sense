@@ -269,7 +269,7 @@ export function ProjectChunkerModal({
                   className={`flex items-center gap-1.5 rounded-xl border p-2.5 text-left text-xs font-semibold transition-all ${
                     chunkType === t
                       ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                      : 'border-border bg-background text-muted-foreground hover:bg-accent'
+                      : 'border-border bg-input text-muted-foreground hover:bg-accent'
                   }`}
                 >
                   <span className="text-sm">{TYPE_CONFIG[t].icon}</span>
@@ -285,7 +285,7 @@ export function ProjectChunkerModal({
               type="text"
               value={projectTitle}
               onChange={(e) => setProjectTitle(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="mt-1 w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -298,7 +298,7 @@ export function ProjectChunkerModal({
                 max={100}
                 value={totalHours}
                 onChange={(e) => setTotalHours(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="mt-1 w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -310,7 +310,7 @@ export function ProjectChunkerModal({
                 type="date"
                 value={dueDateStr}
                 onChange={(e) => setDueDateStr(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="mt-1 w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -319,7 +319,7 @@ export function ProjectChunkerModal({
               <select
                 value={selectedCourseId}
                 onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="mt-1 w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">General / Independent</option>
                 {state.courses.map((c) => (
@@ -340,7 +340,7 @@ export function ProjectChunkerModal({
                 className={`flex-1 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-all ${
                   pace === 'daily'
                     ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-background text-muted-foreground hover:bg-accent'
+                    : 'border-border bg-input text-muted-foreground hover:bg-accent'
                 }`}
               >
                 📅 Daily Bite Chunks (30–60 min/day)
@@ -351,7 +351,7 @@ export function ProjectChunkerModal({
                 className={`flex-1 rounded-xl border px-4 py-2.5 text-xs font-semibold transition-all ${
                   pace === 'weekly'
                     ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-background text-muted-foreground hover:bg-accent'
+                    : 'border-border bg-input text-muted-foreground hover:bg-accent'
                 }`}
               >
                 📆 Weekly Major Milestones

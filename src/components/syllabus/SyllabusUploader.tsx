@@ -80,7 +80,7 @@ export function SyllabusUploader({ userId, courseId, onUploaded }: SyllabusUploa
       )}
 
       {(validationError || error) && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
           {validationError || error}
         </div>
       )}

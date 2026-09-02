@@ -145,7 +145,7 @@ export function WorkloadOverviewDashboard({
               📊 Daily &amp; Weekly Workload Center
             </span>
             {breakdown.rolledOverCount > 0 && (
-              <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-bold text-destructive">
+              <span className="rounded-full border border-load-critical/30 bg-load-critical/10 px-2.5 py-1 text-xs font-bold text-load-critical">
                 ⚠️ {breakdown.rolledOverCount} Rollover{' '}
                 {breakdown.rolledOverCount === 1 ? 'Task' : 'Tasks'}
               </span>
@@ -318,7 +318,7 @@ export function WorkloadOverviewDashboard({
                               aria-label={`Shift date for ${item.title}`}
                               value={activeDay.dateStr}
                               onChange={(e) => handleShiftTaskDate(item.id, e.target.value)}
-                              className="min-w-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="min-w-0 rounded border border-border bg-input px-1.5 py-0.5 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </div>
                         </div>

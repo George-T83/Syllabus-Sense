@@ -445,7 +445,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading || fileUploading}
               aria-label="Upload syllabus or assignment rubric document"
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-input text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
             >
               {fileUploading ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -472,7 +472,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
               onChange={(e) => setInputQuery(e.target.value)}
               placeholder={`Ask anything about ${selectedCourse?.code || 'syllabus'}...`}
               disabled={isLoading}
-              className="flex-1 rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+              className="flex-1 rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
             />
             <button
               type="submit"

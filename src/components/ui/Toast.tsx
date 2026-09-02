@@ -112,7 +112,7 @@ function ToastContainer({
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="fixed bottom-5 right-5 z-50 flex max-w-sm flex-col gap-2.5 sm:bottom-6 sm:right-6"
+      className="fixed top-5 right-5 z-50 flex max-w-sm flex-col gap-2.5 sm:top-6 sm:right-6"
     >
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} onDismiss={() => onDismiss(toast.id)} />
@@ -124,7 +124,7 @@ function ToastContainer({
 function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   const styles: Record<ToastType, { container: string; icon: ReactNode }> = {
     success: {
-      container: 'border-load-low/40 bg-card text-foreground shadow-lg',
+      container: 'border-load-low/60 bg-card text-foreground shadow-modal',
       icon: (
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-load-low/15 text-load-low">
           <svg
@@ -140,9 +140,13 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       ),
     },
     error: {
-      container: 'border-destructive/40 bg-card text-foreground shadow-lg',
+      // load-critical, not destructive: --destructive is tuned to work as a
+      // SOLID button fill (dark red under white text), which makes it too
+      // dark to double as a border/tint here - the same bright, legible red
+      // the app already uses for critical-severity badges elsewhere.
+      container: 'border-load-critical/60 bg-card text-foreground shadow-modal',
       icon: (
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-load-critical/15 text-load-critical">
           <svg
             className="h-4 w-4"
             fill="none"
@@ -156,7 +160,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       ),
     },
     info: {
-      container: 'border-primary/40 bg-card text-foreground shadow-lg',
+      container: 'border-primary/60 bg-card text-foreground shadow-modal',
       icon: (
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
           <svg
@@ -176,7 +180,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       ),
     },
     warning: {
-      container: 'border-load-medium/40 bg-card text-foreground shadow-lg',
+      container: 'border-load-medium/60 bg-card text-foreground shadow-modal',
       icon: (
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-load-medium/15 text-load-medium">
           <svg
@@ -203,7 +207,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
     <div
       role="status"
       className={cn(
-        'flex items-start gap-3 rounded-xl border p-4 backdrop-blur-md transition-all duration-200 animate-in fade-in slide-in-from-bottom-2',
+        'flex items-start gap-3 rounded-xl border p-4 backdrop-blur-md transition-all duration-200 animate-in fade-in slide-in-from-top-2',
         currentStyle.container,
       )}
     >
