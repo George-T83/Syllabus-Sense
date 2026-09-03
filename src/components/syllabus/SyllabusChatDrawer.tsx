@@ -5,6 +5,7 @@ import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Course, AssignmentType } from '@/types/schedule';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
+import { normalizeMaterials } from '@/lib/courses/materials';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useToast } from '@/components/ui/Toast';
 
@@ -140,7 +141,9 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             instructor: selectedCourse?.instructor,
             location: selectedCourse?.meetingTimes?.[0]?.location,
             notes: selectedCourse?.notes,
-            materials: selectedCourse?.materials,
+            materials: normalizeMaterials(selectedCourse?.materials).map((m) =>
+              m.cost !== undefined ? `${m.name} ($${m.cost.toFixed(2)})` : m.name,
+            ),
             learningObjectives: selectedCourse?.learningObjectives,
             fileBase64: attachedFile?.base64 || undefined,
             fileName: attachedFile?.name || undefined,

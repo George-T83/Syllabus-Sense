@@ -17,6 +17,7 @@ import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { WeeklyBriefingCard } from '@/components/dashboard/WeeklyBriefingCard';
+import { MaterialsBudgetCard } from '@/components/dashboard/MaterialsBudgetCard';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS } from '@/lib/workload';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
@@ -242,6 +243,8 @@ export function DashboardView() {
         </div>
 
         <WeeklyBriefingCard scheduleItems={state.scheduleItems} />
+
+        <MaterialsBudgetCard courses={state.courses} />
 
         <div className="space-y-4">
           <Card accent="left" className="rounded-2xl p-6">

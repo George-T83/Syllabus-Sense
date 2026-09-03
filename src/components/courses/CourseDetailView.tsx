@@ -28,6 +28,7 @@ import { formatTimeLabel } from '@/lib/calendar/meetings';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateRateMyProfessorUrl } from '@/lib/export/rateMyProfessor';
 import { courseSwatch } from '@/lib/courseColors';
+import { normalizeMaterials, sumMaterialCosts } from '@/lib/courses/materials';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
@@ -225,8 +226,10 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [deletingMaterialIndex, setDeletingMaterialIndex] = useState<number | null>(null);
   const [editingMaterialIndex, setEditingMaterialIndex] = useState<number | null>(null);
   const [materialDraft, setMaterialDraft] = useState('');
+  const [materialCostDraft, setMaterialCostDraft] = useState('');
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [newMaterialDraft, setNewMaterialDraft] = useState('');
+  const [newMaterialCostDraft, setNewMaterialCostDraft] = useState('');
 
   const course = state.courses.find((c) => c.id === courseId);
   const items = state.scheduleItems
@@ -251,6 +254,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       </div>
     );
   }
+
+  const courseMaterials = normalizeMaterials(course.materials);
+  const materialsTotal = sumMaterialCosts(courseMaterials);
 
   const handleEditCourse = async (values: CourseFormValues) => {
     if (!user) throw new Error('You must be signed in to edit a course.');
@@ -487,16 +493,22 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   };
 
   const handleStartEditMaterial = (index: number) => {
-    setMaterialDraft(course.materials?.[index] ?? '');
+    const material = courseMaterials[index];
+    setMaterialDraft(material?.name ?? '');
+    setMaterialCostDraft(material?.cost !== undefined ? String(material.cost) : '');
     setEditingMaterialIndex(index);
   };
 
   const handleCommitMaterialEdit = async (index: number) => {
     if (!user) return;
-    const current = [...(course.materials ?? [])];
-    const trimmed = materialDraft.trim();
-    if (trimmed) {
-      current[index] = trimmed;
+    const current = [...courseMaterials];
+    const trimmedName = materialDraft.trim();
+    const parsedCost = materialCostDraft.trim() ? Number(materialCostDraft) : NaN;
+    if (trimmedName) {
+      current[index] = {
+        name: trimmedName,
+        ...(!Number.isNaN(parsedCost) && parsedCost >= 0 ? { cost: parsedCost } : {}),
+      };
     } else {
       current.splice(index, 1);
     }
@@ -508,7 +520,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     if (!user) return;
     setDeletingMaterialIndex(index);
     try {
-      const current = [...(course.materials ?? [])];
+      const current = [...courseMaterials];
       current.splice(index, 1);
       await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
       setConfirmingDeleteMaterialIndex(null);
@@ -519,14 +531,22 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleAddMaterial = async () => {
     if (!user) return;
-    const trimmed = newMaterialDraft.trim();
-    if (!trimmed) {
+    const trimmedName = newMaterialDraft.trim();
+    if (!trimmedName) {
       setAddingMaterial(false);
       return;
     }
-    const current = [...(course.materials ?? []), trimmed];
+    const parsedCost = newMaterialCostDraft.trim() ? Number(newMaterialCostDraft) : NaN;
+    const current = [
+      ...courseMaterials,
+      {
+        name: trimmedName,
+        ...(!Number.isNaN(parsedCost) && parsedCost >= 0 ? { cost: parsedCost } : {}),
+      },
+    ];
     await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
     setNewMaterialDraft('');
+    setNewMaterialCostDraft('');
     setAddingMaterial(false);
   };
 
@@ -1078,9 +1098,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             )}
           </div>
 
-          {course.materials && course.materials.length > 0 ? (
+          {courseMaterials.length > 0 ? (
             <ul className="flex flex-col gap-2">
-              {course.materials.map((material, i) =>
+              {courseMaterials.map((material, i) =>
                 editingMaterialIndex === i ? (
                   <li
                     key={i}
@@ -1096,6 +1116,20 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                       }}
                       className="flex-1 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                       autoFocus
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={materialCostDraft}
+                      onChange={(e) => setMaterialCostDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCommitMaterialEdit(i);
+                        if (e.key === 'Escape') setEditingMaterialIndex(null);
+                      }}
+                      placeholder="Cost"
+                      aria-label="Material cost"
+                      className="w-24 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                     <button
                       type="button"
@@ -1143,8 +1177,13 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     key={i}
                     className="group flex items-start justify-between gap-3 rounded-lg border border-border p-3 text-sm text-foreground transition-colors hover:border-primary/30"
                   >
-                    <div className="min-w-0">
-                      <span className="leading-relaxed break-words">{material}</span>
+                    <div className="min-w-0 flex flex-wrap items-center gap-2">
+                      <span className="leading-relaxed break-words">{material.name}</span>
+                      {material.cost !== undefined && (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                          ${material.cost.toFixed(2)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0 opacity-80 transition-opacity group-hover:opacity-100">
                       {confirmingDeleteMaterialIndex === i ? (
@@ -1240,21 +1279,46 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             )
           )}
 
+          {materialsTotal > 0 && (
+            <div className="flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">
+              <span>Course materials total</span>
+              <span>${materialsTotal.toFixed(2)}</span>
+            </div>
+          )}
+
           {addingMaterial && (
             <div className="space-y-2 rounded-lg border border-border p-3">
-              <input
-                type="text"
-                value={newMaterialDraft}
-                onChange={(e) => setNewMaterialDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddMaterial();
-                  if (e.key === 'Escape') setAddingMaterial(false);
-                }}
-                placeholder="e.g. Introduction to Algorithms, 3rd Edition"
-                className="w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">Press Enter to save.</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newMaterialDraft}
+                  onChange={(e) => setNewMaterialDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddMaterial();
+                    if (e.key === 'Escape') setAddingMaterial(false);
+                  }}
+                  placeholder="e.g. Introduction to Algorithms, 3rd Edition"
+                  className="flex-1 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  autoFocus
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newMaterialCostDraft}
+                  onChange={(e) => setNewMaterialCostDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddMaterial();
+                    if (e.key === 'Escape') setAddingMaterial(false);
+                  }}
+                  placeholder="Cost"
+                  aria-label="Material cost"
+                  className="w-24 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cost is optional. Press Enter to save.
+              </p>
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
