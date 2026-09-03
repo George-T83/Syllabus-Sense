@@ -147,6 +147,17 @@ export function CommandPalette({
         },
       },
       {
+        id: 'nav-quizzes',
+        title: 'Practice Quizzes',
+        subtitle: 'AI-generated multiple-choice quizzes from your syllabi',
+        category: 'Navigation',
+        badge: `${state.quizzes.length}`,
+        perform: () => {
+          router.push('/quizzes');
+          closePalette();
+        },
+      },
+      {
         id: 'nav-calendar',
         title: 'Calendar',
         subtitle: 'Month & week views, class schedules, and deadlines',
@@ -324,6 +335,7 @@ export function CommandPalette({
     state.scheduleItems,
     state.contacts,
     state.flashcards,
+    state.quizzes,
     resolvedTheme,
     setTheme,
     router,
