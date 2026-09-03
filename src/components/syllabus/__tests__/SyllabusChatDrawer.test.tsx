@@ -27,7 +27,7 @@ const mockCourses: Course[] = [
     ],
     term: 'Fall 2026',
     notes: 'Late work allowed up to 3 days with penalty.',
-    materials: ['CLRS Algorithms Textbook'],
+    materials: [{ name: 'CLRS Algorithms Textbook' }],
   },
   {
     id: 'course-2',

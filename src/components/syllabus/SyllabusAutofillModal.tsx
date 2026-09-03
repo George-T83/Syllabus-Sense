@@ -854,7 +854,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         ...(course.term ? { term: course.term } : {}),
         ...(course.modality ? { modality: course.modality } : {}),
         ...(course.meetingTimes.length ? { meetingTimes: course.meetingTimes } : {}),
-        ...(course.materials.length ? { materials: course.materials.filter(Boolean) } : {}),
+        ...(course.materials.length
+          ? { materials: course.materials.filter(Boolean).map((name) => ({ name })) }
+          : {}),
         ...(course.skipDates.length ? { skipDates: course.skipDates } : {}),
         ...(course.notes ? { notes: course.notes } : {}),
         // Only written when the student left "Save to course" checked -
