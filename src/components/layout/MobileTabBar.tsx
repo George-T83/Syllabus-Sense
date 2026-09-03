@@ -92,6 +92,25 @@ const tabItems: TabItem[] = [
 
 const moreItems: TabItem[] = [
   {
+    name: 'Flashcards',
+    href: '/flashcards',
+    icon: (
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 4.5v15m0-15a1.5 1.5 0 011.5-1.5h9A1.5 1.5 0 0121 4.5v10.5a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 019 15M3 6.75h6M3 12h6m-6 5.25h6"
+        />
+      </svg>
+    ),
+  },
+  {
     name: 'Planner',
     href: '/planner',
     icon: (

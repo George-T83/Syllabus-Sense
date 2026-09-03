@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAppState } from '@/context/AppStateContext';
 import { useTheme } from '@/context/ThemeProvider';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
+import { isCardDue } from '@/lib/flashcards/sm2';
 
 export interface CommandPaletteProps {
   isOpen?: boolean;
@@ -131,6 +132,17 @@ export function CommandPalette({
         badge: `${state.scheduleItems.filter((t) => !t.completed).length} pending`,
         perform: () => {
           router.push('/tasks');
+          closePalette();
+        },
+      },
+      {
+        id: 'nav-flashcards',
+        title: 'Flashcards',
+        subtitle: 'AI-generated study decks with spaced-repetition review',
+        category: 'Navigation',
+        badge: `${state.flashcards.filter((c) => isCardDue(c)).length} due`,
+        perform: () => {
+          router.push('/flashcards');
           closePalette();
         },
       },
@@ -311,6 +323,7 @@ export function CommandPalette({
     state.courses,
     state.scheduleItems,
     state.contacts,
+    state.flashcards,
     resolvedTheme,
     setTheme,
     router,

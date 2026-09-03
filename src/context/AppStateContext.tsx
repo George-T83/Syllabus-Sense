@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { Contact, Course, ScheduleItem } from '@/types/schedule';
 import type { Source } from '@/types/source';
+import type { Flashcard } from '@/types/flashcard';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 
 export interface AppState {
@@ -10,6 +11,7 @@ export interface AppState {
   scheduleItems: ScheduleItem[];
   contacts: Contact[];
   sources: Source[];
+  flashcards: Flashcard[];
   selectedCourseId: string | null;
   /** #101 semester switcher. `null` means "no explicit choice made yet" -
    * consumers should fall back to `inferCurrentTerm`. The literal string
@@ -44,6 +46,11 @@ export type AppAction =
   | { type: 'ADD_SOURCE'; payload: Source }
   | { type: 'UPDATE_SOURCE'; payload: Source }
   | { type: 'REMOVE_SOURCE'; payload: string }
+  | { type: 'SET_FLASHCARDS'; payload: Flashcard[] }
+  | { type: 'ADD_FLASHCARD'; payload: Flashcard }
+  | { type: 'ADD_FLASHCARDS'; payload: Flashcard[] }
+  | { type: 'UPDATE_FLASHCARD'; payload: Flashcard }
+  | { type: 'REMOVE_FLASHCARD'; payload: string }
   | { type: 'SELECT_COURSE'; payload: string | null }
   | { type: 'SELECT_TERM'; payload: string | null }
   | { type: 'SET_PREFERENCES'; payload: UserPreferences };
@@ -53,6 +60,7 @@ export const initialAppState: AppState = {
   scheduleItems: [],
   contacts: [],
   sources: [],
+  flashcards: [],
   selectedCourseId: null,
   selectedTerm: null,
   preferences: DEFAULT_PREFERENCES,
@@ -80,6 +88,7 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
         scheduleItems: state.scheduleItems.filter((item) => item.courseId !== action.payload),
         contacts: state.contacts.filter((c) => c.courseId !== action.payload),
         sources: state.sources.filter((s) => s.courseId !== action.payload),
+        flashcards: state.flashcards.filter((f) => f.courseId !== action.payload),
         selectedCourseId: state.selectedCourseId === action.payload ? null : state.selectedCourseId,
       };
     case 'SET_SCHEDULE_ITEMS':
@@ -129,6 +138,19 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
       };
     case 'REMOVE_SOURCE':
       return { ...state, sources: state.sources.filter((s) => s.id !== action.payload) };
+    case 'SET_FLASHCARDS':
+      return { ...state, flashcards: action.payload };
+    case 'ADD_FLASHCARD':
+      return { ...state, flashcards: [...state.flashcards, action.payload] };
+    case 'ADD_FLASHCARDS':
+      return { ...state, flashcards: [...state.flashcards, ...action.payload] };
+    case 'UPDATE_FLASHCARD':
+      return {
+        ...state,
+        flashcards: state.flashcards.map((f) => (f.id === action.payload.id ? action.payload : f)),
+      };
+    case 'REMOVE_FLASHCARD':
+      return { ...state, flashcards: state.flashcards.filter((f) => f.id !== action.payload) };
     case 'SELECT_COURSE':
       return { ...state, selectedCourseId: action.payload };
     case 'SELECT_TERM':

@@ -182,6 +182,7 @@ describe('AppStateContext Reducer & Selectors', () => {
       scheduleItems: [mockItem],
       contacts: [],
       sources: [],
+      flashcards: [],
       selectedCourseId: 'c1',
       selectedTerm: null,
       preferences: DEFAULT_PREFERENCES,
