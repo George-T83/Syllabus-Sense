@@ -2,12 +2,14 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { Contact, Course, ScheduleItem } from '@/types/schedule';
+import type { Source } from '@/types/source';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 
 export interface AppState {
   courses: Course[];
   scheduleItems: ScheduleItem[];
   contacts: Contact[];
+  sources: Source[];
   selectedCourseId: string | null;
   /** #101 semester switcher. `null` means "no explicit choice made yet" -
    * consumers should fall back to `inferCurrentTerm`. The literal string
@@ -38,6 +40,10 @@ export type AppAction =
   | { type: 'ADD_CONTACTS'; payload: Contact[] }
   | { type: 'UPDATE_CONTACT'; payload: Contact }
   | { type: 'REMOVE_CONTACT'; payload: string }
+  | { type: 'SET_SOURCES'; payload: Source[] }
+  | { type: 'ADD_SOURCE'; payload: Source }
+  | { type: 'UPDATE_SOURCE'; payload: Source }
+  | { type: 'REMOVE_SOURCE'; payload: string }
   | { type: 'SELECT_COURSE'; payload: string | null }
   | { type: 'SELECT_TERM'; payload: string | null }
   | { type: 'SET_PREFERENCES'; payload: UserPreferences };
@@ -46,6 +52,7 @@ export const initialAppState: AppState = {
   courses: [],
   scheduleItems: [],
   contacts: [],
+  sources: [],
   selectedCourseId: null,
   selectedTerm: null,
   preferences: DEFAULT_PREFERENCES,
@@ -72,6 +79,7 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
         courses: state.courses.filter((c) => c.id !== action.payload),
         scheduleItems: state.scheduleItems.filter((item) => item.courseId !== action.payload),
         contacts: state.contacts.filter((c) => c.courseId !== action.payload),
+        sources: state.sources.filter((s) => s.courseId !== action.payload),
         selectedCourseId: state.selectedCourseId === action.payload ? null : state.selectedCourseId,
       };
     case 'SET_SCHEDULE_ITEMS':
@@ -110,6 +118,17 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
       };
     case 'REMOVE_CONTACT':
       return { ...state, contacts: state.contacts.filter((c) => c.id !== action.payload) };
+    case 'SET_SOURCES':
+      return { ...state, sources: action.payload };
+    case 'ADD_SOURCE':
+      return { ...state, sources: [...state.sources, action.payload] };
+    case 'UPDATE_SOURCE':
+      return {
+        ...state,
+        sources: state.sources.map((s) => (s.id === action.payload.id ? action.payload : s)),
+      };
+    case 'REMOVE_SOURCE':
+      return { ...state, sources: state.sources.filter((s) => s.id !== action.payload) };
     case 'SELECT_COURSE':
       return { ...state, selectedCourseId: action.payload };
     case 'SELECT_TERM':
