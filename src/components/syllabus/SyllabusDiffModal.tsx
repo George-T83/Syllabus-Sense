@@ -86,7 +86,10 @@ export function SyllabusDiffModal({
       aria-labelledby="syllabus-diff-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm"
     >
-      <Card className="relative w-full max-w-4xl p-5 sm:p-7 space-y-5 max-h-[92vh] flex flex-col">
+      <Card
+        accent="none"
+        className="relative w-full max-w-4xl p-5 sm:p-7 space-y-5 max-h-[92vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 shrink-0">
           <div>

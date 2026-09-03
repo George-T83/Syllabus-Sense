@@ -97,17 +97,26 @@ export function SyllabusUploader({ userId, courseId, onUploaded }: SyllabusUploa
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="flex gap-3 text-xs font-semibold">
+          <div className="flex gap-1.5 text-xs font-semibold">
             {status === 'uploading' ? (
-              <button onClick={pause} className="text-primary hover:underline">
+              <button
+                onClick={pause}
+                className="rounded-full px-2.5 py-1 text-primary transition-colors hover:bg-primary/10"
+              >
                 Pause
               </button>
             ) : (
-              <button onClick={resume} className="text-primary hover:underline">
+              <button
+                onClick={resume}
+                className="rounded-full px-2.5 py-1 text-primary transition-colors hover:bg-primary/10"
+              >
                 Resume
               </button>
             )}
-            <button onClick={cancel} className="text-destructive hover:underline">
+            <button
+              onClick={cancel}
+              className="rounded-full px-2.5 py-1 text-destructive transition-colors hover:bg-destructive/10"
+            >
               Cancel
             </button>
           </div>
@@ -117,7 +126,10 @@ export function SyllabusUploader({ userId, courseId, onUploaded }: SyllabusUploa
       {status === 'success' && (
         <div className="flex items-center justify-between rounded-xl border border-border p-4 text-sm">
           <span className="text-foreground">Upload complete.</span>
-          <button onClick={reset} className="text-xs font-semibold text-primary hover:underline">
+          <button
+            onClick={reset}
+            className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+          >
             Upload another
           </button>
         </div>

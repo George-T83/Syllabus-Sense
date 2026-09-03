@@ -373,7 +373,7 @@ export function AttendanceGauge({
           aria-labelledby="log-absence-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
         >
-          <Card className="relative w-full max-w-md p-6 space-y-4">
+          <Card accent="none" className="relative w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 id="log-absence-title" className="text-base font-bold text-foreground">
                 Log Course Absence

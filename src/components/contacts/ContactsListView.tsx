@@ -356,13 +356,13 @@ export function ContactsListView() {
                               <>
                                 <button
                                   onClick={() => handleDelete(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-destructive hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-destructive/10 px-3 font-semibold text-destructive transition-colors hover:bg-destructive/20"
                                 >
                                   Confirm
                                 </button>
                                 <button
                                   onClick={() => setConfirmingDeleteId(null)}
-                                  className="inline-flex min-h-[44px] items-center justify-center px-2 text-muted-foreground hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 text-muted-foreground transition-colors hover:bg-accent"
                                 >
                                   Cancel
                                 </button>
@@ -371,25 +371,25 @@ export function ContactsListView() {
                               <>
                                 <button
                                   onClick={() => setDrafterContact(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Draft Email
                                 </button>
                                 <button
                                   onClick={() => setShareContact(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
+                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   vCard/QR
                                 </button>
                                 <button
                                   onClick={() => openEdit(record)}
-                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 font-semibold text-primary hover:underline"
+                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => setConfirmingDeleteId(record.id)}
-                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 font-semibold text-destructive hover:underline"
+                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-destructive transition-colors hover:bg-destructive/10"
                                 >
                                   Delete
                                 </button>
@@ -526,7 +526,7 @@ function ContactFormModal({
         className="w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card>
+        <Card accent="none">
           <CardHeader>
             <CardTitle id="contact-form-title">
               {initialContact ? 'Edit Contact' : 'Add Contact'}

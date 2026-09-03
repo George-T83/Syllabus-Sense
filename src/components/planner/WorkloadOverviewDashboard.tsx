@@ -190,7 +190,7 @@ export function WorkloadOverviewDashboard({
             breathe), so a genuinely heavy or overdue day is visibly louder
             than a merely busy one instead of every non-quiet day getting
             an identical fixed "urgent" treatment. */}
-        <Card className={cn('xl:col-span-1 p-5', WORKLOAD_GLOW_CLASS[glowLevel])}>
+        <Card accent="glow" className={cn('xl:col-span-1 p-5', WORKLOAD_GLOW_CLASS[glowLevel])}>
           <CardHeader className="flex-row items-start justify-between gap-3 space-y-0 border-b border-border p-0 pb-5">
             <div>
               <CardTitle>Workload Load</CardTitle>
