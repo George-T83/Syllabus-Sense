@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { inferCurrentTerm, useAppState } from '@/context/AppStateContext';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +40,24 @@ function sortTermsChronologically(terms: string[]): string[] {
 export function TermSwitcher() {
   const { state, dispatch } = useAppState();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
 
   const terms = useMemo(
     () =>
@@ -59,12 +77,13 @@ export function TermSwitcher() {
 
   const select = (term: string) => {
     dispatch({ type: 'SELECT_TERM', payload: term });
-    setOpen(false);
+    close();
   };
 
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-haspopup="listbox"
@@ -89,11 +108,7 @@ export function TermSwitcher() {
       </button>
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-[60] bg-transparent"
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
+          <div className="fixed inset-0 z-[60] bg-transparent" onClick={close} aria-hidden="true" />
           <div
             role="listbox"
             aria-label="Select term"
