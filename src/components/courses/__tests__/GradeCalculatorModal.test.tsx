@@ -35,7 +35,7 @@ function renderWithProviders(ui: React.ReactElement, stateOverrides: Partial<App
   return render(
     <ThemeProvider>
       <AppStateProvider initialState={initialState as AppState}>{ui}</AppStateProvider>
-    </ThemeProvider>
+    </ThemeProvider>,
   );
 }
 
@@ -58,7 +58,9 @@ describe('GradeCalculatorModal (Item 36)', () => {
   });
 
   it('renders nothing when isOpen is false', () => {
-    const { container } = renderWithProviders(<GradeCalculatorModal isOpen={false} onClose={vi.fn()} />);
+    const { container } = renderWithProviders(
+      <GradeCalculatorModal isOpen={false} onClose={vi.fn()} />,
+    );
     expect(container.firstChild).toBeNull();
   });
 
@@ -95,7 +97,7 @@ describe('GradeCalculatorModal (Item 36)', () => {
   it('allows adding and updating categories dynamically', () => {
     renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
 
-    const addBtn = screen.getByText('+ Add Category');
+    const addBtn = screen.getByText('Add Category');
     fireEvent.click(addBtn);
 
     expect(screen.getByLabelText('Category 4 Name')).toBeDefined();
