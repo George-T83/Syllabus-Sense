@@ -644,15 +644,26 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
           </div>
 
           {courseContacts.length === 0 && !addContactOpen && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border px-3 py-3">
-              <p className="text-sm text-muted-foreground">No contacts yet for this course.</p>
-              <button
-                onClick={() => setAddContactOpen(true)}
-                className="shrink-0 text-xs font-semibold text-primary hover:underline"
-              >
-                + Add
-              </button>
-            </div>
+            <EmptyState
+              icon={
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
+              }
+              title="No contacts yet for this course"
+              description="Add a professor or TA, or upload a syllabus above to extract contacts automatically."
+              action={{ label: '+ Add contact', onClick: () => setAddContactOpen(true) }}
+            />
           )}
 
           {courseContacts.length > 0 && (
@@ -705,7 +716,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         </div>
                         <button
                           onClick={() => handleStartEditContact(contact)}
-                          className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                          className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                         >
                           Edit
                         </button>
@@ -772,36 +783,22 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
         <Card className="rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-semibold text-foreground">Learning Objectives</h2>
-              {course.learningObjectives && course.learningObjectives.length > 0 && (
-                <span
-                  className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                    course.learningObjectivesApproved
-                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-                  )}
-                >
-                  {course.learningObjectivesApproved ? 'Approved' : 'Needs review'}
-                </span>
-              )}
-            </div>
+            <h2 className="text-base font-semibold text-foreground">Learning Objectives</h2>
             {!addingObjective && (
-              <button
-                onClick={() => setAddingObjective(true)}
-                className="shrink-0 text-xs font-semibold text-primary hover:underline"
-              >
-                + Add objective
-              </button>
+              <CardActionButton variant="solid" withPlus onClick={() => setAddingObjective(true)}>
+                Add objective
+              </CardActionButton>
             )}
           </div>
 
           {course.learningObjectives && course.learningObjectives.length > 0 ? (
-            <ul className="space-y-2.5">
+            <ul className="flex flex-col gap-2">
               {course.learningObjectives.map((objective, i) =>
                 editingObjectiveIndex === i ? (
-                  <li key={i} className="flex items-center gap-2">
+                  <li
+                    key={i}
+                    className="flex items-center gap-2 rounded-lg border border-border p-3"
+                  >
                     <input
                       type="text"
                       value={objectiveDraft}
@@ -857,42 +854,21 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 ) : (
                   <li
                     key={i}
-                    className="group flex items-start justify-between gap-3 text-sm text-foreground"
+                    className="group flex items-start justify-between gap-3 rounded-lg border border-border p-3 text-sm text-foreground transition-colors hover:border-primary/30"
                   >
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <div className="min-w-0">
                       <span className="leading-relaxed break-words">
                         {renderInlineBold(objective)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={() => handleStartEditObjective(i)}
-                        className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
-                        aria-label="Edit objective"
-                      >
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
-                          />
-                        </svg>
-                      </button>
+                    <div className="flex items-center gap-1 shrink-0 opacity-80 transition-opacity group-hover:opacity-100">
                       {confirmingDeleteObjectiveIndex === i ? (
                         <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => handleDeleteObjective(i)}
                             disabled={deletingObjectiveIndex === i}
-                            className="font-semibold text-destructive hover:underline disabled:opacity-50"
+                            className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
                           >
                             {deletingObjectiveIndex === i ? 'Deleting…' : 'Confirm'}
                           </button>
@@ -900,32 +876,28 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                             type="button"
                             onClick={() => setConfirmingDeleteObjectiveIndex(null)}
                             disabled={deletingObjectiveIndex === i}
-                            className="text-muted-foreground hover:underline disabled:opacity-50"
+                            className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
                           >
                             Cancel
                           </button>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmingDeleteObjectiveIndex(i)}
-                          className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
-                          aria-label="Delete objective"
-                        >
-                          <svg
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditObjective(i)}
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                            />
-                          </svg>
-                        </button>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDeleteObjectiveIndex(i)}
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                          >
+                            Delete
+                          </button>
+                        </>
                       )}
                     </div>
                   </li>
@@ -934,7 +906,26 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             </ul>
           ) : (
             !addingObjective && (
-              <p className="text-sm text-muted-foreground">No learning objectives yet.</p>
+              <EmptyState
+                icon={
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                }
+                title="No learning objectives yet"
+                description="Add one, or upload a syllabus above to extract objectives automatically."
+                action={{ label: '+ Add objective', onClick: () => setAddingObjective(true) }}
+              />
             )
           )}
 
@@ -1051,18 +1042,18 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           Edit
                         </button>
                         {confirmingDeleteItemId === item.id ? (
-                          <div className="flex items-center gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 text-xs">
                             <button
                               onClick={() => handleDeleteTask(item)}
                               disabled={deletingItemId === item.id}
-                              className="font-semibold text-destructive hover:underline disabled:opacity-50"
+                              className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
                             >
                               {deletingItemId === item.id ? 'Deleting…' : 'Confirm'}
                             </button>
                             <button
                               onClick={() => setConfirmingDeleteItemId(null)}
                               disabled={deletingItemId === item.id}
-                              className="text-muted-foreground hover:underline disabled:opacity-50"
+                              className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
                             >
                               Cancel
                             </button>
@@ -1070,7 +1061,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         ) : (
                           <button
                             onClick={() => setConfirmingDeleteItemId(item.id)}
-                            className="text-xs font-semibold text-destructive hover:underline"
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                           >
                             Delete
                           </button>

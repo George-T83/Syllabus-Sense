@@ -18,3 +18,21 @@ All commits must be authored as `George-T83 <george.tannious@gmail.com>`, regard
 ## Verification standard
 
 This is a Next.js 14 + Firebase (Auth/Firestore/Storage) app. "Verified" means checked against the real Firebase Local Emulator Suite and a real browser session (Playwright) — not just that the code compiles or unit tests pass. For any change to a UI surface, actually navigate to it in a running browser and look at it before calling it done.
+
+## Merge approval
+
+Never merge a PR without the repo owner's explicit go-ahead in the conversation, even when CI is green and the branch is mergeable. "Drive this PR to green" is not the same instruction as "merge it" — green CI is a precondition for asking, not a substitute for asking.
+
+**Before asking for merge approval on every PR, with no exceptions** (not just "non-trivial" ones — there is no size threshold below which this step is skipped): publish a standalone review document as an Artifact and give the owner the link. This is a separate, required step every single time — it does not happen automatically, and it is easy to forget under time pressure, so treat "did I publish the review doc yet" as a checklist item on every PR, not a judgment call.
+
+The GitHub PR description does **not** satisfy this requirement by itself, no matter how thorough it is. The review doc must exist as its own artifact, and must contain:
+
+- What changed and why, broken out by logical change (not just a wall of diff).
+- Real evidence: actual screenshots from the running app (via the Firebase Local Emulator Suite + a live browser session) for anything touching the UI — before/after where a "before" is capturable, not just a description of what it used to look like.
+- The verification results (tsc, lint, tests, build, CI status).
+
+Only after that artifact is published and linked should merge approval be requested. If a PR is opened and merge approval is about to be asked for and no review doc has been published yet for it, stop and publish one before asking — this has been skipped before and should not happen again.
+
+## UI consistency
+
+Before adding or changing any "list card" pattern (a card with a header action button, an empty state, and a row-level edit/delete affordance — e.g. Contacts, Learning Objectives, Tasks on the course detail page), check how the other instances of that same pattern already look and match them exactly: same header button component (`CardActionButton`), same empty-state component (`EmptyState`), same button treatment for row-level actions (pill-style with a tinted background for primary/destructive actions, not a bare underlined text link). Do not invent a new one-off treatment for a single card — if an existing shared component already covers the need, use it. When two nearly-identical UI patterns exist in the same file, that is a bug worth fixing on sight, not something to leave for a later audit.
