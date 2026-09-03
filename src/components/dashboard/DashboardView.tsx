@@ -431,13 +431,14 @@ export function DashboardView() {
                   <p className="text-xs text-muted-foreground">
                     Add your first course to start tracking assignments and workload.
                   </p>
-                  <button
-                    type="button"
+                  <CardActionButton
+                    variant="solid"
+                    withPlus
                     onClick={() => setAddCourseOpen(true)}
-                    className="mt-1 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                    className="mt-1"
                   >
-                    + Add Course
-                  </button>
+                    Add Course
+                  </CardActionButton>
                 </div>
               ) : (
                 <div className="flex items-center gap-4">

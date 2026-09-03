@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '@/context/AppStateContext';
 import { Card } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
 import {
   GradeCategory,
   calculateCurrentWeightedGrade,
@@ -131,7 +132,7 @@ export function GradeCalculatorModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <Card className="relative w-full max-w-2xl overflow-hidden transition-all my-8">
+      <Card accent="none" className="relative w-full max-w-2xl overflow-hidden transition-all my-8">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/40 px-5 py-4 bg-muted/20">
           <div className="flex items-center gap-3">
@@ -326,12 +327,9 @@ export function GradeCalculatorModal({
                     >
                       Total Weight: {totalWeight}% {totalWeight !== 100 && '(Adjust to 100%)'}
                     </span>
-                    <button
-                      onClick={handleAddCategory}
-                      className="rounded-md bg-muted px-2 py-1 text-xs font-semibold text-foreground hover:bg-accent transition-colors"
-                    >
-                      + Add Category
-                    </button>
+                    <CardActionButton variant="solid" withPlus onClick={handleAddCategory}>
+                      Add Category
+                    </CardActionButton>
                   </div>
                 </div>
 

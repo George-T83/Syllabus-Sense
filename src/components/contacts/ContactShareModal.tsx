@@ -85,7 +85,7 @@ export function ContactShareModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
     >
       <div ref={dialogRef} tabIndex={-1} className="w-full max-w-lg outline-none">
-        <Card className="relative">
+        <Card accent="none" className="relative">
           <div className="max-h-[90vh] overflow-y-auto p-6 sm:p-7 space-y-5">
             {/* Header */}
             <div className="flex items-start justify-between border-b border-border pb-4">

@@ -217,7 +217,7 @@ export function ProjectChunkerModal({
       aria-modal="true"
       aria-labelledby="project-chunker-title"
     >
-      <Card ref={dialogRef} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Card ref={dialogRef} accent="none" className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border pb-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">

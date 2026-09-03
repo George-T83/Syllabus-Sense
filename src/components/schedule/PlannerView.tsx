@@ -455,16 +455,16 @@ export function PlannerView() {
                 Edit
               </button>
               {isConfirmingThisDelete ? (
-                <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-xs">
                   <button
                     onClick={() => handleDeleteTask(item)}
-                    className="inline-flex min-h-[44px] items-center justify-center px-2 font-semibold text-foreground hover:underline"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-foreground/10 px-2.5 font-semibold text-foreground transition-colors hover:bg-foreground/15"
                   >
                     Confirm
                   </button>
                   <button
                     onClick={() => setConfirmingDeleteId(null)}
-                    className="inline-flex min-h-[44px] items-center justify-center px-2 text-muted-foreground hover:underline"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-full px-2.5 text-muted-foreground transition-colors hover:bg-accent"
                   >
                     Cancel
                   </button>
@@ -475,7 +475,7 @@ export function PlannerView() {
                 // doesn't compete with the one badge that should stand out.
                 <button
                   onClick={() => setConfirmingDeleteId(item.id)}
-                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center px-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   Delete
                 </button>
