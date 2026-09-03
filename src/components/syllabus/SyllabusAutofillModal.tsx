@@ -400,6 +400,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
    * null when every objective is just static text with a pencil button. */
   const [editingObjectiveIndex, setEditingObjectiveIndex] = useState<number | null>(null);
   const [objectiveDraft, setObjectiveDraft] = useState('');
+  const objectiveTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [contactDrafts, setContactDrafts] = useState<DraftContact[]>([]);
   /** Set once the course + schedule items have actually been persisted, so
    * a later contacts-save failure can keep the modal open to show that
@@ -421,6 +422,17 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       // which the next open will still offer to discard.
     }
   };
+
+  // Grows the objective editor with its content instead of showing a fixed
+  // two-row box that's half-empty for a short objective and clipped for a
+  // long one - same feel as a chat input, capped by the textarea's own
+  // max-h-32 before it starts scrolling internally.
+  useEffect(() => {
+    const el = objectiveTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [objectiveDraft, editingObjectiveIndex]);
 
   // Offer to resume a draft left over from a closed tab/dismissed modal,
   // checked once per modal open rather than continuously.
@@ -1502,27 +1514,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   </section>
                 )}
 
-                <section
-                  className="review-reveal space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4"
-                  style={{ animationDelay: '165ms' }}
-                >
+                <section className="review-reveal space-y-2.5" style={{ animationDelay: '165ms' }}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                      <svg
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s4.332.477 5.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                        />
-                      </svg>
-                      Learning Objectives
-                    </h3>
+                    <h3 className="text-sm font-semibold text-foreground">Learning Objectives</h3>
                     <div className="flex items-center gap-3">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                         <input
@@ -1574,6 +1568,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                             className="flex items-start gap-1.5 rounded-lg border border-primary/30 p-2"
                           >
                             <textarea
+                              ref={objectiveTextareaRef}
                               autoFocus
                               value={objectiveDraft}
                               onChange={(e) => setObjectiveDraft(e.target.value)}
@@ -1585,9 +1580,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                                   setEditingObjectiveIndex(null);
                                 }
                               }}
-                              rows={2}
+                              rows={1}
                               placeholder="e.g. Design multi-tier web applications"
-                              className="max-h-32 flex-1 resize-y overflow-y-auto rounded-lg border border-primary bg-card px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="max-h-32 flex-1 resize-none overflow-y-auto rounded-lg border border-primary bg-card px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                             <div className="flex shrink-0 flex-col gap-1">
                               <button
