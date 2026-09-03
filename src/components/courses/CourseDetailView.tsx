@@ -197,7 +197,13 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [confirmingDeleteCourse, setConfirmingDeleteCourse] = useState(false);
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
   const [confirmingDeleteItemId, setConfirmingDeleteItemId] = useState<string | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [confirmingDeleteObjectiveIndex, setConfirmingDeleteObjectiveIndex] = useState<
+    number | null
+  >(null);
+  const [deletingObjectiveIndex, setDeletingObjectiveIndex] = useState<number | null>(null);
 
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [newContact, setNewContact] = useState<ContactFormState>(EMPTY_CONTACT_FORM);
@@ -257,8 +263,13 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleDeleteCourse = async () => {
     if (!user) return;
-    await deleteCourse(user.uid, course, items, dispatch, courseContacts);
-    router.push('/dashboard');
+    setIsDeletingCourse(true);
+    try {
+      await deleteCourse(user.uid, course, items, dispatch, courseContacts);
+      router.push('/dashboard');
+    } finally {
+      setIsDeletingCourse(false);
+    }
   };
 
   const handleAddTask = async (values: ScheduleItemFormValues) => {
@@ -307,8 +318,13 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleDeleteTask = async (item: ScheduleItem) => {
     if (!user) return;
-    await deleteScheduleItem(user.uid, item, dispatch);
-    setConfirmingDeleteItemId(null);
+    setDeletingItemId(item.id);
+    try {
+      await deleteScheduleItem(user.uid, item, dispatch);
+      setConfirmingDeleteItemId(null);
+    } finally {
+      setDeletingItemId(null);
+    }
   };
 
   const handleAddContact = async () => {
@@ -406,14 +422,20 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleDeleteObjective = async (index: number) => {
     if (!user) return;
-    const current = [...(course.learningObjectives ?? [])];
-    current.splice(index, 1);
-    await updateCourse(
-      user.uid,
-      course,
-      { ...course, learningObjectives: current, learningObjectivesApproved: true },
-      dispatch,
-    );
+    setDeletingObjectiveIndex(index);
+    try {
+      const current = [...(course.learningObjectives ?? [])];
+      current.splice(index, 1);
+      await updateCourse(
+        user.uid,
+        course,
+        { ...course, learningObjectives: current, learningObjectivesApproved: true },
+        dispatch,
+      );
+      setConfirmingDeleteObjectiveIndex(null);
+    } finally {
+      setDeletingObjectiveIndex(null);
+    }
   };
 
   const handleAddObjective = async () => {
@@ -571,13 +593,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     <span className="text-muted-foreground">Delete course and its tasks?</span>
                     <button
                       onClick={handleDeleteCourse}
-                      className="rounded-full bg-destructive/10 px-3 py-1.5 font-semibold text-destructive transition-colors hover:bg-destructive/20"
+                      disabled={isDeletingCourse}
+                      className="rounded-full bg-destructive/10 px-3 py-1.5 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
                     >
-                      Confirm
+                      {isDeletingCourse ? 'Deleting…' : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setConfirmingDeleteCourse(false)}
-                      className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent"
+                      disabled={isDeletingCourse}
+                      className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -862,26 +886,47 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           />
                         </svg>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteObjective(i)}
-                        className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
-                        aria-label="Delete objective"
-                      >
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
+                      {confirmingDeleteObjectiveIndex === i ? (
+                        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteObjective(i)}
+                            disabled={deletingObjectiveIndex === i}
+                            className="font-semibold text-destructive hover:underline disabled:opacity-50"
+                          >
+                            {deletingObjectiveIndex === i ? 'Deleting…' : 'Confirm'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDeleteObjectiveIndex(null)}
+                            disabled={deletingObjectiveIndex === i}
+                            className="text-muted-foreground hover:underline disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingDeleteObjectiveIndex(i)}
+                          className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
+                          aria-label="Delete objective"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                            />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </li>
                 ),
@@ -1009,13 +1054,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           <div className="flex items-center gap-2 text-xs">
                             <button
                               onClick={() => handleDeleteTask(item)}
-                              className="font-semibold text-destructive hover:underline"
+                              disabled={deletingItemId === item.id}
+                              className="font-semibold text-destructive hover:underline disabled:opacity-50"
                             >
-                              Confirm
+                              {deletingItemId === item.id ? 'Deleting…' : 'Confirm'}
                             </button>
                             <button
                               onClick={() => setConfirmingDeleteItemId(null)}
-                              className="text-muted-foreground hover:underline"
+                              disabled={deletingItemId === item.id}
+                              className="text-muted-foreground hover:underline disabled:opacity-50"
                             >
                               Cancel
                             </button>
