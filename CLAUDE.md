@@ -21,7 +21,17 @@ This is a Next.js 14 + Firebase (Auth/Firestore/Storage) app. "Verified" means c
 
 ## Merge approval
 
-Never merge a PR without the repo owner's explicit go-ahead in the conversation, even when CI is green and the branch is mergeable. "Drive this PR to green" is not the same instruction as "merge it" — green CI is a precondition for asking, not a substitute for asking. Before requesting merge approval on any non-trivial change, produce a short review write-up (what changed, why, and evidence — screenshots against the real app for anything touching the UI) so the owner can review it the way a lead would review a teammate's PR, not just rubber-stamp a green check mark.
+Never merge a PR without the repo owner's explicit go-ahead in the conversation, even when CI is green and the branch is mergeable. "Drive this PR to green" is not the same instruction as "merge it" — green CI is a precondition for asking, not a substitute for asking.
+
+**Before asking for merge approval on every PR, with no exceptions** (not just "non-trivial" ones — there is no size threshold below which this step is skipped): publish a standalone review document as an Artifact and give the owner the link. This is a separate, required step every single time — it does not happen automatically, and it is easy to forget under time pressure, so treat "did I publish the review doc yet" as a checklist item on every PR, not a judgment call.
+
+The GitHub PR description does **not** satisfy this requirement by itself, no matter how thorough it is. The review doc must exist as its own artifact, and must contain:
+
+- What changed and why, broken out by logical change (not just a wall of diff).
+- Real evidence: actual screenshots from the running app (via the Firebase Local Emulator Suite + a live browser session) for anything touching the UI — before/after where a "before" is capturable, not just a description of what it used to look like.
+- The verification results (tsc, lint, tests, build, CI status).
+
+Only after that artifact is published and linked should merge approval be requested. If a PR is opened and merge approval is about to be asked for and no review doc has been published yet for it, stop and publish one before asking — this has been skipped before and should not happen again.
 
 ## UI consistency
 
