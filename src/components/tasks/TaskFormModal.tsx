@@ -13,6 +13,7 @@ import { scheduleItemFormSchema, type ScheduleItemFormValues } from '@/lib/valid
 import type { Course, ScheduleItem, AssignmentType, Priority } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useDirtyClose } from '@/hooks/useDirtyClose';
 
 const TYPE_OPTIONS: { value: AssignmentType; label: string }[] = [
   { value: 'assignment', label: 'Assignment' },
@@ -60,33 +61,41 @@ export function TaskFormModal({
   initialItem,
 }: TaskFormModalProps) {
   const [values, setValues] = useState<ScheduleItemFormValues>(emptyValues(courses[0]?.id ?? ''));
+  const [baseline, setBaseline] = useState<ScheduleItemFormValues>(
+    emptyValues(courses[0]?.id ?? ''),
+  );
   const [errors, setErrors] = useState<Partial<Record<keyof ScheduleItemFormValues, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setValues(
-      initialItem
-        ? {
-            title: initialItem.title,
-            type: initialItem.type,
-            courseId: initialItem.courseId,
-            dueDate: initialItem.dueDate.slice(0, 10),
-            estimatedHours: initialItem.estimatedHours?.toString() ?? '',
-            priority: initialItem.priority ?? 'medium',
-            notes: initialItem.notes ?? '',
-            progress: initialItem.progress?.toString() ?? '',
-            gradeWeight: initialItem.gradeWeight?.toString() ?? '',
-            gradeCategory: initialItem.gradeCategory ?? '',
-          }
-        : emptyValues(courses[0]?.id ?? ''),
-    );
+    const initial: ScheduleItemFormValues = initialItem
+      ? {
+          title: initialItem.title,
+          type: initialItem.type,
+          courseId: initialItem.courseId,
+          dueDate: initialItem.dueDate.slice(0, 10),
+          estimatedHours: initialItem.estimatedHours?.toString() ?? '',
+          priority: initialItem.priority ?? 'medium',
+          notes: initialItem.notes ?? '',
+          progress: initialItem.progress?.toString() ?? '',
+          gradeWeight: initialItem.gradeWeight?.toString() ?? '',
+          gradeCategory: initialItem.gradeCategory ?? '',
+        }
+      : emptyValues(courses[0]?.id ?? '');
+    setValues(initial);
+    setBaseline(initial);
     setErrors({});
     setSubmitError(null);
   }, [open, initialItem, courses]);
 
-  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+  const { requestClose, confirmingDiscard, confirmDiscard, cancelDiscard } = useDirtyClose(
+    values,
+    baseline,
+    onClose,
+  );
+  const dialogRef = useModalA11y<HTMLDivElement>(open, requestClose);
 
   if (!open) return null;
 
@@ -129,14 +138,40 @@ export function TaskFormModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="task-form-title"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="w-full max-w-md outline-none"
+        className="relative w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
+        {confirmingDiscard && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/90 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xs space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg">
+              <p className="text-sm font-medium text-foreground">Discard unsaved changes?</p>
+              <p className="text-xs text-muted-foreground">
+                You have changes to this task that haven&apos;t been saved.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancelDiscard}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  Keep editing
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDiscard}
+                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <Card accent="none">
           <CardHeader>
             <CardTitle id="task-form-title">{initialItem ? 'Edit Task' : 'Add Task'}</CardTitle>
@@ -308,7 +343,7 @@ export function TaskFormModal({
             <CardFooter className="justify-end gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
               >
                 Cancel
