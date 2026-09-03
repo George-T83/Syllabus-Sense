@@ -83,7 +83,7 @@ export interface Course {
 }
 
 /** Whether a contact is the instructor of record or a teaching assistant. */
-export type ContactRole = 'professor' | 'ta';
+export type ContactRole = 'professor' | 'ta' | 'classmate';
 
 /**
  * A course-affiliated professor or TA, usually populated from syllabus

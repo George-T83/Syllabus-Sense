@@ -12,6 +12,9 @@ export interface ScheduleOfficeVisitModalProps {
   onSchedule: (contact: Contact, dateKey: string) => Promise<void>;
 }
 
+/** Books a one-off reminder task tied to a contact: an office-hours visit
+ * for a professor/TA, or a study session for a classmate. Same modal, same
+ * flow either way - only the copy changes based on `contact.role`. */
 export function ScheduleOfficeVisitModal({
   contact,
   onClose,
@@ -37,6 +40,8 @@ export function ScheduleOfficeVisitModal({
 
   if (!contact) return null;
 
+  const isClassmate = contact.role === 'classmate';
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -45,9 +50,7 @@ export function ScheduleOfficeVisitModal({
       await onSchedule(contact, date);
       onClose();
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : 'Failed to schedule the visit. Please try again.',
-      );
+      setSubmitError(err instanceof Error ? err.message : 'Failed to schedule. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +72,9 @@ export function ScheduleOfficeVisitModal({
       >
         <Card accent="none">
           <CardHeader>
-            <CardTitle id="schedule-visit-title">Schedule a Visit</CardTitle>
+            <CardTitle id="schedule-visit-title">
+              {isClassmate ? 'Schedule a Study Session' : 'Schedule a Visit'}
+            </CardTitle>
             <CardDescription>Adds a reminder task to your Tasks list.</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -97,7 +102,7 @@ export function ScheduleOfficeVisitModal({
                   htmlFor="visit-date"
                   className="block text-xs font-semibold text-muted-foreground mb-1"
                 >
-                  Which day are you going?
+                  {isClassmate ? 'Which day are you meeting?' : 'Which day are you going?'}
                 </label>
                 <input
                   id="visit-date"
@@ -124,7 +129,11 @@ export function ScheduleOfficeVisitModal({
                 disabled={submitting}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitting ? 'Scheduling...' : 'Schedule Visit'}
+                {submitting
+                  ? 'Scheduling...'
+                  : isClassmate
+                    ? 'Schedule Study Session'
+                    : 'Schedule Visit'}
               </button>
             </div>
           </form>

@@ -24,6 +24,7 @@ import { cn, normalizeContactName } from '@/lib/utils';
 const ROLE_LABEL: Record<ContactRole, string> = {
   professor: 'Professor',
   ta: 'TA',
+  classmate: 'Classmate',
 };
 
 interface ContactFormValues {
@@ -211,14 +212,17 @@ export function ContactsListView() {
   };
 
   const handleScheduleVisit = async (contact: Contact, dateKey: string) => {
-    if (!user) throw new Error('You must be signed in to schedule a visit.');
+    if (!user) throw new Error('You must be signed in to schedule this.');
+    const isClassmate = contact.role === 'classmate';
     try {
       await createScheduleItem(
         user.uid,
         {
           id: crypto.randomUUID(),
           courseId: contact.courseId,
-          title: `Office hours — ${contact.howToAddress || contact.fullName}`,
+          title: isClassmate
+            ? `Study session with ${contact.howToAddress || contact.fullName}`
+            : `Office hours — ${contact.howToAddress || contact.fullName}`,
           type: 'other',
           dueDate: new Date(`${dateKey}T23:59:00`).toISOString(),
           completed: false,
@@ -236,9 +240,12 @@ export function ContactsListView() {
         },
         dispatch,
       );
-      showSuccess('Visit scheduled', `Added to your tasks for ${dateKey}.`);
+      showSuccess(
+        isClassmate ? 'Study session scheduled' : 'Visit scheduled',
+        `Added to your tasks for ${dateKey}.`,
+      );
     } catch (err) {
-      showError('Could not schedule the visit', err instanceof Error ? err.message : undefined);
+      showError('Could not schedule this', err instanceof Error ? err.message : undefined);
       throw err;
     }
   };
@@ -407,12 +414,14 @@ export function ContactsListView() {
                               </>
                             ) : (
                               <>
-                                {record.officeHours && (
+                                {(record.officeHours || record.role === 'classmate') && (
                                   <button
                                     onClick={() => setSchedulingContact(record)}
                                     className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                   >
-                                    Schedule Visit
+                                    {record.role === 'classmate'
+                                      ? 'Schedule Study Session'
+                                      : 'Schedule Visit'}
                                   </button>
                                 )}
                                 <button
@@ -631,7 +640,7 @@ function ContactFormModal({
               <div className="space-y-1.5">
                 <span className="text-sm font-medium text-foreground">Role</span>
                 <div className="flex gap-2">
-                  {(['professor', 'ta'] as ContactRole[]).map((role) => (
+                  {(['professor', 'ta', 'classmate'] as ContactRole[]).map((role) => (
                     <button
                       key={role}
                       type="button"
