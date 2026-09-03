@@ -1035,7 +1035,32 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     id="autofill-course-instructor"
                     label="Instructor"
                     value={course.instructor}
-                    onChange={(v) => setCourse((c) => c && { ...c, instructor: v })}
+                    onChange={(v) => {
+                      const previousInstructor = course.instructor;
+                      setCourse((c) => c && { ...c, instructor: v });
+                      // Course.instructor and the matching professor Contact
+                      // are two independent drafts at this point - keep them
+                      // in sync while there's exactly one professor entry
+                      // that still matches the old name, so editing here
+                      // doesn't silently leave the Contact card showing a
+                      // stale name. Skipped when there are multiple
+                      // professors (ambiguous which one to update) or the
+                      // student has already hand-edited that entry away
+                      // from the extracted instructor name.
+                      const professorDrafts = contactDrafts.filter((cd) => cd.role === 'professor');
+                      if (
+                        professorDrafts.length === 1 &&
+                        (professorDrafts[0].values.fullName ?? '') === previousInstructor
+                      ) {
+                        setContactDrafts((drafts) =>
+                          drafts.map((cd) =>
+                            cd === professorDrafts[0]
+                              ? { ...cd, values: { ...cd.values, fullName: v } }
+                              : cd,
+                          ),
+                        );
+                      }
+                    }}
                   />
 
                   <div className="space-y-1.5">
