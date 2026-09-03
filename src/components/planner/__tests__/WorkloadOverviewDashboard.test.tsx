@@ -4,6 +4,7 @@ import React from 'react';
 import { WorkloadOverviewDashboard } from '../WorkloadOverviewDashboard';
 import { AppStateProvider } from '@/context/AppStateContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { ToastProvider } from '@/components/ui/Toast';
 import { toLocalDateStr } from '@/lib/planner/projectChunker';
 import * as scheduleItemsLib from '@/lib/firestore/scheduleItems';
 import type { ScheduleItem, AssignmentType, Course } from '@/types/schedule';
@@ -96,9 +97,11 @@ function renderDashboard(
 ) {
   return render(
     <AuthProvider>
-      <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: items }}>
-        <WorkloadOverviewDashboard {...props} />
-      </AppStateProvider>
+      <ToastProvider>
+        <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: items }}>
+          <WorkloadOverviewDashboard {...props} />
+        </AppStateProvider>
+      </ToastProvider>
     </AuthProvider>,
   );
 }
