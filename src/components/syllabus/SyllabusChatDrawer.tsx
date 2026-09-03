@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { Course, AssignmentType } from '@/types/schedule';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useToast } from '@/components/ui/Toast';
 
 export interface SuggestedChunk {
   title: string;
@@ -41,6 +42,7 @@ const STARTER_PROMPTS = [
 export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: SyllabusChatDrawerProps) {
   const { state } = useAppState();
   const { user } = useAuth();
+  const { showError } = useToast();
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourseId || '');
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -70,6 +72,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
       setUploadedFile({ name: file.name, base64 });
     } catch (err) {
       console.error('Failed to read upload file:', err);
+      showError("Couldn't read that file. Try a different one.");
     } finally {
       setFileUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -503,6 +506,7 @@ function SuggestedChunksCard({
 }) {
   const { user } = useAuth();
   const { dispatch } = useAppState();
+  const { showError } = useToast();
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
 
@@ -530,6 +534,9 @@ function SuggestedChunksCard({
       setApplied(true);
     } catch (err) {
       console.error('Failed to apply suggested chunks:', err);
+      showError(
+        "Couldn't add these to your planner - some may have been added before the failure. Check your task list, then try again.",
+      );
     } finally {
       setLoading(false);
     }
