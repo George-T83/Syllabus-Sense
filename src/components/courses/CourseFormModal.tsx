@@ -9,6 +9,7 @@ import {
   CardContent,
   CardFooter,
 } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
 import { courseFormSchema, type CourseFormValues } from '@/lib/validation/course';
 import type { Course, CourseModality, MeetingTime } from '@/types/schedule';
 import { cn } from '@/lib/utils';
@@ -173,7 +174,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
         className="w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card>
+        <Card accent="none">
           <CardHeader>
             <CardTitle id="course-form-title">
               {initialCourse ? 'Edit Course' : 'Add Course'}
@@ -333,13 +334,9 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">Weekly meetings</span>
-                  <button
-                    type="button"
-                    onClick={addMeetingTime}
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    + Add meeting time
-                  </button>
+                  <CardActionButton variant="solid" withPlus onClick={addMeetingTime}>
+                    Add meeting time
+                  </CardActionButton>
                 </div>
                 {meetingTimes.length === 0 ? (
                   <p className="text-xs text-muted-foreground">

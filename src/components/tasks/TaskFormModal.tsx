@@ -133,7 +133,7 @@ export function TaskFormModal({
         className="w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card>
+        <Card accent="none">
           <CardHeader>
             <CardTitle id="task-form-title">{initialItem ? 'Edit Task' : 'Add Task'}</CardTitle>
             <CardDescription>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useSyllabi } from '@/lib/firestore/useSyllabi';
@@ -143,13 +144,9 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
           </span>
           <h2 className="text-base font-semibold text-foreground">AI Summary</h2>
         </div>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="text-xs font-semibold text-primary hover:underline disabled:pointer-events-none disabled:opacity-50"
-        >
+        <CardActionButton variant="solid" onClick={handleGenerate} disabled={generating}>
           {generating ? 'Generating…' : summary ? 'Regenerate' : 'Generate'}
-        </button>
+        </CardActionButton>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

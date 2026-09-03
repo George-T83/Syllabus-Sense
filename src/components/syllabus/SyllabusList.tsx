@@ -55,19 +55,19 @@ export function SyllabusList({ userId, courseId }: SyllabusListProps) {
             <span className="text-xs text-muted-foreground">{formatSize(syllabus.sizeBytes)}</span>
           </div>
           {confirmingDeleteId === syllabus.id ? (
-            <div className="flex items-center gap-2 text-xs shrink-0">
+            <div className="flex items-center gap-1.5 text-xs shrink-0">
               <button
                 onClick={() => {
                   if (userId) deleteSyllabusUpload(userId, syllabus);
                   setConfirmingDeleteId(null);
                 }}
-                className="font-semibold text-destructive hover:underline"
+                className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20"
               >
                 Confirm
               </button>
               <button
                 onClick={() => setConfirmingDeleteId(null)}
-                className="text-muted-foreground hover:underline"
+                className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel
               </button>
@@ -75,7 +75,7 @@ export function SyllabusList({ userId, courseId }: SyllabusListProps) {
           ) : (
             <button
               onClick={() => setConfirmingDeleteId(syllabus.id)}
-              className="text-xs font-semibold text-destructive hover:underline shrink-0"
+              className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
             >
               Delete
             </button>

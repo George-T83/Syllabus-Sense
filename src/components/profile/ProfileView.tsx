@@ -275,7 +275,7 @@ export function ProfileView() {
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="text-xs font-semibold text-primary hover:underline"
+                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               >
                 Edit
               </button>
@@ -312,7 +312,7 @@ export function ProfileView() {
               <button
                 type="submit"
                 disabled={saving}
-                className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>
@@ -323,7 +323,7 @@ export function ProfileView() {
                   setName(user.displayName ?? '');
                   clearError();
                 }}
-                className="text-xs font-medium text-muted-foreground hover:underline"
+                className="rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel
               </button>
@@ -551,7 +551,7 @@ export function ProfileView() {
                       setPasswordFormError(null);
                       clearError();
                     }}
-                    className="text-xs font-semibold text-primary hover:underline"
+                    className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                   >
                     Change password
                   </button>
@@ -642,7 +642,7 @@ export function ProfileView() {
                         setPasswordFormError(null);
                         clearError();
                       }}
-                      className="text-xs font-medium text-muted-foreground hover:underline"
+                      className="rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
                     >
                       Cancel
                     </button>
@@ -753,7 +753,7 @@ export function ProfileView() {
                     setDeletePassword('');
                     clearError();
                   }}
-                  className="text-xs font-medium text-muted-foreground hover:underline"
+                  className="rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
                 >
                   Cancel
                 </button>
