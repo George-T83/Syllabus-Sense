@@ -218,6 +218,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [addingObjective, setAddingObjective] = useState(false);
   const [newObjectiveDraft, setNewObjectiveDraft] = useState('');
 
+  const [confirmingDeleteMaterialIndex, setConfirmingDeleteMaterialIndex] = useState<number | null>(
+    null,
+  );
+  const [deletingMaterialIndex, setDeletingMaterialIndex] = useState<number | null>(null);
+  const [editingMaterialIndex, setEditingMaterialIndex] = useState<number | null>(null);
+  const [materialDraft, setMaterialDraft] = useState('');
+  const [addingMaterial, setAddingMaterial] = useState(false);
+  const [newMaterialDraft, setNewMaterialDraft] = useState('');
+
   const course = state.courses.find((c) => c.id === courseId);
   const items = state.scheduleItems
     .filter((item) => item.courseId === courseId)
@@ -251,6 +260,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       color: values.color,
       icon: values.icon,
       meetingTimes: values.meetingTimes ?? [],
+      skipDates: values.skipDates ?? [],
       ...(values.instructor ? { instructor: values.instructor } : {}),
       ...(values.modality ? { modality: values.modality } : {}),
     };
@@ -471,6 +481,50 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     );
     setNewObjectiveDraft('');
     setAddingObjective(false);
+  };
+
+  const handleStartEditMaterial = (index: number) => {
+    setMaterialDraft(course.materials?.[index] ?? '');
+    setEditingMaterialIndex(index);
+  };
+
+  const handleCommitMaterialEdit = async (index: number) => {
+    if (!user) return;
+    const current = [...(course.materials ?? [])];
+    const trimmed = materialDraft.trim();
+    if (trimmed) {
+      current[index] = trimmed;
+    } else {
+      current.splice(index, 1);
+    }
+    await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
+    setEditingMaterialIndex(null);
+  };
+
+  const handleDeleteMaterial = async (index: number) => {
+    if (!user) return;
+    setDeletingMaterialIndex(index);
+    try {
+      const current = [...(course.materials ?? [])];
+      current.splice(index, 1);
+      await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
+      setConfirmingDeleteMaterialIndex(null);
+    } finally {
+      setDeletingMaterialIndex(null);
+    }
+  };
+
+  const handleAddMaterial = async () => {
+    if (!user) return;
+    const trimmed = newMaterialDraft.trim();
+    if (!trimmed) {
+      setAddingMaterial(false);
+      return;
+    }
+    const current = [...(course.materials ?? []), trimmed];
+    await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
+    setNewMaterialDraft('');
+    setAddingMaterial(false);
   };
 
   const handleExportICS = () => {
@@ -1002,6 +1056,214 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   type="button"
                   onClick={handleAddObjective}
                   disabled={!newObjectiveDraft.trim()}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        <Card className="rounded-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-foreground">Materials</h2>
+            {!addingMaterial && (
+              <CardActionButton variant="solid" withPlus onClick={() => setAddingMaterial(true)}>
+                Add material
+              </CardActionButton>
+            )}
+          </div>
+
+          {course.materials && course.materials.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {course.materials.map((material, i) =>
+                editingMaterialIndex === i ? (
+                  <li
+                    key={i}
+                    className="flex items-center gap-2 rounded-lg border border-border p-3"
+                  >
+                    <input
+                      type="text"
+                      value={materialDraft}
+                      onChange={(e) => setMaterialDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCommitMaterialEdit(i);
+                        if (e.key === 'Escape') setEditingMaterialIndex(null);
+                      }}
+                      className="flex-1 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCommitMaterialEdit(i)}
+                      className="rounded p-1 text-primary hover:bg-primary/10"
+                      aria-label="Save this material"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4.5 12.75l6 6 9-13.5"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingMaterialIndex(null)}
+                      className="rounded p-1 text-muted-foreground hover:bg-muted"
+                      aria-label="Cancel editing"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </li>
+                ) : (
+                  <li
+                    key={i}
+                    className="group flex items-start justify-between gap-3 rounded-lg border border-border p-3 text-sm text-foreground transition-colors hover:border-primary/30"
+                  >
+                    <div className="min-w-0">
+                      <span className="leading-relaxed break-words">{material}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 opacity-80 transition-opacity group-hover:opacity-100">
+                      {confirmingDeleteMaterialIndex === i ? (
+                        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMaterial(i)}
+                            disabled={deletingMaterialIndex === i}
+                            className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                          >
+                            {deletingMaterialIndex === i ? 'Deleting…' : 'Confirm'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDeleteMaterialIndex(null)}
+                            disabled={deletingMaterialIndex === i}
+                            className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditMaterial(i)}
+                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                            aria-label="Edit material"
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDeleteMaterialIndex(i)}
+                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            aria-label="Delete material"
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                              />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ),
+              )}
+            </ul>
+          ) : (
+            !addingMaterial && (
+              <EmptyState
+                icon={
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                    />
+                  </svg>
+                }
+                title="No materials yet"
+                description="Add a textbook, calculator, or other required supply, or upload a syllabus above to extract them automatically."
+                action={{ label: '+ Add material', onClick: () => setAddingMaterial(true) }}
+              />
+            )
+          )}
+
+          {addingMaterial && (
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <input
+                type="text"
+                value={newMaterialDraft}
+                onChange={(e) => setNewMaterialDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddMaterial();
+                  if (e.key === 'Escape') setAddingMaterial(false);
+                }}
+                placeholder="e.g. Introduction to Algorithms, 3rd Edition"
+                className="w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">Press Enter to save.</p>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddingMaterial(false)}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddMaterial}
+                  disabled={!newMaterialDraft.trim()}
                   className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
                 >
                   Add

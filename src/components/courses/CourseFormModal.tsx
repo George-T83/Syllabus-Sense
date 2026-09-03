@@ -61,6 +61,7 @@ const emptyValues: CourseFormValues = {
   icon: DEFAULT_COURSE_ICON,
   modality: undefined,
   meetingTimes: [],
+  skipDates: [],
 };
 
 export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: CourseFormModalProps) {
@@ -90,6 +91,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
             icon: initialCourse.icon ?? DEFAULT_COURSE_ICON,
             modality: initialCourse.modality,
             meetingTimes: initialCourse.meetingTimes ?? [],
+            skipDates: initialCourse.skipDates ?? [],
           }
         : // A fresh course defaults to whichever preset is least represented
           // among the user's existing courses, so a student with 8+ courses
@@ -133,9 +135,36 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
     setErrors((e) => (e.meetingTimes ? { ...e, meetingTimes: undefined } : e));
   };
 
+  const skipDates = values.skipDates ?? [];
+
+  const addSkipDate = () => {
+    setValues((s) => ({ ...s, skipDates: [...(s.skipDates ?? []), ''] }));
+  };
+
+  const removeSkipDate = (index: number) => {
+    setValues((s) => ({
+      ...s,
+      skipDates: (s.skipDates ?? []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateSkipDate = (index: number, value: string) => {
+    setValues((s) => ({
+      ...s,
+      skipDates: (s.skipDates ?? []).map((d, i) => (i === index ? value : d)),
+    }));
+    setErrors((e) => (e.skipDates ? { ...e, skipDates: undefined } : e));
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const result = courseFormSchema.safeParse(values);
+    // A skip-date row the user added but hasn't picked a date for yet
+    // shouldn't block submission - drop empty rows rather than fail
+    // validation on a placeholder.
+    const result = courseFormSchema.safeParse({
+      ...values,
+      skipDates: (values.skipDates ?? []).filter((d) => d.trim().length > 0),
+    });
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof CourseFormValues, string>> = {};
       for (const issue of result.error.issues) {
@@ -398,7 +427,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                                 updateMeetingTime(index, { location: e.target.value })
                               }
                               placeholder="Location (optional)"
-                              className="min-w-0 flex-1 rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="min-w-[9rem] flex-1 rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                             <button
                               type="button"
@@ -422,6 +451,48 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                 {errors.meetingTimes && (
                   <p className="text-xs text-destructive">{errors.meetingTimes}</p>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    Skip dates (holidays &amp; breaks)
+                  </span>
+                  <CardActionButton variant="solid" withPlus onClick={addSkipDate}>
+                    Add skip date
+                  </CardActionButton>
+                </div>
+                {skipDates.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No skipped dates yet — add one to hide a weekly meeting on a holiday or break.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {skipDates.map((date, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 rounded-lg border border-border p-2"
+                      >
+                        <input
+                          aria-label={`Skip date ${index + 1}`}
+                          type="date"
+                          value={date}
+                          onChange={(e) => updateSkipDate(index, e.target.value)}
+                          className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSkipDate(index)}
+                          aria-label={`Remove skip date ${index + 1}`}
+                          className="rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {errors.skipDates && <p className="text-xs text-destructive">{errors.skipDates}</p>}
               </div>
             </CardContent>
             <CardFooter className="justify-end gap-2">
