@@ -427,7 +427,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                                 updateMeetingTime(index, { location: e.target.value })
                               }
                               placeholder="Location (optional)"
-                              className="min-w-0 flex-1 rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="min-w-[9rem] flex-1 rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                             <button
                               type="button"
