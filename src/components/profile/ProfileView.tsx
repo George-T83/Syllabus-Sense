@@ -2,12 +2,16 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { collection, getDocs } from 'firebase/firestore';
 import { Card } from '@/components/ui/Card';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
+import { db } from '@/lib/firebase/client';
 import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
+import type { SyllabusUpload } from '@/types/syllabus';
 import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
@@ -112,6 +116,7 @@ export function ProfileView() {
   const { user, error, updateDisplayName, changePassword, deleteAccount, signOut, clearError } =
     useAuth();
   const { state, dispatch } = useAppState();
+  const { showError } = useToast();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.displayName ?? '');
@@ -129,6 +134,9 @@ export function ProfileView() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordFormError, setPasswordFormError] = useState<string | null>(null);
+
+  // --- Account & Data: data export ---
+  const [downloadingData, setDownloadingData] = useState(false);
 
   // --- Account & Data: delete account ---
   const [deleting, setDeleting] = useState(false);
@@ -212,26 +220,47 @@ export function ProfileView() {
     }
   };
 
-  const handleDownloadData = () => {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      account: {
-        email: user.email,
-        displayName: user.displayName,
-        memberSince: user.metadata.creationTime ?? null,
-      },
-      courses: state.courses,
-      scheduleItems: state.scheduleItems,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `syllabus-sense-data-${user.uid}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleDownloadData = async () => {
+    const firestore = db;
+    if (!firestore) return;
+    setDownloadingData(true);
+    try {
+      const syllabiByCourse = await Promise.all(
+        state.courses.map((course) =>
+          getDocs(collection(firestore, 'users', user.uid, 'courses', course.id, 'syllabi')),
+        ),
+      );
+      const syllabi: SyllabusUpload[] = syllabiByCourse.flatMap((snapshot) =>
+        snapshot.docs.map((doc) => doc.data() as SyllabusUpload),
+      );
+
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        account: {
+          email: user.email,
+          displayName: user.displayName,
+          memberSince: user.metadata.creationTime ?? null,
+        },
+        courses: state.courses,
+        scheduleItems: state.scheduleItems,
+        contacts: state.contacts,
+        preferences: state.preferences,
+        syllabi,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `syllabus-sense-data-${user.uid}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      showError("Couldn't put together your data export. Try again in a moment.");
+    } finally {
+      setDownloadingData(false);
+    }
   };
 
   const deleteReady =
@@ -663,14 +692,16 @@ export function ProfileView() {
           <h3 className="text-sm font-semibold text-foreground">Your data</h3>
           <div className="mt-2 flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              Download every course and task in your account as a JSON file.
+              Download every course, task, contact, syllabus, and preference in your account as a
+              JSON file.
             </p>
             <button
               type="button"
               onClick={handleDownloadData}
-              className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+              disabled={downloadingData}
+              className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Download my data
+              {downloadingData ? 'Preparing...' : 'Download my data'}
             </button>
           </div>
         </div>
