@@ -183,6 +183,8 @@ describe('AppStateContext Reducer & Selectors', () => {
       contacts: [],
       sources: [],
       flashcards: [],
+      quizzes: [],
+      quizAttempts: [],
       selectedCourseId: 'c1',
       selectedTerm: null,
       preferences: DEFAULT_PREFERENCES,
