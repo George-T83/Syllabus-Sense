@@ -16,7 +16,7 @@ import {
   updateScheduleItem,
   deleteScheduleItem,
 } from '@/lib/firestore/scheduleItems';
-import { createContact, updateContact } from '@/lib/firestore/contacts';
+import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
@@ -206,6 +206,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [deletingObjectiveIndex, setDeletingObjectiveIndex] = useState<number | null>(null);
 
   const [addContactOpen, setAddContactOpen] = useState(false);
+  const [confirmingDeleteContactId, setConfirmingDeleteContactId] = useState<string | null>(null);
+  const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
   const [newContact, setNewContact] = useState<ContactFormState>(EMPTY_CONTACT_FORM);
   const [savingContact, setSavingContact] = useState(false);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
@@ -395,6 +397,17 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       dispatch,
     );
     setEditingContactId(null);
+  };
+
+  const handleDeleteContact = async (contact: Contact) => {
+    if (!user) return;
+    setDeletingContactId(contact.id);
+    try {
+      await deleteContact(user.uid, contact, dispatch);
+      setConfirmingDeleteContactId(null);
+    } finally {
+      setDeletingContactId(null);
+    }
   };
 
   const handleStartEditObjective = (index: number) => {
@@ -714,12 +727,39 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                             <span className="text-xs text-muted-foreground">{contact.title}</span>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleStartEditContact(contact)}
-                          className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                        >
-                          Edit
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <button
+                            onClick={() => handleStartEditContact(contact)}
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                          >
+                            Edit
+                          </button>
+                          {confirmingDeleteContactId === contact.id ? (
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <button
+                                onClick={() => handleDeleteContact(contact)}
+                                disabled={deletingContactId === contact.id}
+                                className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                              >
+                                {deletingContactId === contact.id ? 'Deleting…' : 'Confirm'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmingDeleteContactId(null)}
+                                disabled={deletingContactId === contact.id}
+                                className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmingDeleteContactId(contact.id)}
+                              className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {contact.howToAddress && (
                         <p className="text-xs text-muted-foreground">
