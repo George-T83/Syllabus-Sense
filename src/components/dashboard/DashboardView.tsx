@@ -155,8 +155,11 @@ export function DashboardView() {
         title: values.title,
         color: values.color,
         icon: values.icon,
+        meetingTimes: values.meetingTimes ?? [],
+        skipDates: values.skipDates ?? [],
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
+        ...(values.modality ? { modality: values.modality } : {}),
       },
       dispatch,
     );

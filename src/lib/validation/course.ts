@@ -27,6 +27,7 @@ export const courseFormSchema = z.object({
   icon: z.string().min(1),
   modality: z.union([z.literal('in-person'), z.literal('online'), z.literal('hybrid')]).optional(),
   meetingTimes: z.array(meetingTimeSchema).optional(),
+  skipDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')).optional(),
 });
 
 export type CourseFormValues = z.infer<typeof courseFormSchema>;
