@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export type ActivityCategory = 'club' | 'research' | 'internship' | 'athletics' | 'volunteering';
 
@@ -366,22 +368,14 @@ export function ExtracurricularView({
             Balance leadership, lab research, and career milestones alongside your coursework.
           </p>
         </div>
-        <button
+        <CardActionButton
+          variant="solid"
+          withPlus
           onClick={openCreateModal}
           data-testid="add-activity-btn"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:opacity-90 text-primary-foreground text-sm font-medium transition-all shadow-lg shadow-primary/20 active:scale-95 cursor-pointer min-h-[44px]"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
           Add Activity
-        </button>
+        </CardActionButton>
       </div>
 
       {/* Commitment Capacity Meter Card */}
@@ -571,32 +565,32 @@ export function ExtracurricularView({
           </h2>
 
           {filteredActivities.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-8 text-center bg-muted/30">
-              <svg
-                className="w-10 h-10 text-muted-foreground mx-auto mb-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-              <p className="text-muted-foreground font-medium">No activities match your filters</p>
-              <button
-                onClick={() => {
+            <EmptyState
+              icon={
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              }
+              title="No activities match your filters"
+              action={{
+                label: 'Clear all filters',
+                onClick: () => {
                   setSelectedCategory('all');
                   setStatusFilter('all');
                   setSearchQuery('');
-                }}
-                className="mt-3 text-xs text-primary hover:underline cursor-pointer"
-              >
-                Clear all filters
-              </button>
-            </div>
+                },
+              }}
+            />
           ) : (
             filteredActivities.map((act) => {
               const cfg = CATEGORY_CONFIG[act.category];
@@ -905,7 +899,10 @@ export function ExtracurricularView({
           aria-labelledby="activity-modal-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
         >
-          <Card className="relative w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <Card
+            accent="none"
+            className="relative w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 id="activity-modal-title" className="text-lg font-bold text-foreground">
                 {editingActivity ? 'Edit Activity' : 'Add Extracurricular Activity'}

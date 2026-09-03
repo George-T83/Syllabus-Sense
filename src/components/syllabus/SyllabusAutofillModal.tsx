@@ -1,8 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { validateSyllabusFile } from '@/lib/validation/syllabusFile';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { createContacts, updateContact } from '@/lib/firestore/contacts';
@@ -49,6 +51,45 @@ const STEPS: { key: Step; label: string }[] = [
   { key: 'review', label: 'Review' },
   { key: 'saving', label: 'Save' },
 ];
+
+interface CourseDraft {
+  code: string;
+  title: string;
+  instructor: string;
+  term: string;
+  color: string;
+  icon: string;
+  modality: CourseModality | undefined;
+  meetingTimes: MeetingTime[];
+  materials: string[];
+  skipDates: string[];
+  notes: string;
+}
+
+/** The review-screen state worth protecting against a closed tab or an
+ * accidentally-dismissed modal - everything Claude extracted plus whatever
+ * the student has already hand-corrected. Deliberately excludes the
+ * uploaded `File` itself (not serializable, and not needed to resume - the
+ * expensive part to lose is the human review, not the raw upload) and
+ * `savedCourseId` (a course that's already in Firestore has nothing left to
+ * resume). Persisted to localStorage rather than Firestore since this is a
+ * same-device recovery net, not cross-device sync. */
+interface PersistedAutofillDraft {
+  savedAt: string;
+  fileName: string;
+  course: CourseDraft;
+  items: DraftItem[];
+  unresolved: string[];
+  learningObjectivesText: string;
+  learningObjectivesApproved: boolean;
+  contactDrafts: DraftContact[];
+}
+
+const AUTOFILL_DRAFT_STORAGE_PREFIX = 'syllabus-autofill-draft';
+
+function autofillDraftStorageKey(userId: string): string {
+  return `${AUTOFILL_DRAFT_STORAGE_PREFIX}:${userId}`;
+}
 
 interface DraftItem extends ExtractedScheduleItem {
   /** Local id for React keys/editing - not persisted as-is. */
@@ -342,19 +383,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
    * gets a confirmation instead of losing that work silently (SY-5). */
   const initialDraftRef = useRef<string | null>(null);
 
-  const [course, setCourse] = useState<{
-    code: string;
-    title: string;
-    instructor: string;
-    term: string;
-    color: string;
-    icon: string;
-    modality: CourseModality | undefined;
-    meetingTimes: MeetingTime[];
-    materials: string[];
-    skipDates: string[];
-    notes: string;
-  } | null>(null);
+  const [course, setCourse] = useState<CourseDraft | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
   const [unresolved, setUnresolved] = useState<string[]>([]);
   /** Claude's suggested syllabus file name, freely editable - not just a
@@ -366,22 +395,119 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
    * array so a student can restructure freely, split back into lines at
    * render/save time. */
   const [learningObjectivesText, setLearningObjectivesText] = useState('');
-  /** Whether the objectives section renders at all - set once at extraction
-   * time from whether Claude found any, independent of later edits (mirrors
-   * the "Claude also caught" notes/skipDates section, which stays visible
-   * once populated even as its content is edited). */
-  const [hasLearningObjectives, setHasLearningObjectives] = useState(false);
   const [learningObjectivesApproved, setLearningObjectivesApproved] = useState(true);
   /** Index into `learningObjectivesLines` currently open for editing, or
    * null when every objective is just static text with a pencil button. */
   const [editingObjectiveIndex, setEditingObjectiveIndex] = useState<number | null>(null);
   const [objectiveDraft, setObjectiveDraft] = useState('');
+  const objectiveTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [contactDrafts, setContactDrafts] = useState<DraftContact[]>([]);
   /** Set once the course + schedule items have actually been persisted, so
    * a later contacts-save failure can keep the modal open to show that
    * failure without letting a second Confirm click create a duplicate
    * course. Cleared on full success/close and on reset. */
   const [savedCourseId, setSavedCourseId] = useState<string | null>(null);
+  /** A draft found in localStorage from a previous session that closed
+   * (tab closed, modal dismissed) before the student confirmed - offered as
+   * a resume/discard choice on the upload screen rather than silently
+   * dropped or silently auto-loaded over a fresh upload. */
+  const [pendingDraft, setPendingDraft] = useState<PersistedAutofillDraft | null>(null);
+
+  const clearPersistedDraft = () => {
+    if (!user) return;
+    try {
+      localStorage.removeItem(autofillDraftStorageKey(user.uid));
+    } catch {
+      // Best-effort - a failure here just means a stale draft lingers,
+      // which the next open will still offer to discard.
+    }
+  };
+
+  // Grows the objective editor with its content instead of showing a fixed
+  // two-row box that's half-empty for a short objective and clipped for a
+  // long one - same feel as a chat input, capped by the textarea's own
+  // max-h-32 before it starts scrolling internally.
+  useEffect(() => {
+    const el = objectiveTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [objectiveDraft, editingObjectiveIndex]);
+
+  // Offer to resume a draft left over from a closed tab/dismissed modal,
+  // checked once per modal open rather than continuously.
+  useEffect(() => {
+    if (!open || !user) return;
+    try {
+      const raw = localStorage.getItem(autofillDraftStorageKey(user.uid));
+      if (raw) setPendingDraft(JSON.parse(raw) as PersistedAutofillDraft);
+    } catch {
+      // Corrupt or inaccessible storage - treat as "no draft to resume".
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user]);
+
+  // Autosaves the review-screen draft on every edit so a closed tab or a
+  // dismissed modal doesn't lose the student's work - cleared once the
+  // course is actually saved (see handleConfirm) or explicitly discarded.
+  useEffect(() => {
+    if (!user || step !== 'review' || !course) return;
+    try {
+      const draft: PersistedAutofillDraft = {
+        savedAt: new Date().toISOString(),
+        fileName,
+        course,
+        items,
+        unresolved,
+        learningObjectivesText,
+        learningObjectivesApproved,
+        contactDrafts,
+      };
+      localStorage.setItem(autofillDraftStorageKey(user.uid), JSON.stringify(draft));
+    } catch {
+      // Quota exceeded or storage disabled (e.g. private browsing) - the
+      // review screen itself still works, it just loses the safety net.
+    }
+  }, [
+    user,
+    step,
+    course,
+    items,
+    unresolved,
+    fileName,
+    learningObjectivesText,
+    learningObjectivesApproved,
+    contactDrafts,
+  ]);
+
+  const resumeDraft = () => {
+    if (!pendingDraft) return;
+    setCourse(pendingDraft.course);
+    setItems(pendingDraft.items);
+    setUnresolved(pendingDraft.unresolved);
+    setFileName(pendingDraft.fileName);
+    setLearningObjectivesText(pendingDraft.learningObjectivesText);
+    setLearningObjectivesApproved(pendingDraft.learningObjectivesApproved);
+    setContactDrafts(pendingDraft.contactDrafts);
+    // Baseline the SY-5 dirty-check against the resumed draft itself, not a
+    // fresh extraction - re-running Claude from here should compare against
+    // what's actually on screen.
+    initialDraftRef.current = JSON.stringify({
+      course: pendingDraft.course,
+      items: pendingDraft.items.map(omitDraftKey),
+      unresolved: pendingDraft.unresolved,
+      learningObjectivesText: pendingDraft.learningObjectivesText,
+      learningObjectivesApproved: pendingDraft.learningObjectivesApproved,
+      contactDrafts: pendingDraft.contactDrafts.map(omitContactDraftKey),
+    });
+    setStep('review');
+    setPendingDraft(null);
+  };
+
+  const discardDraft = () => {
+    clearPersistedDraft();
+    setPendingDraft(null);
+  };
 
   const reset = () => {
     setStep('upload');
@@ -392,7 +518,6 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     setUnresolved([]);
     setFileName('');
     setLearningObjectivesText('');
-    setHasLearningObjectives(false);
     setLearningObjectivesApproved(true);
     setContactDrafts([]);
     setSavedCourseId(null);
@@ -401,6 +526,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     initialDraftRef.current = null;
   };
 
+  // Deliberately does NOT clear the persisted draft - closing the modal
+  // (tab close, Cancel, the X button) is exactly the case this feature
+  // protects against, so the in-progress review survives to be resumed
+  // next time the modal opens. Only a successful save or an explicit
+  // "Discard" clears it.
   const handleClose = () => {
     reset();
     onClose();
@@ -468,14 +598,12 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       }));
       const nextUnresolved = result.unresolved ?? [];
       const nextLearningObjectivesText = result.course.learningObjectives.join('\n');
-      const nextHasLearningObjectives = result.course.learningObjectives.length > 0;
       const nextContactDrafts = buildContactDrafts(result.course.contacts, state.contacts);
 
       setCourse(nextCourse);
       setItems(nextItems);
       setUnresolved(nextUnresolved);
       setLearningObjectivesText(nextLearningObjectivesText);
-      setHasLearningObjectives(nextHasLearningObjectives);
       setLearningObjectivesApproved(true);
       setContactDrafts(nextContactDrafts);
       setFileName(
@@ -641,18 +769,36 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     setEditingObjectiveIndex(index);
   };
 
+  // `editingObjectiveIndex === learningObjectivesLines.length` (one past the
+  // last real line) is the "adding a new objective" state - reuses the same
+  // edit-row UI instead of a separate add form.
+  const startAddingObjective = () => {
+    setObjectiveDraft('');
+    setEditingObjectiveIndex(learningObjectivesLines.length);
+  };
+
   // A blank commit removes that objective rather than saving an empty
-  // bullet - editing down to nothing is how a student deletes one.
+  // bullet - editing an existing one down to nothing is still a valid way
+  // to delete it, alongside the explicit trash button below.
   const commitObjectiveEdit = (index: number) => {
     const nextLines = [...learningObjectivesLines];
     const trimmed = objectiveDraft.trim();
-    if (trimmed) {
+    if (index >= nextLines.length) {
+      if (trimmed) nextLines.push(trimmed);
+    } else if (trimmed) {
       nextLines[index] = trimmed;
     } else {
       nextLines.splice(index, 1);
     }
     setLearningObjectivesText(nextLines.join('\n'));
     setEditingObjectiveIndex(null);
+  };
+
+  const removeObjective = (index: number) => {
+    const nextLines = [...learningObjectivesLines];
+    nextLines.splice(index, 1);
+    setLearningObjectivesText(nextLines.join('\n'));
+    if (editingObjectiveIndex === index) setEditingObjectiveIndex(null);
   };
 
   const approvedCount = items.filter((i) => i.approved).length;
@@ -739,6 +885,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       // together or not at all, instead of the course succeeding while a
       // mid-loop failure leaves some assignments missing.
       await createCourseWithScheduleItems(user.uid, newCourse, scheduleItems, dispatch);
+      // The course now exists in Firestore - resuming the localStorage draft
+      // from here on would recreate it as a duplicate, so the recovery net
+      // is no longer needed regardless of what happens next (syllabus file,
+      // contacts).
+      clearPersistedDraft();
 
       if (file) {
         try {
@@ -800,7 +951,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         className="max-h-full w-full max-w-3xl overflow-y-auto outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card className="overflow-hidden rounded-3xl border-none p-0 shadow-modal">
+        <Card accent="none" className="overflow-hidden rounded-3xl border-none p-0 shadow-modal">
           <div className="bg-gradient-brand px-6 py-6 text-white sm:px-8">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
               Syllabus Autofill
@@ -838,6 +989,51 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   />
                 </svg>
                 <span>{error}</span>
+              </div>
+            )}
+
+            {step === 'upload' && !file && pendingDraft && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+                <div className="flex items-start gap-2.5">
+                  <svg
+                    className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      Resume your unfinished review
+                      {pendingDraft.course.code ? ` for ${pendingDraft.course.code}` : ''}?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      You closed this before confirming - your edits are still here.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={discardDraft}
+                    className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resumeDraft}
+                    className="rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                  >
+                    Resume
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1318,28 +1514,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   </section>
                 )}
 
-                {hasLearningObjectives && (
-                  <section
-                    className="review-reveal space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3 sm:p-4"
-                    style={{ animationDelay: '165ms' }}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s4.332.477 5.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                          />
-                        </svg>
-                        Learning Objectives
-                      </h3>
+                <section className="review-reveal space-y-2.5" style={{ animationDelay: '165ms' }}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">Learning Objectives</h3>
+                    <div className="flex items-center gap-3">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                         <input
                           type="checkbox"
@@ -1349,79 +1527,119 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                         />
                         Save to course
                       </label>
+                      {editingObjectiveIndex !== learningObjectivesLines.length && (
+                        <CardActionButton variant="solid" withPlus onClick={startAddingObjective}>
+                          Add objective
+                        </CardActionButton>
+                      )}
                     </div>
-                    {learningObjectivesLines.length > 0 && (
-                      <ul className="space-y-1 text-xs text-foreground">
-                        {learningObjectivesLines.map((line, i) =>
-                          editingObjectiveIndex === i ? (
-                            <li key={i} className="flex items-start gap-1.5">
-                              <span className="mt-1 text-primary">&bull;</span>
-                              <textarea
-                                autoFocus
-                                value={objectiveDraft}
-                                onChange={(e) => setObjectiveDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    commitObjectiveEdit(i);
-                                  } else if (e.key === 'Escape') {
-                                    setEditingObjectiveIndex(null);
-                                  }
-                                }}
-                                rows={2}
-                                className="max-h-32 flex-1 resize-y overflow-y-auto rounded-lg border border-primary bg-card px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                              />
-                              <div className="flex shrink-0 flex-col gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => commitObjectiveEdit(i)}
-                                  className="rounded p-0.5 text-primary hover:bg-primary/10"
-                                  aria-label="Save this objective"
+                  </div>
+                  {learningObjectivesLines.length === 0 &&
+                  editingObjectiveIndex !== learningObjectivesLines.length ? (
+                    <EmptyState
+                      icon={
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      }
+                      title="No learning objectives yet"
+                      description="Claude didn't find any in this syllabus - add one, or skip this section."
+                      action={{ label: '+ Add objective', onClick: startAddingObjective }}
+                    />
+                  ) : (
+                    <ul className="space-y-1.5 text-xs text-foreground">
+                      {[
+                        ...learningObjectivesLines,
+                        ...(editingObjectiveIndex === learningObjectivesLines.length ? [''] : []),
+                      ].map((line, i) =>
+                        editingObjectiveIndex === i ? (
+                          <li
+                            key={i}
+                            className="flex items-start gap-1.5 rounded-lg border border-primary/30 p-2"
+                          >
+                            <textarea
+                              ref={objectiveTextareaRef}
+                              autoFocus
+                              value={objectiveDraft}
+                              onChange={(e) => setObjectiveDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  commitObjectiveEdit(i);
+                                } else if (e.key === 'Escape') {
+                                  setEditingObjectiveIndex(null);
+                                }
+                              }}
+                              rows={1}
+                              placeholder="e.g. Design multi-tier web applications"
+                              className="max-h-32 flex-1 resize-none overflow-y-auto rounded-lg border border-primary bg-card px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                            <div className="flex shrink-0 flex-col gap-1">
+                              <button
+                                type="button"
+                                onClick={() => commitObjectiveEdit(i)}
+                                className="rounded p-1 text-primary hover:bg-primary/10"
+                                aria-label="Save this objective"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
                                 >
-                                  <svg
-                                    className="h-3.5 w-3.5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M4.5 12.75l6 6 9-13.5"
-                                    />
-                                  </svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingObjectiveIndex(null)}
-                                  className="rounded p-0.5 text-muted-foreground hover:bg-muted"
-                                  aria-label="Cancel editing this objective"
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M4.5 12.75l6 6 9-13.5"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingObjectiveIndex(null)}
+                                className="rounded p-1 text-muted-foreground hover:bg-muted"
+                                aria-label="Cancel editing this objective"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
                                 >
-                                  <svg
-                                    className="h-3.5 w-3.5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M6 18L18 6M6 6l12 12"
-                                    />
-                                  </svg>
-                                </button>
-                              </div>
-                            </li>
-                          ) : (
-                            <li key={i} className="flex items-start gap-1.5">
-                              <span className="text-primary">&bull;</span>
-                              <span className="flex-1">{renderInlineMarkdown(line)}</span>
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          </li>
+                        ) : (
+                          <li
+                            key={i}
+                            className="group flex items-start justify-between gap-1.5 rounded-lg border border-border p-2 transition-colors hover:border-primary/30"
+                          >
+                            <span className="flex-1 leading-relaxed">
+                              {renderInlineMarkdown(line)}
+                            </span>
+                            <div className="flex items-center gap-0.5 shrink-0 opacity-80 transition-opacity group-hover:opacity-100">
                               <button
                                 type="button"
                                 onClick={() => startEditingObjective(i)}
-                                className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                                 aria-label="Edit this objective"
                               >
                                 <svg
@@ -1438,18 +1656,39 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                                   />
                                 </svg>
                               </button>
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                    )}
+                              <button
+                                type="button"
+                                onClick={() => removeObjective(i)}
+                                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                aria-label="Remove this objective"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  )}
+                  {learningObjectivesLines.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Click the pencil to edit an objective, or clear its text to remove it. Uncheck
-                      &quot;Save to course&quot; to skip saving these for now without losing what
-                      Claude found.
+                      Uncheck &quot;Save to course&quot; to skip saving these for now without losing
+                      what Claude found.
                     </p>
-                  </section>
-                )}
+                  )}
+                </section>
 
                 {contactDrafts.length > 0 && (
                   <section className="space-y-3">

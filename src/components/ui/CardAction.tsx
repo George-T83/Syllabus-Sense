@@ -78,25 +78,22 @@ export function CardActionLink({
 }
 
 export function CardActionButton({
-  onClick,
   children,
   variant = 'ghost',
   withPlus,
   withChevron,
   className,
-  disabled,
   type = 'button',
-}: SharedProps & {
-  onClick?: () => void;
-  disabled?: boolean;
-  type?: 'button' | 'submit';
-}) {
+  ...rest
+}: SharedProps & { type?: 'button' | 'submit' } & Omit<
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    'type' | 'className' | 'children'
+  >) {
   return (
     <button
       type={type}
-      onClick={onClick}
-      disabled={disabled}
       className={cn(baseClass, variantClass[variant], 'disabled:opacity-50', className)}
+      {...rest}
     >
       {withPlus && <PlusIcon />}
       {children}
