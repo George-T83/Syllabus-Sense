@@ -4,6 +4,7 @@ import React from 'react';
 import { PlannerView } from '@/components/schedule/PlannerView';
 import { AppStateProvider } from '@/context/AppStateContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { ToastProvider } from '@/components/ui/Toast';
 import type { Course, ScheduleItem } from '@/types/schedule';
 
 vi.hoisted(() => {
@@ -90,9 +91,11 @@ const scheduleItems: ScheduleItem[] = [
 function renderPlanner() {
   return render(
     <AuthProvider>
-      <AppStateProvider initialState={{ courses, scheduleItems, initialized: true }}>
-        <PlannerView />
-      </AppStateProvider>
+      <ToastProvider>
+        <AppStateProvider initialState={{ courses, scheduleItems, initialized: true }}>
+          <PlannerView />
+        </AppStateProvider>
+      </ToastProvider>
     </AuthProvider>,
   );
 }

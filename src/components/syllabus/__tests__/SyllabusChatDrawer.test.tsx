@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SyllabusChatDrawer } from '../SyllabusChatDrawer';
 import { AppStateProvider, AppState } from '@/context/AppStateContext';
 import { ThemeProvider } from '@/context/ThemeProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 import type { Course } from '@/types/schedule';
 
 vi.mock('@/context/AuthContext', () => ({
@@ -51,7 +52,9 @@ function renderWithProviders(ui: React.ReactElement, stateOverrides: Partial<App
 
   return render(
     <ThemeProvider>
-      <AppStateProvider initialState={initialState as AppState}>{ui}</AppStateProvider>
+      <ToastProvider>
+        <AppStateProvider initialState={initialState as AppState}>{ui}</AppStateProvider>
+      </ToastProvider>
     </ThemeProvider>,
   );
 }
