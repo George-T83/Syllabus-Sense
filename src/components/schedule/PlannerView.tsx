@@ -388,6 +388,8 @@ export function PlannerView() {
         ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
         ...(values.notes ? { notes: values.notes } : {}),
         ...(values.progress ? { progress: Number(values.progress) } : {}),
+        ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
+        ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
       },
       dispatch,
     );
