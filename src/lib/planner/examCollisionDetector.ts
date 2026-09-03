@@ -5,6 +5,7 @@
  * any 48-hour window with 2+ exams/quizzes, or 3+ graded items — and
  * surfaces them as CollisionAlerts so the dashboard can warn early.
  */
+import { parseDayKey, toDayKey } from '@/lib/calendar/dates';
 import type { ScheduleItem } from '@/types/schedule';
 
 /** A detected cluster of overlapping high-stakes deadlines. */
@@ -21,10 +22,15 @@ const GRADED_TYPES = new Set(['exam', 'quiz', 'assignment', 'project', 'presenta
 const EXAM_TYPES = new Set(['exam', 'quiz']);
 const MS_48H = 48 * 60 * 60 * 1000;
 
-/** Parses a YYYY-MM-DD date string into a UTC midnight timestamp. */
-function dateKeyToMs(dateKey: string): number {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  return Date.UTC(y, m - 1, d);
+/**
+ * Resolves a schedule item's due date to a local-midnight timestamp for its
+ * calendar day, using the same local-time bucketing convention as the rest
+ * of the app (see calendar/dates.ts). A bare `YYYY-MM-DD` due date and a
+ * full ISO due date (e.g. end-of-day) on the same calendar day must land on
+ * the same bucket here, or they'd silently miss each other's 48h window.
+ */
+function dueDateDayMs(item: ScheduleItem): number {
+  return parseDayKey(toDayKey(item.dueDate)).getTime();
 }
 
 /**
@@ -37,14 +43,12 @@ function dateKeyToMs(dateKey: string): number {
  * appears once, anchored to the earliest item's date.
  */
 export function detectExamCollisions(items: ScheduleItem[]): CollisionAlert[] {
-  const graded = items.filter(
-    (item) => !item.completed && GRADED_TYPES.has(item.type),
-  );
+  const graded = items.filter((item) => !item.completed && GRADED_TYPES.has(item.type));
 
   if (graded.length < 2) return [];
 
   // Sort ascending by due date so we can walk forward efficiently
-  const sorted = [...graded].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const sorted = [...graded].sort((a, b) => dueDateDayMs(a) - dueDateDayMs(b));
 
   const alerts: CollisionAlert[] = [];
   // Track which item IDs have already been included in an alert to avoid
@@ -54,11 +58,11 @@ export function detectExamCollisions(items: ScheduleItem[]): CollisionAlert[] {
   for (let i = 0; i < sorted.length; i++) {
     if (consumed.has(sorted[i].id)) continue;
 
-    const anchorMs = dateKeyToMs(sorted[i].dueDate.slice(0, 10));
+    const anchorMs = dueDateDayMs(sorted[i]);
     const window: ScheduleItem[] = [sorted[i]];
 
     for (let j = i + 1; j < sorted.length; j++) {
-      const candidateMs = dateKeyToMs(sorted[j].dueDate.slice(0, 10));
+      const candidateMs = dueDateDayMs(sorted[j]);
       if (candidateMs - anchorMs <= MS_48H) {
         window.push(sorted[j]);
       }
@@ -76,7 +80,7 @@ export function detectExamCollisions(items: ScheduleItem[]): CollisionAlert[] {
     for (const item of window) consumed.add(item.id);
 
     alerts.push({
-      date: sorted[i].dueDate.slice(0, 10),
+      date: toDayKey(sorted[i].dueDate),
       items: window,
       severity: isCritical ? 'critical' : 'warning',
     });
