@@ -11,6 +11,7 @@ import {
 import { ProjectChunkerModal } from './ProjectChunkerModal';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { toLocalDateStr } from '@/lib/planner/projectChunker';
 import {
@@ -51,6 +52,7 @@ export function WorkloadOverviewDashboard({
 }: WorkloadOverviewDashboardProps = {}) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
+  const { showError } = useToast();
   const [chunkerOpen, setChunkerOpen] = useState(false);
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(selectedDate ?? null);
 
@@ -109,6 +111,7 @@ export function WorkloadOverviewDashboard({
       await updateScheduleItem(user.uid, task, updatedItem, dispatch);
     } catch (err) {
       console.error('Failed to toggle task:', err);
+      showError("Couldn't update that task. Try again in a moment.");
     }
   };
 
@@ -126,6 +129,7 @@ export function WorkloadOverviewDashboard({
       await updateScheduleItem(user.uid, task, updatedItem, dispatch);
     } catch (err) {
       console.error('Failed to shift task date:', err);
+      showError("Couldn't reschedule that task. Try again in a moment.");
     }
   };
 

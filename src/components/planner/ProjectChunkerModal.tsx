@@ -135,6 +135,7 @@ export function ProjectChunkerModal({
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const dialogRef = useModalA11y<HTMLDivElement>(isModalOpen, onClose);
   const availableCourses = courses || state.courses;
@@ -164,6 +165,7 @@ export function ProjectChunkerModal({
   const handlePersistChunks = async () => {
     if (!user || previewChunks.length === 0) return;
     setSaving(true);
+    setSaveError(null);
     try {
       if (onSaveChunks) {
         await onSaveChunks(previewChunks);
@@ -205,6 +207,9 @@ export function ProjectChunkerModal({
       }, 1200);
     } catch (err) {
       console.error('Failed to save study chunks:', err);
+      setSaveError(
+        "Couldn't save these chunks - some may have been added before the failure. Check your planner, then try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -391,6 +396,11 @@ export function ProjectChunkerModal({
         </CardContent>
 
         <CardFooter className="flex-wrap items-center justify-between gap-3">
+          {saveError && (
+            <p className="w-full rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-xs text-load-critical">
+              {saveError}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">
             Total Work: <span className="font-bold text-foreground">{totalHours} hrs</span> spread
             across{' '}

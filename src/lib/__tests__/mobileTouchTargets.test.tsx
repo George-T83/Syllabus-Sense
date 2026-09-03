@@ -9,6 +9,7 @@ import { MonthCalendar } from '@/components/calendar/MonthCalendar';
 import { AppStateProvider } from '@/context/AppStateContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 
 vi.hoisted(() => {
@@ -106,11 +107,13 @@ describe('Item 21: Mobile Touch Targets Minimum 44x44px Audit', () => {
   it('PlannerView select filters and action buttons meet the 44px touch target requirement', () => {
     render(
       <AuthProvider>
-        <AppStateProvider
-          initialState={{ courses: mockCourses, scheduleItems: mockItems, initialized: true }}
-        >
-          <PlannerView />
-        </AppStateProvider>
+        <ToastProvider>
+          <AppStateProvider
+            initialState={{ courses: mockCourses, scheduleItems: mockItems, initialized: true }}
+          >
+            <PlannerView />
+          </AppStateProvider>
+        </ToastProvider>
       </AuthProvider>,
     );
 
