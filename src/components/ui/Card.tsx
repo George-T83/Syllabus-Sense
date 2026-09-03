@@ -5,16 +5,17 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   interactive?: boolean;
   hoverable?: boolean;
   /**
-   * Every card carries the brand-gradient "Neon Edge" border + ambient glow
-   * (globals.css `.glow-edge-low`) by default - the calm, static everyday
-   * treatment used sitewide. `true` (or `"top"`) instead draws a gradient
-   * bar along the top edge; `"left"` draws a solid primary-colored border
-   * down the left edge; `"none"` opts out back to a flat bordered card,
-   * reserved for cards whose border already carries other meaning (a
-   * destructive/error state, a dashed empty-state prompt) that a brand
-   * gradient would contradict. A card whose glow should escalate with real
-   * severity (medium/high/critical, breathing) uses WORKLOAD_GLOW_CLASS
-   * (lib/workload/uiClasses.ts) as `className` instead of this prop.
+   * Every card is a plain flat bordered card by default - a modal dialog is
+   * already the sole focus of attention behind its own backdrop, and an
+   * in-page card sitting in normal page flow doesn't need a decorative
+   * border to earn a look, so the default costs nothing extra to opt out
+   * of. `"glow"` opts in to the brand-gradient "Neon Edge" border + ambient
+   * glow (globals.css `.glow-edge-low`) for a card that should genuinely
+   * stand out; `true` (or `"top"`) instead draws a gradient bar along the
+   * top edge; `"left"` draws a solid primary-colored border down the left
+   * edge. A card whose glow should escalate with real severity
+   * (medium/high/critical, breathing) passes `accent="glow"` and layers
+   * WORKLOAD_GLOW_CLASS (lib/workload/uiClasses.ts) on top via `className`.
    */
   accent?: boolean | 'top' | 'left' | 'glow' | 'none';
 }
@@ -24,7 +25,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     const isInteractive = interactive || hoverable;
     const accentTop = accent === true || accent === 'top';
     const accentLeft = accent === 'left';
-    const accentGlow = !accentTop && !accentLeft && accent !== 'none';
+    const accentGlow = accent === 'glow';
     return (
       <div
         ref={ref}
