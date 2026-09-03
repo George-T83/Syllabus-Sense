@@ -2,34 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { saveSession } from '@/lib/focus/pomodoroSessions';
 
-interface PomodoroSession {
-  startedAt: string;
-  duration: number; // seconds
-  taskId?: string;
-}
-
-const STORAGE_KEY = 'syllabus-sense:pomodoro-sessions';
 const WORK_DURATION = 25 * 60; // 25 minutes
 const BREAK_DURATION = 5 * 60; //  5 minutes
-
-function loadSessions(): PomodoroSession[] {
-  try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    return raw ? (JSON.parse(raw) as PomodoroSession[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSession(session: PomodoroSession): void {
-  try {
-    const existing = loadSessions();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...existing, session]));
-  } catch {
-    // Silently ignore — localStorage may be unavailable (SSR, privacy mode).
-  }
-}
 
 /** Plays a brief 880 Hz beep using the Web Audio API to signal a timer end. */
 function playBeep(): void {
