@@ -5,6 +5,7 @@ import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Course, AssignmentType } from '@/types/schedule';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 export interface SuggestedChunk {
   title: string;
@@ -97,16 +98,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  // Handle Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   const selectedCourse: Course | undefined = state.courses.find((c) => c.id === selectedCourseId);
 
@@ -231,7 +223,10 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
       }}
     >
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-6 sm:pl-10">
-        <aside className="w-screen max-w-md md:max-w-lg border-l border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
+        <aside
+          ref={dialogRef}
+          className="w-screen max-w-md md:max-w-lg border-l border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col justify-between"
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2.5">

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '@/context/AppStateContext';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import {
   GradeCategory,
   calculateCurrentWeightedGrade,
@@ -45,16 +46,7 @@ export function GradeCalculatorModal({
     }
   }, [initialCourseId, state.courses, selectedCourseId]);
 
-  // Handle Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   // Math Calculations
   const currentGrade = useMemo(() => {
@@ -132,7 +124,11 @@ export function GradeCalculatorModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <Card accent="none" className="relative w-full max-w-2xl overflow-hidden transition-all my-8">
+      <Card
+        ref={dialogRef}
+        accent="none"
+        className="relative w-full max-w-2xl overflow-hidden transition-all my-8"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/40 px-5 py-4 bg-muted/20">
           <div className="flex items-center gap-3">

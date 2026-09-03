@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { analyzeSyllabusRevision, PolicyChange, PolicyDiffReport } from '@/lib/syllabus/diffEngine';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 export interface SyllabusDiffModalProps {
   courseCode?: string;
@@ -38,6 +39,8 @@ export function SyllabusDiffModal({
       setSelectedChangeIds(new Set(report.changes.map((c) => c.id)));
     }
   }, [report]);
+
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -87,6 +90,7 @@ export function SyllabusDiffModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm"
     >
       <Card
+        ref={dialogRef}
         accent="none"
         className="relative w-full max-w-4xl p-5 sm:p-7 space-y-5 max-h-[92vh] flex flex-col"
       >
