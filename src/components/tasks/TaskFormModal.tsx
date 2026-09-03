@@ -47,6 +47,8 @@ function emptyValues(defaultCourseId: string): ScheduleItemFormValues {
     priority: 'medium',
     notes: '',
     progress: '',
+    gradeWeight: '',
+    gradeCategory: '',
   };
 }
 
@@ -75,6 +77,8 @@ export function TaskFormModal({
             priority: initialItem.priority ?? 'medium',
             notes: initialItem.notes ?? '',
             progress: initialItem.progress?.toString() ?? '',
+            gradeWeight: initialItem.gradeWeight?.toString() ?? '',
+            gradeCategory: initialItem.gradeCategory ?? '',
           }
         : emptyValues(courses[0]?.id ?? ''),
     );
@@ -269,6 +273,26 @@ export function TaskFormModal({
                       )}
                     </div>
                   )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field
+                      id="gradeWeight"
+                      label="Grade Weight (%)"
+                      type="number"
+                      value={values.gradeWeight ?? ''}
+                      error={errors.gradeWeight}
+                      onChange={(v) => updateField('gradeWeight', v)}
+                      placeholder="Optional"
+                    />
+                    <Field
+                      id="gradeCategory"
+                      label="Grade Category"
+                      value={values.gradeCategory ?? ''}
+                      error={errors.gradeCategory}
+                      onChange={(v) => updateField('gradeCategory', v)}
+                      placeholder="e.g. Homework"
+                    />
+                  </div>
 
                   <Field
                     id="notes"
