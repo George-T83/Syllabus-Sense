@@ -178,6 +178,8 @@ export function DashboardView() {
         priority: values.priority,
         ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
         ...(values.notes ? { notes: values.notes } : {}),
+        ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
+        ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
       },
       dispatch,
     );
