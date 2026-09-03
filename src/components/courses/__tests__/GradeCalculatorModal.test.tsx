@@ -107,7 +107,7 @@ describe('GradeCalculatorModal (Item 36)', () => {
     const onClose = vi.fn();
     renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={onClose} />);
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
 });
