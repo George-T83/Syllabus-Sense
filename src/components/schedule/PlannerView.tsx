@@ -391,6 +391,7 @@ export function PlannerView() {
         ...(values.progress ? { progress: Number(values.progress) } : {}),
         ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
         ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
+        ...(values.assignedTo ? { assignedTo: values.assignedTo } : {}),
       },
       dispatch,
     );
@@ -427,6 +428,7 @@ export function PlannerView() {
         progress={item.progress}
         priority={item.priority}
         gradeWeight={item.gradeWeight}
+        assignedTo={item.assignedTo}
         onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
         trailing={
           <>

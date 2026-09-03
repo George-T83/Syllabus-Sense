@@ -184,6 +184,7 @@ export function DashboardView() {
         ...(values.notes ? { notes: values.notes } : {}),
         ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
         ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
+        ...(values.assignedTo ? { assignedTo: values.assignedTo } : {}),
       },
       dispatch,
     );
@@ -317,6 +318,7 @@ export function DashboardView() {
                       completed={item.completed}
                       progress={item.progress}
                       priority={item.priority}
+                      assignedTo={item.assignedTo}
                       onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                       trailing={
                         // DA-1: stacked (badge above date) rather than

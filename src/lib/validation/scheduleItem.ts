@@ -26,6 +26,7 @@ export const scheduleItemFormSchema = z.object({
       'Enter 0-100',
     ),
   gradeCategory: z.string().max(60, 'Keep it under 60 characters').optional(),
+  assignedTo: z.string().max(60, 'Keep it under 60 characters').optional(),
 });
 
 export type ScheduleItemFormValues = z.infer<typeof scheduleItemFormSchema>;
