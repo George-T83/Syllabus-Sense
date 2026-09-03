@@ -83,11 +83,19 @@ export function FlashcardDeckCard({
   const handleDeleteDeck = async () => {
     if (!user) return;
     setDeleting(true);
+    setError(null);
     try {
       await Promise.all(deckCards.map((c) => deleteFlashcard(user.uid, c, dispatch)));
+      setConfirmingDelete(false);
+    } catch (err) {
+      // Left the Confirm/Cancel pair up rather than silently closing it -
+      // a partial failure here can leave some cards deleted and some not,
+      // and closing as if it succeeded would hide that from the student.
+      setError(
+        err instanceof Error ? err.message : 'Failed to delete this deck. Please try again.',
+      );
     } finally {
       setDeleting(false);
-      setConfirmingDelete(false);
     }
   };
 
