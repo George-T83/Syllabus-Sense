@@ -975,6 +975,7 @@ export function MonthCalendar() {
                           completed={item.completed}
                           progress={item.progress}
                           priority={item.priority}
+                          assignedTo={item.assignedTo}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                         />
                       );
@@ -1158,6 +1159,7 @@ function DayDetailCard({
                       completed={item.completed}
                       progress={item.progress}
                       priority={item.priority}
+                      assignedTo={item.assignedTo}
                       onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}
                       trailing={
                         <div className="flex items-center gap-1">

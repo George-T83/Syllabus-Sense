@@ -95,6 +95,11 @@ export interface TaskRowProps {
    * this stays a signal for genuinely high-stakes work (an exam, a big
    * project) rather than noise on every graded item. */
   gradeWeight?: number;
+  /** Private "who's doing this" label (ScheduleItem.assignedTo) for a group
+   * project sub-task - visible only to the signed-in user, not shared with
+   * anyone. Appended to the meta line rather than its own pill, since it's
+   * informational rather than something that needs to grab attention. */
+  assignedTo?: string;
   onToggleComplete?: () => void;
   /** Right-aligned custom content: due labels, badges, edit/delete links. */
   trailing?: ReactNode;
@@ -124,6 +129,7 @@ export function TaskRow({
   href,
   variant = 'card',
   gradeWeight,
+  assignedTo,
 }: TaskRowProps) {
   if (variant === 'touch') {
     return (
@@ -140,6 +146,7 @@ export function TaskRow({
         trailing={trailing}
         href={href}
         gradeWeight={gradeWeight}
+        assignedTo={assignedTo}
       />
     );
   }
@@ -158,12 +165,14 @@ export function TaskRow({
       trailing={trailing}
       href={href}
       gradeWeight={gradeWeight}
+      assignedTo={assignedTo}
     />
   );
 }
 
-function metaLine(courseCode: string | undefined, type: AssignmentType) {
-  return courseCode ? `${courseCode} · ${TYPE_LABEL[type]}` : TYPE_LABEL[type];
+function metaLine(courseCode: string | undefined, type: AssignmentType, assignedTo?: string) {
+  const base = courseCode ? `${courseCode} · ${TYPE_LABEL[type]}` : TYPE_LABEL[type];
+  return assignedTo ? `${base} · Assigned: ${assignedTo}` : base;
 }
 
 /** Shared "in progress" strip: never renders for a task nobody has touched
@@ -218,6 +227,7 @@ function CardRow({
   trailing,
   href,
   gradeWeight,
+  assignedTo,
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed' | 'priority'>> &
   Pick<
     TaskRowProps,
@@ -229,6 +239,7 @@ function CardRow({
     | 'trailing'
     | 'href'
     | 'gradeWeight'
+    | 'assignedTo'
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
@@ -348,7 +359,7 @@ function CardRow({
             {!completed && <GradeWeightPill gradeWeight={gradeWeight} />}
           </div>
           <div className="mt-1 text-caption text-muted-foreground">
-            {metaLine(courseCode, type)}
+            {metaLine(courseCode, type, assignedTo)}
           </div>
           {status === 'in_progress' && <ProgressStrip percent={progressPct} />}
         </div>
@@ -437,6 +448,7 @@ function TouchRow({
   trailing,
   href,
   gradeWeight,
+  assignedTo,
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed'>> &
   Pick<
     TaskRowProps,
@@ -449,6 +461,7 @@ function TouchRow({
     | 'trailing'
     | 'href'
     | 'gradeWeight'
+    | 'assignedTo'
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
@@ -536,7 +549,7 @@ function TouchRow({
               {!completed && <GradeWeightPill gradeWeight={gradeWeight} />}
             </div>
             <div className="mt-0.5 text-caption text-muted-foreground">
-              {metaLine(courseCode, type)}
+              {metaLine(courseCode, type, assignedTo)}
             </div>
             {status === 'in_progress' && <ProgressStrip percent={progressPct} />}
           </div>

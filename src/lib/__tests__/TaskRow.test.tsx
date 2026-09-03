@@ -91,4 +91,23 @@ describe('TaskRow', () => {
       expect(screen.getByText('25%')).toBeDefined();
     });
   });
+
+  describe('assignedTo (group project sub-task owner)', () => {
+    it('appends the assignee to the meta line when present', () => {
+      render(<TaskRow title="Literature review" courseCode="HIST 220" assignedTo="Priya" />);
+      expect(screen.getByText('HIST 220 · Assignment · Assigned: Priya')).toBeDefined();
+    });
+
+    it('leaves the meta line unchanged when no assignee is set', () => {
+      render(<TaskRow title="Unassigned task" courseCode="HIST 220" />);
+      expect(screen.getByText('HIST 220 · Assignment')).toBeDefined();
+    });
+
+    it('also appends for the touch variant', () => {
+      render(
+        <TaskRow title="Touch assignee" courseCode="HIST 220" assignedTo="You" variant="touch" />,
+      );
+      expect(screen.getByText('HIST 220 · Assignment · Assigned: You')).toBeDefined();
+    });
+  });
 });
