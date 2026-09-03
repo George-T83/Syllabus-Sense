@@ -171,6 +171,12 @@ export interface ScheduleItem {
   gradeWeight?: number;
   /** Grading category this item falls under, e.g. 'Homework', 'Exam' */
   gradeCategory?: string;
+  /** Free-text name of who owns this sub-task on a group project - a
+   * private label only the signed-in user sees, not a shared assignment
+   * system. Lets a chunked group project ("Literature review", "Data
+   * collection", ...) show who's doing what without any new sharing
+   * infrastructure. */
+  assignedTo?: string;
   /** Whether this item was entered manually or created from AI syllabus extraction. Defaults to 'manual' when absent. */
   source?: DataSource;
   /** How confident the AI extractor was in `dueDate`, when `source` is 'ai'.

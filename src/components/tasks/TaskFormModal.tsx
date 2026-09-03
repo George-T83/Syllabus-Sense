@@ -50,6 +50,7 @@ function emptyValues(defaultCourseId: string): ScheduleItemFormValues {
     progress: '',
     gradeWeight: '',
     gradeCategory: '',
+    assignedTo: '',
   };
 }
 
@@ -82,6 +83,7 @@ export function TaskFormModal({
           progress: initialItem.progress?.toString() ?? '',
           gradeWeight: initialItem.gradeWeight?.toString() ?? '',
           gradeCategory: initialItem.gradeCategory ?? '',
+          assignedTo: initialItem.assignedTo ?? '',
         }
       : emptyValues(courses[0]?.id ?? '');
     setValues(initial);
@@ -328,6 +330,15 @@ export function TaskFormModal({
                       placeholder="e.g. Homework"
                     />
                   </div>
+
+                  <Field
+                    id="assignedTo"
+                    label="Assigned To"
+                    value={values.assignedTo ?? ''}
+                    error={errors.assignedTo}
+                    onChange={(v) => updateField('assignedTo', v)}
+                    placeholder="e.g. Priya, or You - visible only to you"
+                  />
 
                   <Field
                     id="notes"
