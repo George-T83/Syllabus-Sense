@@ -18,6 +18,14 @@ export const scheduleItemFormSchema = z.object({
       (v) => !v || (!Number.isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 100),
       'Enter 0-100',
     ),
+  gradeWeight: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || (!Number.isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 100),
+      'Enter 0-100',
+    ),
+  gradeCategory: z.string().max(60, 'Keep it under 60 characters').optional(),
 });
 
 export type ScheduleItemFormValues = z.infer<typeof scheduleItemFormSchema>;

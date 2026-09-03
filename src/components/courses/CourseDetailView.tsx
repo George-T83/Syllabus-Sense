@@ -288,6 +288,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         priority: values.priority,
         ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
         ...(values.notes ? { notes: values.notes } : {}),
+        ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
+        ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
       },
       dispatch,
     );
@@ -308,6 +310,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
         ...(values.notes ? { notes: values.notes } : {}),
         ...(values.progress ? { progress: Number(values.progress) } : {}),
+        ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
+        ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
       },
       dispatch,
     );
