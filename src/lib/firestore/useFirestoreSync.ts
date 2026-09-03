@@ -10,6 +10,7 @@ import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/prefe
 import { reconcileScheduleItems } from '@/lib/firestore/scheduleItems';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 import type { Source } from '@/types/source';
+import type { Flashcard } from '@/types/flashcard';
 import { mockCourses, mockScheduleItems } from '@/lib/mock-data';
 
 /**
@@ -82,6 +83,16 @@ export function useFirestoreSync() {
       },
       onSyncError('sources'),
     );
+    const unsubFlashcards = onSnapshot(
+      collection(db, 'users', user.uid, 'flashcards'),
+      (snapshot) => {
+        dispatch({
+          type: 'SET_FLASHCARDS',
+          payload: snapshot.docs.map((d) => d.data() as Flashcard),
+        });
+      },
+      onSyncError('flashcards'),
+    );
     // Same doc ProfileView writes to via updateUserPreferences - kept here
     // instead of a separate listener per consumer, so a change (from this
     // device or another) reaches every view that reads state.preferences
@@ -100,6 +111,7 @@ export function useFirestoreSync() {
       unsubItems();
       unsubContacts();
       unsubSources();
+      unsubFlashcards();
       unsubPreferences();
     };
   }, [user, dispatch, showError]);
