@@ -284,6 +284,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
         ...(values.progress ? { progress: Number(values.progress) } : {}),
         ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
         ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
+        ...(values.assignedTo ? { assignedTo: values.assignedTo } : {}),
       },
       dispatch,
     );
@@ -348,6 +349,11 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
               {item.gradeWeight !== undefined && (
                 <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                   {item.gradeWeight}% of grade{item.gradeCategory ? ` · ${item.gradeCategory}` : ''}
+                </span>
+              )}
+              {item.assignedTo && (
+                <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  Assigned: {item.assignedTo}
                 </span>
               )}
               {item.source === 'ai' && (

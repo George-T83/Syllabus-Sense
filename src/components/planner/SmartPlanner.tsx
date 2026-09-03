@@ -416,6 +416,7 @@ function PlannedTaskRow({
       completed={item.completed}
       progress={item.progress}
       priority={item.priority}
+      assignedTo={item.assignedTo}
       onToggleComplete={onToggleComplete}
       // PL-2: stacked (not side-by-side) so the trailing block's natural
       // width is the widest SINGLE line, not badge+gap+date combined.

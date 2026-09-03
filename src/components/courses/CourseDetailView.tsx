@@ -301,6 +301,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         ...(values.notes ? { notes: values.notes } : {}),
         ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
         ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
+        ...(values.assignedTo ? { assignedTo: values.assignedTo } : {}),
       },
       dispatch,
     );
@@ -323,6 +324,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         ...(values.progress ? { progress: Number(values.progress) } : {}),
         ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
         ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
+        ...(values.assignedTo ? { assignedTo: values.assignedTo } : {}),
       },
       dispatch,
     );
@@ -1347,6 +1349,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     completed={item.completed}
                     progress={item.progress}
                     priority={item.priority}
+                    assignedTo={item.assignedTo}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                     trailing={
                       <>
