@@ -119,6 +119,7 @@ export function CoursesListView() {
         ...(values.term ? { term: values.term } : {}),
         ...(values.modality ? { modality: values.modality } : {}),
         ...(values.meetingTimes?.length ? { meetingTimes: values.meetingTimes } : {}),
+        ...(values.skipDates?.length ? { skipDates: values.skipDates } : {}),
       },
       dispatch,
     );
