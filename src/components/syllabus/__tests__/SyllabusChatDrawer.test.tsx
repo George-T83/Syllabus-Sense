@@ -148,7 +148,7 @@ describe('SyllabusChatDrawer (Item 35)', () => {
     const onClose = vi.fn();
     renderWithProviders(<SyllabusChatDrawer isOpen={true} onClose={onClose} />);
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
 });
