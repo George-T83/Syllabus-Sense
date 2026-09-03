@@ -16,6 +16,7 @@ import { createScheduleItem, updateScheduleItem } from '@/lib/firestore/schedule
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
+import { WeeklyBriefingCard } from '@/components/dashboard/WeeklyBriefingCard';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS } from '@/lib/workload';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
@@ -238,6 +239,8 @@ export function DashboardView() {
             </button>
           </div>
         </div>
+
+        <WeeklyBriefingCard scheduleItems={state.scheduleItems} />
 
         <div className="space-y-4">
           <Card accent="left" className="rounded-2xl p-6">
