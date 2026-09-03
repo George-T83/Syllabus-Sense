@@ -37,6 +37,7 @@ vi.mock('firebase/auth', () => ({
 
 vi.mock('firebase/firestore', () => ({
   getFirestore: vi.fn(() => ({})),
+  initializeFirestore: vi.fn(() => ({})),
   doc: vi.fn(() => ({})),
   setDoc: vi.fn().mockResolvedValue(undefined),
   deleteDoc: vi.fn().mockResolvedValue(undefined),
@@ -59,12 +60,15 @@ function renderModal(props: { open: boolean; onClose?: () => void }) {
       <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: [] }}>
         <ProjectChunkerModal open={props.open} onClose={onClose} />
       </AppStateProvider>
-    </AuthProvider>
+    </AuthProvider>,
   );
 
-  const getTitleInput = () => rendered.container.querySelector('input[type="text"]') as HTMLInputElement;
-  const getHoursInput = () => rendered.container.querySelector('input[type="number"]') as HTMLInputElement;
-  const getDateInput = () => rendered.container.querySelector('input[type="date"]') as HTMLInputElement;
+  const getTitleInput = () =>
+    rendered.container.querySelector('input[type="text"]') as HTMLInputElement;
+  const getHoursInput = () =>
+    rendered.container.querySelector('input[type="number"]') as HTMLInputElement;
+  const getDateInput = () =>
+    rendered.container.querySelector('input[type="date"]') as HTMLInputElement;
   const getCourseSelect = () => rendered.container.querySelector('select') as HTMLSelectElement;
 
   return {
@@ -155,7 +159,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
       renderModal({ open: true });
       fireEvent.click(screen.getByRole('button', { name: /Essay \/ Term Paper/i }));
 
-      expect(screen.getAllByText(/Thesis Statement & Literature Outline/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Thesis Statement & Literature Outline/i).length).toBeGreaterThan(
+        0,
+      );
     });
 
     it('F2-4: toggling pacing to Weekly Major Milestones updates chunk preview count', () => {
@@ -176,7 +182,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
 
   describe('Tier 1: Feature F3 - 1-Click Firestore Persistence', () => {
     it('F3-1: clicking "Add Chunks to Task List" persists all generated chunks to Firestore', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       renderModal({ open: true });
 
       const addBtn = screen.getByRole('button', { name: /Add Chunks to Task List/i });
@@ -195,7 +203,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
     });
 
     it('F3-2: correctly maps target type to assignment type (e.g. exam -> exam, quiz -> quiz)', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       renderModal({ open: true });
 
       fireEvent.click(screen.getByRole('button', { name: /Exam Study Plan/i }));
@@ -209,7 +219,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
     });
 
     it('F3-3: associates persisted chunks with the selected course ID', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       const { getCourseSelect } = renderModal({ open: true });
 
       fireEvent.change(getCourseSelect(), { target: { value: 'c1' } });
@@ -320,7 +332,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
 
   describe('Tier 3: Pairwise Combinations', () => {
     it('P1: Target Type Switch + Custom Hours + Weekly Pace + Course Selection', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       const { getTitleInput, getHoursInput, getCourseSelect } = renderModal({ open: true });
 
       // 1. Select Coding / Repository
@@ -352,13 +366,18 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
 
     it('P2: Handles Firestore persistence error gracefully and restores button state', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockRejectedValue(new Error('Network offline'));
+      vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockRejectedValue(
+        new Error('Network offline'),
+      );
       renderModal({ open: true });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Chunks to Task List/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Chunks to Task List/i })).toHaveProperty('disabled', false);
+        expect(screen.getByRole('button', { name: /Add Chunks to Task List/i })).toHaveProperty(
+          'disabled',
+          false,
+        );
       });
       consoleErrorSpy.mockRestore();
     });
@@ -370,7 +389,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
 
   describe('Tier 4: Real-World User Workflows', () => {
     it('Scenario 1: Midterm Exam 1 Prep Interactive Workflow', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       const { getTitleInput, getHoursInput, getCourseSelect } = renderModal({ open: true });
 
       // Student chooses Exam Study Plan
@@ -392,14 +413,18 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
     });
 
     it('Scenario 2: Term Research Paper with Citations & Proofreading Workflow', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       const { getTitleInput, getCourseSelect } = renderModal({ open: true });
 
       fireEvent.click(screen.getByRole('button', { name: /Essay \/ Term Paper/i }));
       fireEvent.change(getTitleInput(), { target: { value: 'ENG 202 Research Paper' } });
       fireEvent.change(getCourseSelect(), { target: { value: 'c3' } });
 
-      expect(screen.getAllByText(/Thesis Statement & Literature Outline/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Thesis Statement & Literature Outline/i).length).toBeGreaterThan(
+        0,
+      );
 
       fireEvent.click(screen.getByRole('button', { name: /Add Chunks to Task List/i }));
       await waitFor(() => {
@@ -409,7 +434,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
     });
 
     it('Scenario 3: Presentation & Slide Deck Preparation Workflow', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       const { getTitleInput } = renderModal({ open: true });
 
       fireEvent.click(screen.getByRole('button', { name: /Presentation \/ Slides/i }));
@@ -423,7 +450,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
     });
 
     it('Scenario 4: Flashcard Mastery Cram Session Workflow', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       const { getTitleInput } = renderModal({ open: true });
 
       fireEvent.click(screen.getByRole('button', { name: /Flashcard Mastery/i }));
@@ -436,7 +465,9 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
     });
 
     it('Scenario 5: General Independent Study with No Course Selected', async () => {
-      const createSpy = vi.spyOn(scheduleItemsLib, 'createScheduleItem').mockResolvedValue(undefined);
+      const createSpy = vi
+        .spyOn(scheduleItemsLib, 'createScheduleItem')
+        .mockResolvedValue(undefined);
       const { getCourseSelect } = renderModal({ open: true });
 
       // Leave Course as General / Independent (value: '')

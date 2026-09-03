@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { initializeFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -29,7 +29,12 @@ if (firebaseConfig.apiKey) {
   auth = getAuth(app);
 
   const databaseId = getFirestoreDatabaseId(process.env.NEXT_PUBLIC_FIRESTORE_DATABASE_ID);
-  db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+  // Auto-detect long polling: some networks (corporate proxies, sandboxed
+  // containers) silently break Firestore's default streaming WebChannel
+  // connection, surfacing as a hung "Could not reach Cloud Firestore
+  // backend" with no application-visible error. This only changes behavior
+  // when streaming actually fails, falling back to plain long-polling.
+  db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, databaseId);
 
   storage = getStorage(app);
 
