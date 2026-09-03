@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 import { reconcileScheduleItems } from '@/lib/firestore/scheduleItems';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
+import type { Source } from '@/types/source';
 import { mockCourses, mockScheduleItems } from '@/lib/mock-data';
 
 /**
@@ -74,6 +75,13 @@ export function useFirestoreSync() {
       },
       onSyncError('contacts'),
     );
+    const unsubSources = onSnapshot(
+      collection(db, 'users', user.uid, 'sources'),
+      (snapshot) => {
+        dispatch({ type: 'SET_SOURCES', payload: snapshot.docs.map((d) => d.data() as Source) });
+      },
+      onSyncError('sources'),
+    );
     // Same doc ProfileView writes to via updateUserPreferences - kept here
     // instead of a separate listener per consumer, so a change (from this
     // device or another) reaches every view that reads state.preferences
@@ -91,6 +99,7 @@ export function useFirestoreSync() {
       unsubCourses();
       unsubItems();
       unsubContacts();
+      unsubSources();
       unsubPreferences();
     };
   }, [user, dispatch, showError]);

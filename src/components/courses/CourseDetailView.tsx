@@ -22,6 +22,7 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
 import { SyllabusList } from '@/components/syllabus/SyllabusList';
 import { CourseAiSummaryCard } from '@/components/courses/CourseAiSummaryCard';
+import { SourcesCard } from '@/components/courses/SourcesCard';
 import { AttendanceGauge } from '@/components/courses/AttendanceGauge';
 import { formatTimeLabel } from '@/lib/calendar/meetings';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
@@ -1298,6 +1299,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             </div>
           )}
         </Card>
+
+        <SourcesCard course={course} />
 
         <Card className="rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
