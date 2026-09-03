@@ -145,7 +145,9 @@ describe('Item 21: Mobile Touch Targets Minimum 44x44px Audit', () => {
             initialized: true,
           }}
         >
-          <ContactsListView />
+          <ToastProvider>
+            <ContactsListView />
+          </ToastProvider>
         </AppStateProvider>
       </AuthProvider>,
     );

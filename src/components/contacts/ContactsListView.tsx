@@ -12,9 +12,11 @@ import {
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
+import { useToast } from '@/components/ui/Toast';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
+import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import type { Contact, ContactRole, Course } from '@/types/schedule';
 import { cn, normalizeContactName } from '@/lib/utils';
@@ -55,10 +57,12 @@ function courseLabel(course: Course | undefined): string {
 
 import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmailDrafterModal';
 import { ContactShareModal } from '@/components/contacts/ContactShareModal';
+import { ScheduleOfficeVisitModal } from '@/components/contacts/ScheduleOfficeVisitModal';
 
 export function ContactsListView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const { contacts, courses } = state;
 
   const [search, setSearch] = useState('');
@@ -68,6 +72,7 @@ export function ContactsListView() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [drafterContact, setDrafterContact] = useState<Contact | null>(null);
   const [shareContact, setShareContact] = useState<Contact | null>(null);
+  const [schedulingContact, setSchedulingContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && contacts.length > 0) {
@@ -203,6 +208,39 @@ export function ContactsListView() {
     if (!user) return;
     await deleteContact(user.uid, contact, dispatch);
     setConfirmingDeleteId(null);
+  };
+
+  const handleScheduleVisit = async (contact: Contact, dateKey: string) => {
+    if (!user) throw new Error('You must be signed in to schedule a visit.');
+    try {
+      await createScheduleItem(
+        user.uid,
+        {
+          id: crypto.randomUUID(),
+          courseId: contact.courseId,
+          title: `Office hours — ${contact.howToAddress || contact.fullName}`,
+          type: 'other',
+          dueDate: new Date(`${dateKey}T23:59:00`).toISOString(),
+          completed: false,
+          source: 'manual',
+          ...(contact.officeHours || contact.officeLocation
+            ? {
+                notes: [
+                  contact.officeHours ? `Regular hours: ${contact.officeHours}` : '',
+                  contact.officeLocation ? `Location: ${contact.officeLocation}` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
+              }
+            : {}),
+        },
+        dispatch,
+      );
+      showSuccess('Visit scheduled', `Added to your tasks for ${dateKey}.`);
+    } catch (err) {
+      showError('Could not schedule the visit', err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   };
 
   const selectClass =
@@ -369,6 +407,14 @@ export function ContactsListView() {
                               </>
                             ) : (
                               <>
+                                {record.officeHours && (
+                                  <button
+                                    onClick={() => setSchedulingContact(record)}
+                                    className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
+                                  >
+                                    Schedule Visit
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => setDrafterContact(record)}
                                   className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
@@ -433,6 +479,11 @@ export function ContactsListView() {
           onClose={() => setShareContact(null)}
         />
       )}
+      <ScheduleOfficeVisitModal
+        contact={schedulingContact}
+        onClose={() => setSchedulingContact(null)}
+        onSchedule={handleScheduleVisit}
+      />
     </>
   );
 }
