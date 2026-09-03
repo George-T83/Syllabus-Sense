@@ -20,6 +20,16 @@ export interface MeetingTime {
 }
 
 /**
+ * A required/optional course material (textbook, calculator, supplies),
+ * with an optional cost so a semester's spending can be totaled up.
+ */
+export interface MaterialItem {
+  name: string;
+  /** Price in whole currency units (e.g. 89.99), not cents. */
+  cost?: number;
+}
+
+/**
  * Represents a student's course.
  */
 export interface Course {
@@ -48,8 +58,11 @@ export interface Course {
   /** Recurring weekly meeting times, e.g. "MWF 9:00-10:15" */
   meetingTimes?: MeetingTime[];
   /** General required/optional materials from the syllabus (textbook,
-   * calculator, supplies) that aren't tied to a specific due date. */
-  materials?: string[];
+   * calculator, supplies) that aren't tied to a specific due date. Older
+   * records may still hold plain strings from before the `cost` field
+   * existed - always read through normalizeMaterials() (lib/courses/
+   * materials.ts) rather than assuming every entry is a MaterialItem. */
+  materials?: MaterialItem[];
   /** ISO dates (YYYY-MM-DD) on which recurring meetings should NOT render -
    * holidays and breaks called out in the syllabus (e.g. "1/19 - HOLIDAY").
    * Only suppresses `meetingTimes` occurrences; never affects `ScheduleItem`
