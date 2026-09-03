@@ -72,6 +72,14 @@ const ownedDocPaths: Array<{ label: string; path: (uid: string) => string }> = [
     label: 'flashcard (users/{uid}/flashcards/{id})',
     path: (uid) => `users/${uid}/flashcards/card-1`,
   },
+  {
+    label: 'quiz (users/{uid}/quizzes/{id})',
+    path: (uid) => `users/${uid}/quizzes/quiz-1`,
+  },
+  {
+    label: 'quiz attempt (users/{uid}/quizAttempts/{id})',
+    path: (uid) => `users/${uid}/quizAttempts/attempt-1`,
+  },
 ];
 
 describe('firestore.rules: owner-only access', () => {
@@ -128,6 +136,8 @@ describe('firestore.rules: cross-user collection queries', () => {
     { label: 'scheduleItems', path: (uid) => `users/${uid}/scheduleItems` },
     { label: 'contacts', path: (uid) => `users/${uid}/contacts` },
     { label: 'flashcards', path: (uid) => `users/${uid}/flashcards` },
+    { label: 'quizzes', path: (uid) => `users/${uid}/quizzes` },
+    { label: 'quizAttempts', path: (uid) => `users/${uid}/quizAttempts` },
   ];
 
   describe.each(collectionPaths)("listing another user's $label", ({ path: collectionPath }) => {

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer } from
 import { Contact, Course, ScheduleItem } from '@/types/schedule';
 import type { Source } from '@/types/source';
 import type { Flashcard } from '@/types/flashcard';
+import type { Quiz, QuizAttempt } from '@/types/quiz';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 
 export interface AppState {
@@ -12,6 +13,8 @@ export interface AppState {
   contacts: Contact[];
   sources: Source[];
   flashcards: Flashcard[];
+  quizzes: Quiz[];
+  quizAttempts: QuizAttempt[];
   selectedCourseId: string | null;
   /** #101 semester switcher. `null` means "no explicit choice made yet" -
    * consumers should fall back to `inferCurrentTerm`. The literal string
@@ -51,6 +54,12 @@ export type AppAction =
   | { type: 'ADD_FLASHCARDS'; payload: Flashcard[] }
   | { type: 'UPDATE_FLASHCARD'; payload: Flashcard }
   | { type: 'REMOVE_FLASHCARD'; payload: string }
+  | { type: 'SET_QUIZZES'; payload: Quiz[] }
+  | { type: 'ADD_QUIZ'; payload: Quiz }
+  | { type: 'REMOVE_QUIZ'; payload: string }
+  | { type: 'SET_QUIZ_ATTEMPTS'; payload: QuizAttempt[] }
+  | { type: 'ADD_QUIZ_ATTEMPT'; payload: QuizAttempt }
+  | { type: 'REMOVE_QUIZ_ATTEMPT'; payload: string }
   | { type: 'SELECT_COURSE'; payload: string | null }
   | { type: 'SELECT_TERM'; payload: string | null }
   | { type: 'SET_PREFERENCES'; payload: UserPreferences };
@@ -61,6 +70,8 @@ export const initialAppState: AppState = {
   contacts: [],
   sources: [],
   flashcards: [],
+  quizzes: [],
+  quizAttempts: [],
   selectedCourseId: null,
   selectedTerm: null,
   preferences: DEFAULT_PREFERENCES,
@@ -89,6 +100,8 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
         contacts: state.contacts.filter((c) => c.courseId !== action.payload),
         sources: state.sources.filter((s) => s.courseId !== action.payload),
         flashcards: state.flashcards.filter((f) => f.courseId !== action.payload),
+        quizzes: state.quizzes.filter((q) => q.courseId !== action.payload),
+        quizAttempts: state.quizAttempts.filter((a) => a.courseId !== action.payload),
         selectedCourseId: state.selectedCourseId === action.payload ? null : state.selectedCourseId,
       };
     case 'SET_SCHEDULE_ITEMS':
@@ -151,6 +164,21 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
       };
     case 'REMOVE_FLASHCARD':
       return { ...state, flashcards: state.flashcards.filter((f) => f.id !== action.payload) };
+    case 'SET_QUIZZES':
+      return { ...state, quizzes: action.payload };
+    case 'ADD_QUIZ':
+      return { ...state, quizzes: [...state.quizzes, action.payload] };
+    case 'REMOVE_QUIZ':
+      return { ...state, quizzes: state.quizzes.filter((q) => q.id !== action.payload) };
+    case 'SET_QUIZ_ATTEMPTS':
+      return { ...state, quizAttempts: action.payload };
+    case 'ADD_QUIZ_ATTEMPT':
+      return { ...state, quizAttempts: [...state.quizAttempts, action.payload] };
+    case 'REMOVE_QUIZ_ATTEMPT':
+      return {
+        ...state,
+        quizAttempts: state.quizAttempts.filter((a) => a.id !== action.payload),
+      };
     case 'SELECT_COURSE':
       return { ...state, selectedCourseId: action.payload };
     case 'SELECT_TERM':

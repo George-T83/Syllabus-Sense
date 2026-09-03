@@ -11,6 +11,7 @@ import { reconcileScheduleItems } from '@/lib/firestore/scheduleItems';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 import type { Source } from '@/types/source';
 import type { Flashcard } from '@/types/flashcard';
+import type { Quiz, QuizAttempt } from '@/types/quiz';
 import { mockCourses, mockScheduleItems } from '@/lib/mock-data';
 
 /**
@@ -93,6 +94,23 @@ export function useFirestoreSync() {
       },
       onSyncError('flashcards'),
     );
+    const unsubQuizzes = onSnapshot(
+      collection(db, 'users', user.uid, 'quizzes'),
+      (snapshot) => {
+        dispatch({ type: 'SET_QUIZZES', payload: snapshot.docs.map((d) => d.data() as Quiz) });
+      },
+      onSyncError('quizzes'),
+    );
+    const unsubQuizAttempts = onSnapshot(
+      collection(db, 'users', user.uid, 'quizAttempts'),
+      (snapshot) => {
+        dispatch({
+          type: 'SET_QUIZ_ATTEMPTS',
+          payload: snapshot.docs.map((d) => d.data() as QuizAttempt),
+        });
+      },
+      onSyncError('quiz attempts'),
+    );
     // Same doc ProfileView writes to via updateUserPreferences - kept here
     // instead of a separate listener per consumer, so a change (from this
     // device or another) reaches every view that reads state.preferences
@@ -112,6 +130,8 @@ export function useFirestoreSync() {
       unsubContacts();
       unsubSources();
       unsubFlashcards();
+      unsubQuizzes();
+      unsubQuizAttempts();
       unsubPreferences();
     };
   }, [user, dispatch, showError]);
