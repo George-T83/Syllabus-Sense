@@ -783,21 +783,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
         <Card className="rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-semibold text-foreground">Learning Objectives</h2>
-              {course.learningObjectives && course.learningObjectives.length > 0 && (
-                <span
-                  className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                    course.learningObjectivesApproved
-                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-                  )}
-                >
-                  {course.learningObjectivesApproved ? 'Approved' : 'Needs review'}
-                </span>
-              )}
-            </div>
+            <h2 className="text-base font-semibold text-foreground">Learning Objectives</h2>
             {!addingObjective && (
               <CardActionButton variant="solid" withPlus onClick={() => setAddingObjective(true)}>
                 Add objective
@@ -870,8 +856,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     key={i}
                     className="group flex items-start justify-between gap-3 rounded-lg border border-border p-3 text-sm text-foreground transition-colors hover:border-primary/30"
                   >
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <div className="min-w-0">
                       <span className="leading-relaxed break-words">
                         {renderInlineBold(objective)}
                       </span>
