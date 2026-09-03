@@ -15,6 +15,7 @@ import type { SyllabusUpload } from '@/types/syllabus';
 import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
+import { StudyStreakCard } from './StudyStreakCard';
 import { type LetterGrade } from '@/lib/gpa/gpaMath';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -554,6 +555,8 @@ export function ProfileView() {
           that&apos;s why every switch shows off. Your selection is still saved for the day they do.
         </p>
       </Card>
+
+      <StudyStreakCard />
 
       {/* ---------------------------------------------------------------
           Account & Data - the real security/data controls this page was
