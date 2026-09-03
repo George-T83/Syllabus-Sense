@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { useAppState } from '@/context/AppStateContext';
 import { computeSemesterHeatmap, type SemesterHeatmapDay } from '@/lib/planner/semesterHeatmap';
@@ -92,41 +93,48 @@ export function SemesterHeatmapCard() {
           </div>
 
           <div
-            className="relative grid gap-1 pt-4"
+            className="relative grid w-full min-w-0 flex-1 gap-1 pt-4"
             style={{
-              gridTemplateRows: 'repeat(7, minmax(0, 1fr))',
+              gridTemplateRows: 'repeat(7, 0.75rem)',
               gridAutoFlow: 'column',
-              gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+              // A floor on column width (not just `1fr`) keeps cells from
+              // going illegibly thin over a full year's worth of weeks -
+              // below that floor the card scrolls horizontally instead.
+              // Above it, columns stretch to fill the card's full width
+              // rather than shrinking to their own natural content size.
+              gridTemplateColumns: `repeat(${columnCount}, minmax(0.5rem, 1fr))`,
             }}
           >
             {monthLabels.map(({ label, columnIndex }) => (
               <span
                 key={`${label}-${columnIndex}`}
                 className="absolute top-0 text-[10px] font-medium text-muted-foreground"
-                style={{ left: `calc(${columnIndex} * (0.75rem + 0.25rem))` }}
+                style={{ left: `${(columnIndex / columnCount) * 100}%` }}
               >
                 {label}
               </span>
             ))}
             {cells.map((cell, i) =>
               cell ? (
-                <div
+                <Link
                   key={cell.dateKey}
+                  href={`/calendar?date=${cell.dateKey}`}
                   title={`${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} · ${cell.hours}h due`}
+                  aria-label={`Open ${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - ${cell.hours}h due`}
                   className={cn(
-                    'h-3 w-3 rounded-[2px]',
+                    'h-full w-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
                     cell.hours > 0 ? WORKLOAD_SWATCH_CLASS[cell.level] : 'bg-border',
                   )}
                 />
               ) : (
-                <div key={`blank-${i}`} className="h-3 w-3 rounded-[2px] bg-border" />
+                <div key={`blank-${i}`} className="h-full w-full rounded-[2px] bg-border" />
               ),
             )}
           </div>
         </div>
 
         <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
-          <span>Hover a day for its due-date total</span>
+          <span>Click a day to open it in Calendar</span>
           <div className="flex shrink-0 items-center gap-1.5">
             <span>Less</span>
             <span className="h-2.5 w-2.5 rounded-[2px] bg-border" />
