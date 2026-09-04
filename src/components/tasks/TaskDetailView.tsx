@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BackLink } from '@/components/ui/BackLink';
 import { Card } from '@/components/ui/Card';
+import { useToast } from '@/components/ui/Toast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem, deleteScheduleItem } from '@/lib/firestore/scheduleItems';
@@ -171,6 +172,7 @@ const destructiveButtonClass =
 export function TaskDetailView({ taskId }: { taskId: string }) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
+  const { showError } = useToast();
   const router = useRouter();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -292,8 +294,12 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
 
   const handleDelete = async () => {
     if (!user) return;
-    await deleteScheduleItem(user.uid, item, dispatch);
-    router.push('/tasks');
+    try {
+      await deleteScheduleItem(user.uid, item, dispatch);
+      router.push('/tasks');
+    } catch (err) {
+      showError('Could not delete task', err instanceof Error ? err.message : undefined);
+    }
   };
 
   return (

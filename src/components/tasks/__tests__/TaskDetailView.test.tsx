@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { TaskDetailView } from '../TaskDetailView';
 import { AppStateProvider } from '@/context/AppStateContext';
+import { ToastProvider } from '@/components/ui/Toast';
 import type { ScheduleItem, Course } from '@/types/schedule';
 
 vi.mock('next/navigation', () => ({
@@ -43,14 +44,16 @@ const mockItem: ScheduleItem = {
 
 function renderTaskDetail(item?: ScheduleItem, course?: Course) {
   return render(
-    <AppStateProvider
-      initialState={{
-        courses: course ? [course] : [],
-        scheduleItems: item ? [item] : [],
-      }}
-    >
-      <TaskDetailView taskId={item?.id ?? 'non-existent'} />
-    </AppStateProvider>,
+    <ToastProvider>
+      <AppStateProvider
+        initialState={{
+          courses: course ? [course] : [],
+          scheduleItems: item ? [item] : [],
+        }}
+      >
+        <TaskDetailView taskId={item?.id ?? 'non-existent'} />
+      </AppStateProvider>
+    </ToastProvider>,
   );
 }
 
