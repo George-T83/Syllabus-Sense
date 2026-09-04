@@ -207,8 +207,13 @@ export function ContactsListView() {
 
   const handleDelete = async (contact: Contact) => {
     if (!user) return;
-    await deleteContact(user.uid, contact, dispatch);
-    setConfirmingDeleteId(null);
+    try {
+      await deleteContact(user.uid, contact, dispatch);
+      setConfirmingDeleteId(null);
+      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
+    } catch (err) {
+      showError('Could not delete contact', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleScheduleVisit = async (contact: Contact, dateKey: string) => {
