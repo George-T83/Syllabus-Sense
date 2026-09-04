@@ -8,6 +8,7 @@ import { TaskRow } from '@/components/ui/TaskRow';
 import { WeekView } from '@/components/calendar/WeekView';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import {
   addDays,
@@ -245,6 +246,7 @@ type ViewMode = 'month' | 'week' | 'agenda';
 export function MonthCalendar() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
+  const { showError } = useToast();
   const searchParams = useSearchParams();
   // A deep link from the semester heatmap (or any other day-grid) lands here
   // pre-selected and scrolled to that day, instead of the plain "today"
@@ -392,7 +394,12 @@ export function MonthCalendar() {
 
   const handleToggleComplete = async (item: ScheduleItem) => {
     if (!user) return;
-    await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    try {
+      await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+      showError("Couldn't update that task. Try again in a moment.");
+    }
   };
 
   // Exports every currently-visible (filter-respecting) item as a single

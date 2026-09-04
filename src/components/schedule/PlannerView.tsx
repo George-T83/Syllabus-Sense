@@ -373,7 +373,12 @@ export function PlannerView() {
 
   const handleToggleComplete = async (item: ScheduleItem) => {
     if (!user) return;
-    await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    try {
+      await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+      showError("Couldn't update that task. Try again in a moment.");
+    }
   };
 
   const handleEditTask = async (values: ScheduleItemFormValues) => {
