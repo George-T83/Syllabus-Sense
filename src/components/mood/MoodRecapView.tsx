@@ -257,7 +257,20 @@ export function MoodRecapView() {
         <div className="mt-4" style={{ height: 200 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={byWorkload.map((b) => ({ ...b, label: WORKLOAD_LEVEL_LABEL[b.level] }))}
+              data={byWorkload.map((b) => ({
+                ...b,
+                label: WORKLOAD_LEVEL_LABEL[b.level],
+                // Recharts treats a `null` dataKey value as "nothing to
+                // render" for a category - no bar, and no `background`
+                // hit-area either - so a zero-count bucket became
+                // completely unhoverable (the "No check-ins yet" message
+                // below never got a chance to show). A numeric 0 still
+                // renders (as a zero-height bar plus its hoverable
+                // background); `count` is what actually drives the
+                // zero-vs-real-zero-average distinction in both the
+                // formatter and the fill opacity below.
+                averageMood: b.averageMood ?? 0,
+              }))}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis
@@ -292,8 +305,21 @@ export function MoodRecapView() {
                   borderRadius: 8,
                   fontSize: 12,
                 }}
+                cursor={{ fill: 'hsl(var(--accent))', opacity: 0.5 }}
               />
-              <Bar dataKey="averageMood" radius={[6, 6, 0, 0]} maxBarSize={56}>
+              <Bar
+                dataKey="averageMood"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={56}
+                // A bucket with zero check-ins has a zero-height bar - nothing
+                // there to hover, so the "No check-ins yet" message the
+                // formatter above already writes for that case never had a
+                // chance to show. `background` gives every category a full-
+                // height (invisible) hit area regardless of its bar's value,
+                // so hovering an empty bucket's column still activates the
+                // tooltip.
+                background={{ fill: 'transparent' }}
+              >
                 {byWorkload.map((b) => (
                   <Cell
                     key={b.level}
