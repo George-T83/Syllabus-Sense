@@ -215,12 +215,27 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
 
   const handleToggleComplete = async () => {
     if (!user) return;
-    await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    try {
+      await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+      showError("Couldn't update that task. Try again in a moment.");
+    }
   };
 
   const handleSetProgress = async (value: number) => {
     if (!user) return;
-    await updateScheduleItem(user.uid, item, { ...item, progress: clampProgress(value) }, dispatch);
+    try {
+      await updateScheduleItem(
+        user.uid,
+        item,
+        { ...item, progress: clampProgress(value) },
+        dispatch,
+      );
+    } catch (err) {
+      console.error('Failed to update progress:', err);
+      showError("Couldn't save your progress update. Try again in a moment.");
+    }
   };
 
   const handleSliderChange = (value: number) => {
@@ -235,7 +250,12 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
 
   const handleSetEstimatedHours = async (value: number) => {
     if (!user) return;
-    await updateScheduleItem(user.uid, item, { ...item, estimatedHours: value }, dispatch);
+    try {
+      await updateScheduleItem(user.uid, item, { ...item, estimatedHours: value }, dispatch);
+    } catch (err) {
+      console.error('Failed to update estimated hours:', err);
+      showError("Couldn't save that estimate. Try again in a moment.");
+    }
   };
 
   const handleHoursInputChange = (raw: string) => {

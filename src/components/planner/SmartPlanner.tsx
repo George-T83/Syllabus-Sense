@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import {
   getWorkloadLevel,
@@ -96,6 +97,7 @@ function ExpandableTaskList<T>({
 export function SmartPlanner() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
+  const { showError } = useToast();
   const { courses, scheduleItems } = state;
 
   const referenceDate = useMemo(() => getLocalReferenceDate(), []);
@@ -143,7 +145,12 @@ export function SmartPlanner() {
 
   const handleToggleComplete = async (item: ScheduleItem) => {
     if (!user) return;
-    await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    try {
+      await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+      showError("Couldn't update that task. Try again in a moment.");
+    }
   };
 
   return (
