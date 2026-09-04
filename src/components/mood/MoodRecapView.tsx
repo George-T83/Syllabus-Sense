@@ -36,6 +36,12 @@ const FULL_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
 });
+const MONTH_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'short' });
+
+// Same GitHub-contribution-graph convention as the semester heatmap: only
+// every other weekday row gets a label, so the gutter doesn't crowd the
+// cells themselves.
+const ROW_LABELS: Record<number, string> = { 1: 'Mon', 3: 'Wed', 5: 'Fri' };
 
 const WORKLOAD_LEVEL_LABEL: Record<WorkloadLevel, string> = {
   low: 'Light',
@@ -99,6 +105,28 @@ export function MoodRecapView() {
     return cells;
   }, [trend]);
   const columnCount = Math.ceil(calendarCells.length / 7);
+
+  // Month labels, positioned above the week-column where that month's first
+  // visible cell falls - identical logic to the semester heatmap, so both
+  // grids read the same way.
+  const monthLabels = useMemo(() => {
+    const raw: { label: string; columnIndex: number }[] = [];
+    let lastMonth = '';
+    calendarCells.forEach((cell, i) => {
+      if (!cell.dateKey) return;
+      const columnIndex = Math.floor(i / 7);
+      const month = MONTH_FORMATTER.format(parseDayKey(cell.dateKey));
+      if (month !== lastMonth) {
+        raw.push({ label: month, columnIndex });
+        lastMonth = month;
+      }
+    });
+    const MIN_LABEL_GAP_COLUMNS = 2;
+    return raw.filter((entry, i) => {
+      const next = raw[i + 1];
+      return !next || next.columnIndex - entry.columnIndex >= MIN_LABEL_GAP_COLUMNS;
+    });
+  }, [calendarCells]);
 
   if (entries.length === 0) {
     return (
@@ -173,7 +201,7 @@ export function MoodRecapView() {
                 minTickGap={24}
               />
               <YAxis
-                domain={[1, 4]}
+                domain={[0.5, 4.5]}
                 ticks={[1, 2, 3, 4]}
                 tickFormatter={(v: number) => MOOD_OPTIONS[v - 1]?.emoji ?? ''}
                 width={28}
@@ -272,40 +300,62 @@ export function MoodRecapView() {
         </p>
         <div className="mt-4 overflow-x-auto pb-1">
           <div className="flex min-w-full justify-center">
-            {/* Same square-by-construction trick as the semester heatmap:
-             * a fixed-height parent divides evenly into 7 `1fr` row tracks,
-             * every cell stretches to that row height and carries
-             * `aspect-square`, and the `auto` column tracks size themselves
-             * to match - so the grid fills the card's height and stays
-             * square instead of shrinking to tiny fixed-size squares. */}
-            <div
-              className="grid gap-1"
-              style={{
-                height: '10rem',
-                gridTemplateRows: 'repeat(7, 1fr)',
-                gridAutoFlow: 'column',
-                gridTemplateColumns: `repeat(${columnCount}, auto)`,
-              }}
-            >
-              {calendarCells.map((cell, i) =>
-                cell.dateKey && cell.mood ? (
-                  <Link
-                    key={cell.dateKey}
-                    href={`/calendar?date=${cell.dateKey}`}
-                    title={`${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} · ${getMoodOption(cell.mood).label}`}
-                    aria-label={`Open ${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - felt ${getMoodOption(cell.mood).label.toLowerCase()}`}
-                    className={cn(
-                      'aspect-square h-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
-                      MOOD_SWATCH_CLASS[cell.mood],
-                    )}
-                  />
-                ) : (
-                  <div
-                    key={cell.dateKey || `blank-${i}`}
-                    className="aspect-square h-full rounded-[2px] bg-border"
-                  />
-                ),
-              )}
+            <div className="flex gap-2" style={{ height: '10rem' }}>
+              <div
+                className="grid shrink-0 pt-4 text-[10px] text-muted-foreground"
+                style={{ gridTemplateRows: 'repeat(7, 1fr)' }}
+              >
+                {Array.from({ length: 7 }, (_, row) => (
+                  <span key={row} className="flex items-center">
+                    {ROW_LABELS[row] ?? ''}
+                  </span>
+                ))}
+              </div>
+
+              {/* Same square-by-construction trick as the semester heatmap:
+               * a fixed-height parent divides evenly into 7 `1fr` row
+               * tracks, every cell stretches to that row height and carries
+               * `aspect-square`, and the `auto` column tracks size
+               * themselves to match - so the grid fills the card's height
+               * and stays square instead of shrinking to tiny fixed-size
+               * squares. */}
+              <div
+                className="relative grid gap-1 pt-4"
+                style={{
+                  gridTemplateRows: 'repeat(7, 1fr)',
+                  gridAutoFlow: 'column',
+                  gridTemplateColumns: `repeat(${columnCount}, auto)`,
+                }}
+              >
+                {monthLabels.map(({ label, columnIndex }) => (
+                  <span
+                    key={`${label}-${columnIndex}`}
+                    className="absolute top-0 text-[10px] font-medium text-muted-foreground"
+                    style={{ left: `${(columnIndex / columnCount) * 100}%` }}
+                  >
+                    {label}
+                  </span>
+                ))}
+                {calendarCells.map((cell, i) =>
+                  cell.dateKey && cell.mood ? (
+                    <Link
+                      key={cell.dateKey}
+                      href={`/calendar?date=${cell.dateKey}`}
+                      title={`${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} · ${getMoodOption(cell.mood).label}`}
+                      aria-label={`Open ${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - felt ${getMoodOption(cell.mood).label.toLowerCase()}`}
+                      className={cn(
+                        'aspect-square h-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
+                        MOOD_SWATCH_CLASS[cell.mood],
+                      )}
+                    />
+                  ) : (
+                    <div
+                      key={cell.dateKey || `blank-${i}`}
+                      className="aspect-square h-full rounded-[2px] bg-muted-foreground/15"
+                    />
+                  ),
+                )}
+              </div>
             </div>
           </div>
         </div>

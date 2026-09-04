@@ -126,13 +126,13 @@ export function SemesterHeatmapCard() {
                     aria-label={`Open ${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - ${cell.hours}h due`}
                     className={cn(
                       'aspect-square h-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
-                      cell.hours > 0 ? WORKLOAD_SWATCH_CLASS[cell.level] : 'bg-border',
+                      cell.hours > 0 ? WORKLOAD_SWATCH_CLASS[cell.level] : 'bg-muted-foreground/15',
                     )}
                   />
                 ) : (
                   <div
                     key={`blank-${i}`}
-                    className="aspect-square h-full rounded-[2px] bg-border"
+                    className="aspect-square h-full rounded-[2px] bg-muted-foreground/15"
                   />
                 ),
               )}
@@ -144,7 +144,7 @@ export function SemesterHeatmapCard() {
           <span>Click a day to open it in Calendar</span>
           <div className="flex shrink-0 items-center gap-1.5">
             <span>Less</span>
-            <span className="h-2.5 w-2.5 rounded-[2px] bg-border" />
+            <span className="h-2.5 w-2.5 rounded-[2px] bg-muted-foreground/15" />
             <span className={cn('h-2.5 w-2.5 rounded-[2px]', WORKLOAD_SWATCH_CLASS.low)} />
             <span className={cn('h-2.5 w-2.5 rounded-[2px]', WORKLOAD_SWATCH_CLASS.medium)} />
             <span className={cn('h-2.5 w-2.5 rounded-[2px]', WORKLOAD_SWATCH_CLASS.high)} />
