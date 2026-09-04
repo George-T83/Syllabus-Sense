@@ -80,56 +80,63 @@ export function SemesterHeatmapCard() {
       </div>
 
       <div className="mt-5 overflow-x-auto pb-1">
-        <div className="flex gap-2">
-          <div
-            className="grid shrink-0 text-[10px] text-muted-foreground"
-            style={{ gridTemplateRows: 'repeat(7, minmax(0, 1fr))', rowGap: '0.25rem' }}
-          >
-            {Array.from({ length: 7 }, (_, row) => (
-              <span key={row} className="flex h-3 items-center">
-                {ROW_LABELS[row] ?? ''}
-              </span>
-            ))}
-          </div>
+        <div className="flex min-w-full justify-center">
+          <div className="flex gap-2" style={{ height: '10rem' }}>
+            <div
+              className="grid shrink-0 pt-4 text-[10px] text-muted-foreground"
+              style={{ gridTemplateRows: 'repeat(7, 1fr)' }}
+            >
+              {Array.from({ length: 7 }, (_, row) => (
+                <span key={row} className="flex items-center">
+                  {ROW_LABELS[row] ?? ''}
+                </span>
+              ))}
+            </div>
 
-          <div
-            className="relative grid w-full min-w-0 flex-1 gap-1 pt-4"
-            style={{
-              gridTemplateRows: 'repeat(7, 0.75rem)',
-              gridAutoFlow: 'column',
-              // A floor on column width (not just `1fr`) keeps cells from
-              // going illegibly thin over a full year's worth of weeks -
-              // below that floor the card scrolls horizontally instead.
-              // Above it, columns stretch to fill the card's full width
-              // rather than shrinking to their own natural content size.
-              gridTemplateColumns: `repeat(${columnCount}, minmax(0.5rem, 1fr))`,
-            }}
-          >
-            {monthLabels.map(({ label, columnIndex }) => (
-              <span
-                key={`${label}-${columnIndex}`}
-                className="absolute top-0 text-[10px] font-medium text-muted-foreground"
-                style={{ left: `${(columnIndex / columnCount) * 100}%` }}
-              >
-                {label}
-              </span>
-            ))}
-            {cells.map((cell, i) =>
-              cell ? (
-                <Link
-                  key={cell.dateKey}
-                  href={`/calendar?date=${cell.dateKey}`}
-                  title={`${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} · ${cell.hours}h due`}
-                  aria-label={`Open ${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - ${cell.hours}h due`}
-                  className={cn(
-                    'h-full w-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
-                    cell.hours > 0 ? WORKLOAD_SWATCH_CLASS[cell.level] : 'bg-border',
-                  )}
-                />
-              ) : (
-                <div key={`blank-${i}`} className="h-full w-full rounded-[2px] bg-border" />
-              ),
-            )}
+            {/* Cells are square by construction, not by measured pixels:
+             * each row track resolves to a definite height (1fr slices of
+             * the fixed-height parent above), every cell stretches to that
+             * height and carries `aspect-square`, and the `auto` column
+             * tracks then size themselves to match - so the grid is exactly
+             * as tall as its card and only as wide as it needs to be,
+             * instead of stretching cells to fill the card's width. */}
+            <div
+              className="relative grid gap-1 pt-4"
+              style={{
+                gridTemplateRows: 'repeat(7, 1fr)',
+                gridAutoFlow: 'column',
+                gridTemplateColumns: `repeat(${columnCount}, auto)`,
+              }}
+            >
+              {monthLabels.map(({ label, columnIndex }) => (
+                <span
+                  key={`${label}-${columnIndex}`}
+                  className="absolute top-0 text-[10px] font-medium text-muted-foreground"
+                  style={{ left: `${(columnIndex / columnCount) * 100}%` }}
+                >
+                  {label}
+                </span>
+              ))}
+              {cells.map((cell, i) =>
+                cell ? (
+                  <Link
+                    key={cell.dateKey}
+                    href={`/calendar?date=${cell.dateKey}`}
+                    title={`${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} · ${cell.hours}h due`}
+                    aria-label={`Open ${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - ${cell.hours}h due`}
+                    className={cn(
+                      'aspect-square h-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
+                      cell.hours > 0 ? WORKLOAD_SWATCH_CLASS[cell.level] : 'bg-border',
+                    )}
+                  />
+                ) : (
+                  <div
+                    key={`blank-${i}`}
+                    className="aspect-square h-full rounded-[2px] bg-border"
+                  />
+                ),
+              )}
+            </div>
           </div>
         </div>
 
