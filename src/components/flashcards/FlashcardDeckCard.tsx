@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
+import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useSyllabi } from '@/lib/firestore/useSyllabi';
@@ -28,6 +29,7 @@ export function FlashcardDeckCard({
 }) {
   const { user } = useAuth();
   const { state, dispatch } = useAppState();
+  const { showSuccess } = useToast();
   const syllabi = useSyllabi(user?.uid, course.id);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export function FlashcardDeckCard({
         sourceFileName: latestSyllabus.fileName,
       }));
       await createFlashcards(user.uid, newCards, dispatch);
+      showSuccess('Flashcards generated', `${newCards.length} cards ready for ${course.code}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -87,6 +90,7 @@ export function FlashcardDeckCard({
     try {
       await Promise.all(deckCards.map((c) => deleteFlashcard(user.uid, c, dispatch)));
       setConfirmingDelete(false);
+      showSuccess('Deck deleted', `The flashcard deck for ${course.code} was removed.`);
     } catch (err) {
       // Left the Confirm/Cancel pair up rather than silently closing it -
       // a partial failure here can leave some cards deleted and some not,
