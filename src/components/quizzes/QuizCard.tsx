@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
+import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useSyllabi } from '@/lib/firestore/useSyllabi';
@@ -14,6 +15,7 @@ import type { Course } from '@/types/schedule';
 export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Quiz) => void }) {
   const { user } = useAuth();
   const { state, dispatch } = useAppState();
+  const { showSuccess, showError } = useToast();
   const syllabi = useSyllabi(user?.uid, course.id);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
         await deleteQuiz(user.uid, quiz, dispatch);
       }
       await createQuiz(user.uid, newQuiz, dispatch);
+      showSuccess('Quiz generated', `${generated.length} questions ready for ${course.code}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -74,9 +77,12 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
     setDeleting(true);
     try {
       await deleteQuiz(user.uid, quiz, dispatch);
+      setConfirmingDelete(false);
+      showSuccess('Quiz deleted', `The quiz for ${course.code} was removed.`);
+    } catch (err) {
+      showError('Could not delete this quiz', err instanceof Error ? err.message : undefined);
     } finally {
       setDeleting(false);
-      setConfirmingDelete(false);
     }
   };
 
