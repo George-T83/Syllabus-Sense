@@ -196,7 +196,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const router = useRouter();
-  const { showError } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -288,6 +288,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     setIsDeletingCourse(true);
     try {
       await deleteCourse(user.uid, course, items, dispatch, courseContacts);
+      showSuccess('Course deleted', `${course.code} and its tasks were removed.`);
       router.push('/dashboard');
     } catch (err) {
       showError('Could not delete course', err instanceof Error ? err.message : undefined);
@@ -352,6 +353,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
       setConfirmingDeleteItemId(null);
+      showSuccess('Task deleted', `"${item.title}" was removed.`);
     } catch (err) {
       showError('Could not delete task', err instanceof Error ? err.message : undefined);
     } finally {
@@ -435,6 +437,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteContact(user.uid, contact, dispatch);
       setConfirmingDeleteContactId(null);
+      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
     } catch (err) {
       showError('Could not delete contact', err instanceof Error ? err.message : undefined);
     } finally {

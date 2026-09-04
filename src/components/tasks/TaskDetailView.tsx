@@ -172,7 +172,7 @@ const destructiveButtonClass =
 export function TaskDetailView({ taskId }: { taskId: string }) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
-  const { showError } = useToast();
+  const { showSuccess, showError } = useToast();
   const router = useRouter();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -296,6 +296,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
     if (!user) return;
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
+      showSuccess('Task deleted', `"${item.title}" was removed.`);
       router.push('/tasks');
     } catch (err) {
       showError('Could not delete task', err instanceof Error ? err.message : undefined);
