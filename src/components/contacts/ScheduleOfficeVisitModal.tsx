@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useDirtyClose } from '@/hooks/useDirtyClose';
 import { toDayKey } from '@/lib/calendar/dates';
 import type { Contact } from '@/types/schedule';
 
@@ -22,15 +23,22 @@ export function ScheduleOfficeVisitModal({
 }: ScheduleOfficeVisitModalProps) {
   const today = toDayKey(new Date());
   const [date, setDate] = useState(today);
+  const [baseline, setBaseline] = useState(today);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const open = !!contact;
-  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+  const { requestClose, confirmingDiscard, confirmDiscard, cancelDiscard } = useDirtyClose(
+    date,
+    baseline,
+    onClose,
+  );
+  const dialogRef = useModalA11y<HTMLDivElement>(open, requestClose);
 
   useEffect(() => {
     if (!open) return;
     setDate(today);
+    setBaseline(today);
     setSubmitError(null);
     // `today` intentionally excluded - it should only reset when a new
     // contact opens the modal, not tick over if the modal is left open
@@ -62,14 +70,40 @@ export function ScheduleOfficeVisitModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="schedule-visit-title"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="w-full max-w-md outline-none"
+        className="relative w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
+        {confirmingDiscard && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/90 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xs space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg">
+              <p className="text-sm font-medium text-foreground">Discard the date you picked?</p>
+              <p className="text-xs text-muted-foreground">
+                You changed the date for this visit but haven&apos;t scheduled it yet.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancelDiscard}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  Keep editing
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDiscard}
+                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <Card accent="none">
           <CardHeader>
             <CardTitle id="schedule-visit-title">
@@ -119,7 +153,7 @@ export function ScheduleOfficeVisitModal({
             <div className="flex items-center justify-end gap-2 border-t border-border p-4">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel

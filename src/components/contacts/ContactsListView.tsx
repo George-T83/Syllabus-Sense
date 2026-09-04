@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useDirtyClose } from '@/hooks/useDirtyClose';
 import type { Contact, ContactRole, Course } from '@/types/schedule';
 import { cn, normalizeContactName } from '@/lib/utils';
 
@@ -518,31 +519,39 @@ function ContactFormModal({
   initialContact,
 }: ContactFormModalProps) {
   const [values, setValues] = useState<ContactFormValues>(emptyFormValues(courses[0]?.id ?? ''));
+  const [baseline, setBaseline] = useState<ContactFormValues>(
+    emptyFormValues(courses[0]?.id ?? ''),
+  );
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormValues, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setValues(
-      initialContact
-        ? {
-            courseId: initialContact.courseId,
-            role: initialContact.role,
-            fullName: initialContact.fullName,
-            title: initialContact.title ?? '',
-            howToAddress: initialContact.howToAddress ?? '',
-            email: initialContact.email ?? '',
-            officeHours: initialContact.officeHours ?? '',
-            officeLocation: initialContact.officeLocation ?? '',
-          }
-        : emptyFormValues(courses[0]?.id ?? ''),
-    );
+    const initial = initialContact
+      ? {
+          courseId: initialContact.courseId,
+          role: initialContact.role,
+          fullName: initialContact.fullName,
+          title: initialContact.title ?? '',
+          howToAddress: initialContact.howToAddress ?? '',
+          email: initialContact.email ?? '',
+          officeHours: initialContact.officeHours ?? '',
+          officeLocation: initialContact.officeLocation ?? '',
+        }
+      : emptyFormValues(courses[0]?.id ?? '');
+    setValues(initial);
+    setBaseline(initial);
     setErrors({});
     setSubmitError(null);
   }, [open, initialContact, courses]);
 
-  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+  const { requestClose, confirmingDiscard, confirmDiscard, cancelDiscard } = useDirtyClose(
+    values,
+    baseline,
+    onClose,
+  );
+  const dialogRef = useModalA11y<HTMLDivElement>(open, requestClose);
 
   if (!open) return null;
 
@@ -583,14 +592,40 @@ function ContactFormModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="contact-form-title"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="w-full max-w-md outline-none"
+        className="relative w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
+        {confirmingDiscard && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/90 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xs space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg">
+              <p className="text-sm font-medium text-foreground">Discard unsaved changes?</p>
+              <p className="text-xs text-muted-foreground">
+                You have changes to this contact that haven&apos;t been saved.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancelDiscard}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  Keep editing
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDiscard}
+                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <Card accent="none">
           <CardHeader>
             <CardTitle id="contact-form-title">
@@ -710,7 +745,7 @@ function ContactFormModal({
             <CardFooter className="justify-end gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel

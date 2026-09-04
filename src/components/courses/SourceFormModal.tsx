@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useDirtyClose } from '@/hooks/useDirtyClose';
 import type { Source, SourceAuthor, SourceType } from '@/types/source';
 
 export interface SourceFormValues {
@@ -77,16 +78,24 @@ const labelClass = 'block text-xs font-semibold text-muted-foreground mb-1';
 
 export function SourceFormModal({ open, onClose, onSubmit, initialSource }: SourceFormModalProps) {
   const [values, setValues] = useState<SourceFormValues>(emptyValues());
+  const [baseline, setBaseline] = useState<SourceFormValues>(emptyValues());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setValues(initialSource ? valuesFromSource(initialSource) : emptyValues());
+    const initial = initialSource ? valuesFromSource(initialSource) : emptyValues();
+    setValues(initial);
+    setBaseline(initial);
     setError(null);
   }, [open, initialSource]);
 
-  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+  const { requestClose, confirmingDiscard, confirmDiscard, cancelDiscard } = useDirtyClose(
+    values,
+    baseline,
+    onClose,
+  );
+  const dialogRef = useModalA11y<HTMLDivElement>(open, requestClose);
 
   if (!open) return null;
 
@@ -133,14 +142,40 @@ export function SourceFormModal({ open, onClose, onSubmit, initialSource }: Sour
       role="dialog"
       aria-modal="true"
       aria-labelledby="source-form-title"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="w-full max-w-lg outline-none"
+        className="relative w-full max-w-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
+        {confirmingDiscard && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/90 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xs space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg">
+              <p className="text-sm font-medium text-foreground">Discard unsaved changes?</p>
+              <p className="text-xs text-muted-foreground">
+                You have changes to this source that haven&apos;t been saved.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancelDiscard}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  Keep editing
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDiscard}
+                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <Card accent="none">
           <CardHeader>
             <CardTitle id="source-form-title">
@@ -370,7 +405,7 @@ export function SourceFormModal({ open, onClose, onSubmit, initialSource }: Sour
             <div className="flex items-center justify-end gap-2 border-t border-border p-4">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel
