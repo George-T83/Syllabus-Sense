@@ -29,6 +29,16 @@ export interface MaterialItem {
   cost?: number;
 }
 
+/** A single logged absence for AttendanceGauge's per-course tracker. */
+export interface AbsenceRecord {
+  id: string;
+  /** ISO date (YYYY-MM-DD) */
+  date: string;
+  type: 'excused' | 'unexcused';
+  reason?: string;
+  note?: string;
+}
+
 /**
  * Represents a student's course.
  */
@@ -80,6 +90,8 @@ export interface Course {
    * an AI extraction - mirrors the review step every other AI-sourced
    * field goes through, so objectives are never silently trusted. */
   learningObjectivesApproved?: boolean;
+  /** Manually-logged absences for the attendance tracker (AttendanceGauge). */
+  absences?: AbsenceRecord[];
 }
 
 /** Whether a contact is the instructor of record or a teaching assistant. */
