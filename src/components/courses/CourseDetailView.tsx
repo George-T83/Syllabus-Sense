@@ -8,6 +8,7 @@ import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { TaskRow } from '@/components/ui/TaskRow';
+import { useToast } from '@/components/ui/Toast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateCourse, deleteCourse } from '@/lib/firestore/courses';
@@ -195,6 +196,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
 
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -286,7 +288,10 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     setIsDeletingCourse(true);
     try {
       await deleteCourse(user.uid, course, items, dispatch, courseContacts);
+      showSuccess('Course deleted', `${course.code} and its tasks were removed.`);
       router.push('/dashboard');
+    } catch (err) {
+      showError('Could not delete course', err instanceof Error ? err.message : undefined);
     } finally {
       setIsDeletingCourse(false);
     }
@@ -348,6 +353,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
       setConfirmingDeleteItemId(null);
+      showSuccess('Task deleted', `"${item.title}" was removed.`);
+    } catch (err) {
+      showError('Could not delete task', err instanceof Error ? err.message : undefined);
     } finally {
       setDeletingItemId(null);
     }
@@ -429,6 +437,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteContact(user.uid, contact, dispatch);
       setConfirmingDeleteContactId(null);
+      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
+    } catch (err) {
+      showError('Could not delete contact', err instanceof Error ? err.message : undefined);
     } finally {
       setDeletingContactId(null);
     }
