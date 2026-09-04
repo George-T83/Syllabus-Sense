@@ -243,8 +243,6 @@ export function DashboardView() {
           </div>
         </div>
 
-        <MoodCheckInCard />
-
         <WeeklyBriefingCard scheduleItems={state.scheduleItems} />
 
         <MaterialsBudgetCard courses={state.courses} />
@@ -527,6 +525,8 @@ export function DashboardView() {
             })}
           </div>
         </Card>
+
+        <MoodCheckInCard />
 
         <Card className="rounded-2xl p-6">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
