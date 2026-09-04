@@ -34,7 +34,7 @@ import { normalizeMaterials, sumMaterialCosts } from '@/lib/courses/materials';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { Course, ScheduleItem, Contact, ContactRole } from '@/types/schedule';
+import type { Course, ScheduleItem, Contact, ContactRole, AbsenceRecord } from '@/types/schedule';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -567,6 +567,26 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     setAddingMaterial(false);
   };
 
+  const handleLogAbsence = async (record: AbsenceRecord) => {
+    if (!user) return;
+    const current = [record, ...(course.absences ?? [])];
+    try {
+      await updateCourse(user.uid, course, { ...course, absences: current }, dispatch);
+    } catch (err) {
+      showError('Could not save that absence', err instanceof Error ? err.message : undefined);
+    }
+  };
+
+  const handleDeleteAbsence = async (id: string) => {
+    if (!user) return;
+    const current = (course.absences ?? []).filter((a) => a.id !== id);
+    try {
+      await updateCourse(user.uid, course, { ...course, absences: current }, dispatch);
+    } catch (err) {
+      showError('Could not remove that absence', err instanceof Error ? err.message : undefined);
+    }
+  };
+
   const handleExportICS = () => {
     const ics = generateICS(items, [course], new Date());
     const blob = createICSBlob(ics);
@@ -742,6 +762,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
           courseCode={course.code}
           courseTitle={course.title}
           maxAllowedAbsences={course.notes?.toLowerCase().includes('attendance') ? 3 : 4}
+          initialAbsences={course.absences ?? []}
+          onAbsenceLogged={handleLogAbsence}
+          onAbsenceDeleted={handleDeleteAbsence}
         />
 
         <Card className="rounded-2xl p-6 space-y-4">
