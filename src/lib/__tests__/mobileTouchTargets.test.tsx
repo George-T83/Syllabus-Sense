@@ -214,11 +214,13 @@ describe('Item 21: Mobile Touch Targets Minimum 44x44px Audit', () => {
 
   it('MonthCalendar PeriodNav, export, and view switcher satisfy 44x44px touch targets', () => {
     render(
-      <AuthProvider>
-        <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: mockItems }}>
-          <MonthCalendar />
-        </AppStateProvider>
-      </AuthProvider>,
+      <ToastProvider>
+        <AuthProvider>
+          <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: mockItems }}>
+            <MonthCalendar />
+          </AppStateProvider>
+        </AuthProvider>
+      </ToastProvider>,
     );
 
     const prevBtn = screen.getByRole('button', { name: /Previous month/i });
