@@ -1,15 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
+import type { AbsenceRecord } from '@/types/schedule';
 
-export interface AbsenceRecord {
-  id: string;
-  date: string; // YYYY-MM-DD
-  type: 'excused' | 'unexcused';
-  reason?: string;
-  note?: string;
-}
+export type { AbsenceRecord };
 
 export interface AttendanceGaugeProps {
   courseCode?: string;
@@ -21,33 +16,24 @@ export interface AttendanceGaugeProps {
   onAbsenceDeleted?: (id: string) => void;
 }
 
-const DEFAULT_ABSENCES: AbsenceRecord[] = [
-  {
-    id: 'abs-1',
-    date: '2026-09-14',
-    type: 'unexcused',
-    reason: 'Overslept / Traffic',
-    note: 'Missed Lecture 4',
-  },
-  {
-    id: 'abs-2',
-    date: '2026-10-02',
-    type: 'excused',
-    reason: 'Doctor Appointment',
-    note: 'Doctor note submitted to professor',
-  },
-];
-
 export function AttendanceGauge({
   courseCode = 'CS 301',
   courseTitle = 'Data Structures & Algorithms',
   maxAllowedAbsences = 3,
   penaltyDescription = 'Each unexcused absence beyond 3 incurs a 3% deduction from the final grade.',
-  initialAbsences = DEFAULT_ABSENCES,
+  initialAbsences = [],
   onAbsenceLogged,
   onAbsenceDeleted,
 }: AttendanceGaugeProps) {
   const [absences, setAbsences] = useState<AbsenceRecord[]>(initialAbsences);
+
+  // Course switches re-mount this component under a different key in
+  // CourseDetailView, but keep this in sync if that ever changes -
+  // otherwise switching courses without a remount would show stale data.
+  useEffect(() => {
+    setAbsences(initialAbsences);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAbsences]);
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
   const [newDate, setNewDate] = useState('2026-10-15');
   const [newType, setNewType] = useState<'excused' | 'unexcused'>('unexcused');
@@ -85,8 +71,13 @@ export function AttendanceGauge({
       id: `abs-${Date.now()}`,
       date: newDate,
       type: newType,
-      reason: newReason.trim() || undefined,
-      note: newNote.trim() || undefined,
+      // Omit reason/note entirely when blank rather than setting them to
+      // `undefined` - Firestore's setDoc/updateDoc rejects a field whose
+      // value is literally `undefined` (this record used to be local-only
+      // React state, so that never mattered until it started getting
+      // persisted via onAbsenceLogged).
+      ...(newReason.trim() ? { reason: newReason.trim() } : {}),
+      ...(newNote.trim() ? { note: newNote.trim() } : {}),
     };
 
     setAbsences((prev) => [record, ...prev]);
