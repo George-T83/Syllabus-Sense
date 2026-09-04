@@ -158,6 +158,17 @@ export function CommandPalette({
         },
       },
       {
+        id: 'nav-mood',
+        title: 'Mood Recap',
+        subtitle: 'Daily check-ins, trends, and how they line up with your workload',
+        category: 'Navigation',
+        badge: `${state.moodEntries.length} check-ins`,
+        perform: () => {
+          router.push('/mood');
+          closePalette();
+        },
+      },
+      {
         id: 'nav-calendar',
         title: 'Calendar',
         subtitle: 'Month & week views, class schedules, and deadlines',
@@ -336,6 +347,7 @@ export function CommandPalette({
     state.contacts,
     state.flashcards,
     state.quizzes,
+    state.moodEntries,
     resolvedTheme,
     setTheme,
     router,
