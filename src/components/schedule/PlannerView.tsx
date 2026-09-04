@@ -208,7 +208,7 @@ function ExpandableItemList({
 export function PlannerView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
-  const { showError } = useToast();
+  const { showSuccess, showError } = useToast();
   const { courses, scheduleItems } = state;
 
   const [courseFilter, setCourseFilter] = useState('all');
@@ -404,6 +404,7 @@ export function PlannerView() {
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
       setConfirmingDeleteId(null);
+      showSuccess('Task deleted', `"${item.title}" was removed.`);
     } catch (err) {
       showError('Could not delete task', err instanceof Error ? err.message : undefined);
     }

@@ -210,6 +210,7 @@ export function ContactsListView() {
     try {
       await deleteContact(user.uid, contact, dispatch);
       setConfirmingDeleteId(null);
+      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
     } catch (err) {
       showError('Could not delete contact', err instanceof Error ? err.message : undefined);
     }
