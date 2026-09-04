@@ -9,6 +9,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { TaskRow } from '@/components/ui/TaskRow';
+import { useToast } from '@/components/ui/Toast';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
@@ -68,6 +69,7 @@ function QuietLink({ href, children }: { href: string; children: ReactNode }) {
 export function DashboardView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
+  const { showError } = useToast();
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
@@ -194,7 +196,12 @@ export function DashboardView() {
 
   const handleToggleComplete = async (item: ScheduleItem) => {
     if (!user) return;
-    await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    try {
+      await updateScheduleItem(user.uid, item, { ...item, completed: !item.completed }, dispatch);
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+      showError("Couldn't update that task. Try again in a moment.");
+    }
   };
 
   return (
