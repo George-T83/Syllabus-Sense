@@ -18,6 +18,7 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { WeeklyBriefingCard } from '@/components/dashboard/WeeklyBriefingCard';
 import { MaterialsBudgetCard } from '@/components/dashboard/MaterialsBudgetCard';
+import { MoodCheckInCard } from '@/components/dashboard/MoodCheckInCard';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS } from '@/lib/workload';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
@@ -241,6 +242,8 @@ export function DashboardView() {
             </button>
           </div>
         </div>
+
+        <MoodCheckInCard />
 
         <WeeklyBriefingCard scheduleItems={state.scheduleItems} />
 

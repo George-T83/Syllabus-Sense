@@ -251,7 +251,7 @@ export function MonthCalendar() {
   // view - only honored on first mount, so navigating the calendar around
   // afterward doesn't keep snapping back to the link's date.
   const linkedDate = useMemo(() => {
-    const raw = searchParams.get('date');
+    const raw = searchParams?.get('date');
     if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
     return parseDayKey(raw);
     // eslint-disable-next-line react-hooks/exhaustive-deps
