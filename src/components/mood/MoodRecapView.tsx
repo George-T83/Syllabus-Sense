@@ -25,6 +25,7 @@ import {
   computeBestAndWorstDay,
 } from '@/lib/mood/moodStats';
 import { MOOD_OPTIONS, MOOD_SWATCH_CLASS, getMoodOption } from '@/lib/mood/moodScale';
+import { computeSemesterHeatmap } from '@/lib/planner/semesterHeatmap';
 import { parseDayKey } from '@/lib/calendar/dates';
 import { cn } from '@/lib/utils';
 import type { WorkloadLevel } from '@/types/schedule';
@@ -86,11 +87,24 @@ export function MoodRecapView() {
   );
   const { best, worst } = useMemo(() => computeBestAndWorstDay(entries), [entries]);
 
+  // The full span of the term's due dates - the same range the semester
+  // heatmap draws - unioned with the mood entries' own range, so a student
+  // who only started checking in partway through the term still sees the
+  // whole term laid out, not just the weeks they happened to check in.
+  const termDays = useMemo(
+    () => computeSemesterHeatmap(state.scheduleItems),
+    [state.scheduleItems],
+  );
+
   const calendarCells = useMemo(() => {
-    if (trend.length === 0) return [];
+    if (trend.length === 0 && termDays.length === 0) return [];
     const byDate = new Map(trend.map((p) => [p.dateKey, p.mood]));
-    const start = parseDayKey(trend[0].dateKey);
-    const end = parseDayKey(trend[trend.length - 1].dateKey);
+    const candidateKeys = [
+      ...(trend.length > 0 ? [trend[0].dateKey, trend[trend.length - 1].dateKey] : []),
+      ...(termDays.length > 0 ? [termDays[0].dateKey, termDays[termDays.length - 1].dateKey] : []),
+    ].sort();
+    const start = parseDayKey(candidateKeys[0]);
+    const end = parseDayKey(candidateKeys[candidateKeys.length - 1]);
     const leadingBlanks = start.getDay();
     const cells: { dateKey: string; mood: MoodValue | null }[] = Array.from(
       { length: leadingBlanks },
@@ -103,7 +117,7 @@ export function MoodRecapView() {
       cursor.setDate(cursor.getDate() + 1);
     }
     return cells;
-  }, [trend]);
+  }, [trend, termDays]);
   const columnCount = Math.ceil(calendarCells.length / 7);
 
   // Month labels, positioned above the week-column where that month's first
