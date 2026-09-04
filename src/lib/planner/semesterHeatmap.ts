@@ -18,6 +18,28 @@ function estimateHours(item: ScheduleItem): number {
   return item.type === 'exam' ? 2 : 1;
 }
 
+/** Total due-date hours per day key, across every item that has a due date -
+ * the same lookup `computeSemesterHeatmap` builds internally, exported so
+ * other features (e.g. mood-vs-workload correlation) can look up a specific
+ * day's load without recomputing the whole semester range. */
+export function computeDayHoursMap(scheduleItems: ScheduleItem[]): Map<string, number> {
+  const dayTotals = new Map<string, number>();
+  for (const item of scheduleItems) {
+    if (!item.dueDate) continue;
+    const key = toDayKey(item.dueDate);
+    dayTotals.set(key, (dayTotals.get(key) ?? 0) + estimateHours(item));
+  }
+  return dayTotals;
+}
+
+/** The WorkloadLevel for one specific day, given a due-hours lookup from
+ * `computeDayHoursMap`. A day with nothing due at all is 'low' (light), the
+ * same as `getWorkloadLevel(0)` - genuinely nothing due is the lightest
+ * case, not an unknown one. */
+export function getDayWorkloadLevel(dateKey: string, dayHours: Map<string, number>): WorkloadLevel {
+  return getWorkloadLevel(dayHours.get(dateKey) ?? 0);
+}
+
 /**
  * A day-by-day workload heatmap spanning every due date the student has on
  * record, from the earliest to the latest - not scoped to a "current term"
@@ -31,12 +53,7 @@ function estimateHours(item: ScheduleItem): number {
  * which doesn't change once the deadline passes.
  */
 export function computeSemesterHeatmap(scheduleItems: ScheduleItem[]): SemesterHeatmapDay[] {
-  const dayTotals = new Map<string, number>();
-  for (const item of scheduleItems) {
-    if (!item.dueDate) continue;
-    const key = toDayKey(item.dueDate);
-    dayTotals.set(key, (dayTotals.get(key) ?? 0) + estimateHours(item));
-  }
+  const dayTotals = computeDayHoursMap(scheduleItems);
 
   const sortedKeys = Array.from(dayTotals.keys()).sort();
   if (sortedKeys.length === 0) return [];

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { MonthCalendar } from '@/components/calendar/MonthCalendar';
 
 export const metadata: Metadata = {
@@ -15,7 +16,9 @@ export default function CalendarPage() {
           See your workload build before it hits — not just what&apos;s due.
         </p>
       </div>
-      <MonthCalendar />
+      <Suspense fallback={null}>
+        <MonthCalendar />
+      </Suspense>
     </div>
   );
 }

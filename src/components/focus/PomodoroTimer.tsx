@@ -63,15 +63,21 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
   const sessionStartRef = useRef<Date | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // External open trigger (CommandPalette's "Start Pomodoro" action) - skips
-  // the initial mount so passing openSignal={0} doesn't force it open.
-  const isFirstOpenSignal = useRef(true);
+  // External open trigger (CommandPalette's "Start Pomodoro" action) - opens
+  // only when the signal actually changes value, not on every effect run.
+  // A "skip the first run" ref is not enough here: React Strict Mode's dev-
+  // only double-invoke of effects re-fires this effect once immediately
+  // after mount with the ref already flipped, which read `openSignal={0}`
+  // (always defined, never `undefined`) as a real trigger and force-opened
+  // the widget on every page load. Comparing against the previous value
+  // instead only opens on a genuine increment, which a duplicate effect run
+  // with an unchanged value can't produce.
+  const previousOpenSignal = useRef(openSignal);
   useEffect(() => {
-    if (isFirstOpenSignal.current) {
-      isFirstOpenSignal.current = false;
-      return;
+    if (openSignal !== undefined && openSignal !== previousOpenSignal.current) {
+      setVisible(true);
     }
-    if (openSignal !== undefined) setVisible(true);
+    previousOpenSignal.current = openSignal;
   }, [openSignal]);
 
   // Alt+P keyboard shortcut to toggle the widget

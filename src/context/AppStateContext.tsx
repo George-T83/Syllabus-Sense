@@ -5,6 +5,7 @@ import { Contact, Course, ScheduleItem } from '@/types/schedule';
 import type { Source } from '@/types/source';
 import type { Flashcard } from '@/types/flashcard';
 import type { Quiz, QuizAttempt } from '@/types/quiz';
+import type { MoodEntry } from '@/types/mood';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 
 export interface AppState {
@@ -15,6 +16,9 @@ export interface AppState {
   flashcards: Flashcard[];
   quizzes: Quiz[];
   quizAttempts: QuizAttempt[];
+  /** One check-in per day at most - see `moodEntries.ts`'s upsert-by-dateKey
+   * write. Whole-account, not scoped to any one course. */
+  moodEntries: MoodEntry[];
   selectedCourseId: string | null;
   /** #101 semester switcher. `null` means "no explicit choice made yet" -
    * consumers should fall back to `inferCurrentTerm`. The literal string
@@ -60,6 +64,9 @@ export type AppAction =
   | { type: 'SET_QUIZ_ATTEMPTS'; payload: QuizAttempt[] }
   | { type: 'ADD_QUIZ_ATTEMPT'; payload: QuizAttempt }
   | { type: 'REMOVE_QUIZ_ATTEMPT'; payload: string }
+  | { type: 'SET_MOOD_ENTRIES'; payload: MoodEntry[] }
+  | { type: 'UPSERT_MOOD_ENTRY'; payload: MoodEntry }
+  | { type: 'REMOVE_MOOD_ENTRY'; payload: string }
   | { type: 'SELECT_COURSE'; payload: string | null }
   | { type: 'SELECT_TERM'; payload: string | null }
   | { type: 'SET_PREFERENCES'; payload: UserPreferences };
@@ -72,6 +79,7 @@ export const initialAppState: AppState = {
   flashcards: [],
   quizzes: [],
   quizAttempts: [],
+  moodEntries: [],
   selectedCourseId: null,
   selectedTerm: null,
   preferences: DEFAULT_PREFERENCES,
@@ -179,6 +187,18 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
         ...state,
         quizAttempts: state.quizAttempts.filter((a) => a.id !== action.payload),
       };
+    case 'SET_MOOD_ENTRIES':
+      return { ...state, moodEntries: action.payload };
+    case 'UPSERT_MOOD_ENTRY':
+      return {
+        ...state,
+        moodEntries: [
+          ...state.moodEntries.filter((m) => m.id !== action.payload.id),
+          action.payload,
+        ],
+      };
+    case 'REMOVE_MOOD_ENTRY':
+      return { ...state, moodEntries: state.moodEntries.filter((m) => m.id !== action.payload) };
     case 'SELECT_COURSE':
       return { ...state, selectedCourseId: action.payload };
     case 'SELECT_TERM':

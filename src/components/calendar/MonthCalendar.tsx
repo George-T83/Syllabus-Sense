@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
@@ -244,10 +245,21 @@ type ViewMode = 'month' | 'week' | 'agenda';
 export function MonthCalendar() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  // A deep link from the semester heatmap (or any other day-grid) lands here
+  // pre-selected and scrolled to that day, instead of the plain "today"
+  // view - only honored on first mount, so navigating the calendar around
+  // afterward doesn't keep snapping back to the link's date.
+  const linkedDate = useMemo(() => {
+    const raw = searchParams?.get('date');
+    if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+    return parseDayKey(raw);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [viewMode, setViewMode] = useState<ViewMode>('month');
-  const [viewMonth, setViewMonth] = useState(() => startOfDay(new Date()));
-  const [weekAnchor, setWeekAnchor] = useState(() => startOfDay(new Date()));
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [viewMonth, setViewMonth] = useState(() => linkedDate ?? startOfDay(new Date()));
+  const [weekAnchor, setWeekAnchor] = useState(() => linkedDate ?? startOfDay(new Date()));
+  const [selectedDay, setSelectedDay] = useState<Date | null>(() => linkedDate);
   const [focusedDateKey, setFocusedDateKey] = useState<string | null>(null);
   const dayButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [hiddenCourseIds, setHiddenCourseIds] = useState<Set<string>>(new Set());
