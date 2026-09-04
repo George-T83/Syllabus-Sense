@@ -271,33 +271,42 @@ export function MoodRecapView() {
           Click a day to open it in Calendar and see what was going on.
         </p>
         <div className="mt-4 overflow-x-auto pb-1">
-          <div
-            className="grid gap-1"
-            style={{
-              gridTemplateRows: 'repeat(7, 0.75rem)',
-              gridAutoFlow: 'column',
-              gridTemplateColumns: `repeat(${columnCount}, 0.75rem)`,
-            }}
-          >
-            {calendarCells.map((cell, i) =>
-              cell.dateKey && cell.mood ? (
-                <Link
-                  key={cell.dateKey}
-                  href={`/calendar?date=${cell.dateKey}`}
-                  title={`${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} · ${getMoodOption(cell.mood).label}`}
-                  aria-label={`Open ${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - felt ${getMoodOption(cell.mood).label.toLowerCase()}`}
-                  className={cn(
-                    'h-full w-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
-                    MOOD_SWATCH_CLASS[cell.mood],
-                  )}
-                />
-              ) : (
-                <div
-                  key={cell.dateKey || `blank-${i}`}
-                  className="h-full w-full rounded-[2px] bg-border"
-                />
-              ),
-            )}
+          <div className="flex min-w-full justify-center">
+            {/* Same square-by-construction trick as the semester heatmap:
+             * a fixed-height parent divides evenly into 7 `1fr` row tracks,
+             * every cell stretches to that row height and carries
+             * `aspect-square`, and the `auto` column tracks size themselves
+             * to match - so the grid fills the card's height and stays
+             * square instead of shrinking to tiny fixed-size squares. */}
+            <div
+              className="grid gap-1"
+              style={{
+                height: '10rem',
+                gridTemplateRows: 'repeat(7, 1fr)',
+                gridAutoFlow: 'column',
+                gridTemplateColumns: `repeat(${columnCount}, auto)`,
+              }}
+            >
+              {calendarCells.map((cell, i) =>
+                cell.dateKey && cell.mood ? (
+                  <Link
+                    key={cell.dateKey}
+                    href={`/calendar?date=${cell.dateKey}`}
+                    title={`${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} · ${getMoodOption(cell.mood).label}`}
+                    aria-label={`Open ${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - felt ${getMoodOption(cell.mood).label.toLowerCase()}`}
+                    className={cn(
+                      'aspect-square h-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
+                      MOOD_SWATCH_CLASS[cell.mood],
+                    )}
+                  />
+                ) : (
+                  <div
+                    key={cell.dateKey || `blank-${i}`}
+                    className="aspect-square h-full rounded-[2px] bg-border"
+                  />
+                ),
+              )}
+            </div>
           </div>
         </div>
         <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
