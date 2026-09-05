@@ -20,6 +20,7 @@ import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillMod
 import { WeeklyBriefingCard } from '@/components/dashboard/WeeklyBriefingCard';
 import { MaterialsBudgetCard } from '@/components/dashboard/MaterialsBudgetCard';
 import { MoodCheckInCard } from '@/components/dashboard/MoodCheckInCard';
+import { BurnoutRiskCard } from '@/components/dashboard/BurnoutRiskCard';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { WORKLOAD_CHIP_CLASS, WORKLOAD_TEXT_CLASS } from '@/lib/workload';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
@@ -532,6 +533,8 @@ export function DashboardView() {
             })}
           </div>
         </Card>
+
+        <BurnoutRiskCard scheduleItems={state.scheduleItems} moodEntries={state.moodEntries} />
 
         <MoodCheckInCard />
 
