@@ -44,8 +44,11 @@ export async function verifyFirebaseIdToken(
   // reject every emulator-issued token unconditionally - this route would be
   // impossible to verify against the required local emulator setup otherwise.
   // Decode-only is safe specifically because this branch only activates when
-  // FIREBASE_AUTH_EMULATOR_HOST is set, which real deployments never set.
-  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+  // FIREBASE_AUTH_EMULATOR_HOST is set AND NODE_ENV isn't 'production' - the
+  // second check is deliberately redundant defense-in-depth: a single
+  // misconfigured env var (the emulator host var alone) must never be able
+  // to disable signature verification in a real deployment.
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST && process.env.NODE_ENV !== 'production') {
     const payload = decodeJwt(idToken);
     if (
       payload.iss !== `https://securetoken.google.com/${projectId}` ||
