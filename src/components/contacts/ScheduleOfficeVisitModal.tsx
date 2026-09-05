@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useDirtyClose } from '@/hooks/useDirtyClose';
+import { DiscardConfirmCard } from '@/components/ui/DiscardConfirmCard';
 import { toDayKey } from '@/lib/calendar/dates';
 import type { Contact } from '@/types/schedule';
 
@@ -78,99 +79,84 @@ export function ScheduleOfficeVisitModal({
         className="relative w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {confirmingDiscard && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/90 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-xs space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg">
-              <p className="text-sm font-medium text-foreground">Discard the date you picked?</p>
-              <p className="text-xs text-muted-foreground">
-                You changed the date for this visit but haven&apos;t scheduled it yet.
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={cancelDiscard}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
-                >
-                  Keep editing
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmDiscard}
-                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
-                >
-                  Discard
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         <Card accent="none">
-          <CardHeader>
-            <CardTitle id="schedule-visit-title">
-              {isClassmate ? 'Schedule a Study Session' : 'Schedule a Visit'}
-            </CardTitle>
-            <CardDescription>Adds a reminder task to your Tasks list.</CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {submitError && (
-                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
-                  {submitError}
-                </div>
-              )}
+          {confirmingDiscard ? (
+            <DiscardConfirmCard
+              title="Discard the date you picked?"
+              description="You changed the date for this visit but haven't scheduled it yet."
+              onCancel={cancelDiscard}
+              onConfirm={confirmDiscard}
+            />
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle id="schedule-visit-title">
+                  {isClassmate ? 'Schedule a Study Session' : 'Schedule a Visit'}
+                </CardTitle>
+                <CardDescription>Adds a reminder task to your Tasks list.</CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-4">
+                  {submitError && (
+                    <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
+                      {submitError}
+                    </div>
+                  )}
 
-              <div className="rounded-xl border border-border bg-muted/50 p-3 text-sm">
-                <div className="font-semibold text-foreground">{contact.fullName}</div>
-                {contact.officeHours && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Office hours: {contact.officeHours}
+                  <div className="rounded-xl border border-border bg-muted/50 p-3 text-sm">
+                    <div className="font-semibold text-foreground">{contact.fullName}</div>
+                    {contact.officeHours && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Office hours: {contact.officeHours}
+                      </div>
+                    )}
+                    {contact.officeLocation && (
+                      <div className="text-xs text-muted-foreground">{contact.officeLocation}</div>
+                    )}
                   </div>
-                )}
-                {contact.officeLocation && (
-                  <div className="text-xs text-muted-foreground">{contact.officeLocation}</div>
-                )}
-              </div>
 
-              <div>
-                <label
-                  htmlFor="visit-date"
-                  className="block text-xs font-semibold text-muted-foreground mb-1"
-                >
-                  {isClassmate ? 'Which day are you meeting?' : 'Which day are you going?'}
-                </label>
-                <input
-                  id="visit-date"
-                  type="date"
-                  value={date}
-                  min={today}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                  className="w-full min-h-[44px] rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </CardContent>
+                  <div>
+                    <label
+                      htmlFor="visit-date"
+                      className="block text-xs font-semibold text-muted-foreground mb-1"
+                    >
+                      {isClassmate ? 'Which day are you meeting?' : 'Which day are you going?'}
+                    </label>
+                    <input
+                      id="visit-date"
+                      type="date"
+                      value={date}
+                      min={today}
+                      onChange={(e) => setDate(e.target.value)}
+                      required
+                      className="w-full min-h-[44px] rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </CardContent>
 
-            <div className="flex items-center justify-end gap-2 border-t border-border p-4">
-              <button
-                type="button"
-                onClick={requestClose}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting
-                  ? 'Scheduling...'
-                  : isClassmate
-                    ? 'Schedule Study Session'
-                    : 'Schedule Visit'}
-              </button>
-            </div>
-          </form>
+                <div className="flex items-center justify-end gap-2 border-t border-border p-4">
+                  <button
+                    type="button"
+                    onClick={requestClose}
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting
+                      ? 'Scheduling...'
+                      : isClassmate
+                        ? 'Schedule Study Session'
+                        : 'Schedule Visit'}
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </Card>
       </div>
     </div>
