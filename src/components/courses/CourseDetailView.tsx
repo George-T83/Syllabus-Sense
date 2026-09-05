@@ -394,6 +394,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       );
       setNewContact(EMPTY_CONTACT_FORM);
       setAddContactOpen(false);
+    } catch (err) {
+      showError('Could not add contact', err instanceof Error ? err.message : undefined);
     } finally {
       setSavingContact(false);
     }
@@ -414,26 +416,32 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleSaveContact = async (contact: Contact) => {
     if (!user || !editContact.fullName.trim()) return;
-    await updateContact(
-      user.uid,
-      contact,
-      {
-        ...contact,
-        role: editContact.role,
-        fullName: editContact.fullName.trim(),
-        ...(editContact.title.trim() ? { title: editContact.title.trim() } : {}),
-        ...(editContact.howToAddress.trim()
-          ? { howToAddress: editContact.howToAddress.trim() }
-          : {}),
-        ...(editContact.email.trim() ? { email: editContact.email.trim() } : {}),
-        ...(editContact.officeHours.trim() ? { officeHours: editContact.officeHours.trim() } : {}),
-        ...(editContact.officeLocation.trim()
-          ? { officeLocation: editContact.officeLocation.trim() }
-          : {}),
-      },
-      dispatch,
-    );
-    setEditingContactId(null);
+    try {
+      await updateContact(
+        user.uid,
+        contact,
+        {
+          ...contact,
+          role: editContact.role,
+          fullName: editContact.fullName.trim(),
+          ...(editContact.title.trim() ? { title: editContact.title.trim() } : {}),
+          ...(editContact.howToAddress.trim()
+            ? { howToAddress: editContact.howToAddress.trim() }
+            : {}),
+          ...(editContact.email.trim() ? { email: editContact.email.trim() } : {}),
+          ...(editContact.officeHours.trim()
+            ? { officeHours: editContact.officeHours.trim() }
+            : {}),
+          ...(editContact.officeLocation.trim()
+            ? { officeLocation: editContact.officeLocation.trim() }
+            : {}),
+        },
+        dispatch,
+      );
+      setEditingContactId(null);
+    } catch (err) {
+      showError('Could not save contact', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleDeleteContact = async (contact: Contact) => {
@@ -464,13 +472,17 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     } else {
       current.splice(index, 1);
     }
-    await updateCourse(
-      user.uid,
-      course,
-      { ...course, learningObjectives: current, learningObjectivesApproved: true },
-      dispatch,
-    );
-    setEditingObjectiveIndex(null);
+    try {
+      await updateCourse(
+        user.uid,
+        course,
+        { ...course, learningObjectives: current, learningObjectivesApproved: true },
+        dispatch,
+      );
+      setEditingObjectiveIndex(null);
+    } catch (err) {
+      showError('Could not save that objective', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleDeleteObjective = async (index: number) => {
@@ -499,14 +511,18 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       return;
     }
     const current = [...(course.learningObjectives ?? []), trimmed];
-    await updateCourse(
-      user.uid,
-      course,
-      { ...course, learningObjectives: current, learningObjectivesApproved: true },
-      dispatch,
-    );
-    setNewObjectiveDraft('');
-    setAddingObjective(false);
+    try {
+      await updateCourse(
+        user.uid,
+        course,
+        { ...course, learningObjectives: current, learningObjectivesApproved: true },
+        dispatch,
+      );
+      setNewObjectiveDraft('');
+      setAddingObjective(false);
+    } catch (err) {
+      showError('Could not add that objective', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleStartEditMaterial = (index: number) => {
@@ -529,8 +545,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     } else {
       current.splice(index, 1);
     }
-    await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
-    setEditingMaterialIndex(null);
+    try {
+      await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
+      setEditingMaterialIndex(null);
+    } catch (err) {
+      showError('Could not save that material', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleDeleteMaterial = async (index: number) => {
@@ -561,10 +581,14 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         ...(!Number.isNaN(parsedCost) && parsedCost >= 0 ? { cost: parsedCost } : {}),
       },
     ];
-    await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
-    setNewMaterialDraft('');
-    setNewMaterialCostDraft('');
-    setAddingMaterial(false);
+    try {
+      await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
+      setNewMaterialDraft('');
+      setNewMaterialCostDraft('');
+      setAddingMaterial(false);
+    } catch (err) {
+      showError('Could not add that material', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleLogAbsence = async (record: AbsenceRecord) => {
