@@ -612,16 +612,28 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   };
 
   const handleExportICS = () => {
-    const ics = generateICS(items, [course], new Date());
-    const blob = createICSBlob(ics);
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = buildICSFilename(course.code);
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    if (items.length === 0) {
+      showError('Nothing to export', 'This course has no tasks yet.');
+      return;
+    }
+    try {
+      const ics = generateICS(items, [course], new Date());
+      const blob = createICSBlob(ics);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = buildICSFilename(course.code);
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      showSuccess(
+        'Calendar exported',
+        `${items.length} ${items.length === 1 ? 'item' : 'items'} saved as .ics.`,
+      );
+    } catch (err) {
+      showError('Could not export calendar', err instanceof Error ? err.message : undefined);
+    }
   };
 
   return (
