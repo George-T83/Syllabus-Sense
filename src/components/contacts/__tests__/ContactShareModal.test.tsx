@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ContactShareModal } from '../ContactShareModal';
+import { ToastProvider } from '@/components/ui/Toast';
 import type { Contact } from '@/types/schedule';
 
 const MOCK_CONTACT: Contact = {
@@ -18,13 +19,15 @@ const MOCK_CONTACT: Contact = {
 describe('ContactShareModal (Item 45)', () => {
   it('renders modal dialog when open with contact information and QR code SVG', () => {
     render(
-      <ContactShareModal
-        contact={MOCK_CONTACT}
-        courseCode="CS 101"
-        courseTitle="Intro to Computer Science"
-        isOpen={true}
-        onClose={vi.fn()}
-      />,
+      <ToastProvider>
+        <ContactShareModal
+          contact={MOCK_CONTACT}
+          courseCode="CS 101"
+          courseTitle="Intro to Computer Science"
+          isOpen={true}
+          onClose={vi.fn()}
+        />
+      </ToastProvider>,
     );
 
     expect(screen.getByRole('dialog')).toBeDefined();
@@ -36,12 +39,14 @@ describe('ContactShareModal (Item 45)', () => {
 
   it('switches to vCard raw details tab and displays RFC formatted vCard', () => {
     render(
-      <ContactShareModal
-        contact={MOCK_CONTACT}
-        courseCode="CS 101"
-        isOpen={true}
-        onClose={vi.fn()}
-      />,
+      <ToastProvider>
+        <ContactShareModal
+          contact={MOCK_CONTACT}
+          courseCode="CS 101"
+          isOpen={true}
+          onClose={vi.fn()}
+        />
+      </ToastProvider>,
     );
 
     const vcardTab = screen.getByTestId('tab-vcard-text');
@@ -55,12 +60,14 @@ describe('ContactShareModal (Item 45)', () => {
 
   it('provides email direct action with encoded mailto parameters', () => {
     render(
-      <ContactShareModal
-        contact={MOCK_CONTACT}
-        courseCode="CS 101"
-        isOpen={true}
-        onClose={vi.fn()}
-      />,
+      <ToastProvider>
+        <ContactShareModal
+          contact={MOCK_CONTACT}
+          courseCode="CS 101"
+          isOpen={true}
+          onClose={vi.fn()}
+        />
+      </ToastProvider>,
     );
 
     const emailBtn = screen.getByTestId('email-contact-btn');
@@ -71,12 +78,14 @@ describe('ContactShareModal (Item 45)', () => {
   it('calls onClose when close button is clicked', () => {
     const onClose = vi.fn();
     render(
-      <ContactShareModal
-        contact={MOCK_CONTACT}
-        courseCode="CS 101"
-        isOpen={true}
-        onClose={onClose}
-      />,
+      <ToastProvider>
+        <ContactShareModal
+          contact={MOCK_CONTACT}
+          courseCode="CS 101"
+          isOpen={true}
+          onClose={onClose}
+        />
+      </ToastProvider>,
     );
 
     const closeBtn = screen.getByLabelText(/Close share modal/i);
@@ -87,12 +96,14 @@ describe('ContactShareModal (Item 45)', () => {
 
   it('does not render when isOpen is false', () => {
     const { container } = render(
-      <ContactShareModal
-        contact={MOCK_CONTACT}
-        courseCode="CS 101"
-        isOpen={false}
-        onClose={vi.fn()}
-      />,
+      <ToastProvider>
+        <ContactShareModal
+          contact={MOCK_CONTACT}
+          courseCode="CS 101"
+          isOpen={false}
+          onClose={vi.fn()}
+        />
+      </ToastProvider>,
     );
 
     expect(container.firstChild).toBeNull();
