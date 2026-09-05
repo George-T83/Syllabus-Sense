@@ -1,11 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import {
-  NextClassHeroBanner,
-  formatTime12h,
-  extractMeetingLink,
-} from '../NextClassHeroBanner';
+import { NextClassHeroBanner, formatTime12h, extractMeetingLink } from '../NextClassHeroBanner';
 import type { Course } from '@/types/schedule';
 
 const MOCK_COURSES: Course[] = [
@@ -98,7 +94,7 @@ describe('NextClassHeroBanner (Item 44)', () => {
         courses={MOCK_COURSES}
         currentTime={mockMondayNow}
         onJoinMeeting={onJoin}
-      />
+      />,
     );
 
     expect(screen.getByText('Linear Algebra')).toBeDefined();
@@ -125,5 +121,20 @@ describe('NextClassHeroBanner (Item 44)', () => {
 
     expect(screen.getByTestId('no-upcoming-classes-card')).toBeDefined();
     expect(screen.getByText(/All classes completed!/i)).toBeDefined();
+  });
+
+  it('skips a class explicitly cancelled today via skipDates and surfaces the next one instead', () => {
+    // Monday 2026-08-24, 9:36 AM - CS 301 (10:00) is cancelled today, so the
+    // next real session should be Linear Algebra (14:00) instead.
+    const mockMondayNow = new Date('2026-08-24T09:36:00');
+    const coursesWithCancelledClass: Course[] = [
+      { ...MOCK_COURSES[0], skipDates: ['2026-08-24'] },
+      MOCK_COURSES[1],
+    ];
+
+    render(<NextClassHeroBanner courses={coursesWithCancelledClass} currentTime={mockMondayNow} />);
+
+    expect(screen.queryByText('Data Structures & Algorithms')).toBeNull();
+    expect(screen.getByText('Linear Algebra')).toBeDefined();
   });
 });

@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
+import { requireUser } from '@/lib/auth/requireUser';
 import { detectSyllabusFileKind, extractRawSyllabusText } from '@/lib/syllabus/extractRawText';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-
-async function requireUser(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  if (!token || !projectId) return null;
-  try {
-    return await verifyFirebaseIdToken(token, projectId);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Plain text extraction only - no Anthropic call. Backs the syllabus

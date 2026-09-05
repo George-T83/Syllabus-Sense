@@ -42,13 +42,17 @@ interface AuthContextType {
    */
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   /**
-   * Deletes the signed-in Firebase Auth account via `deleteUser`. Also a
-   * "sensitive" operation subject to the same recent-login requirement as
-   * `changePassword` - `currentPassword` is required for email/password
-   * accounts (re-authenticated the same way) and optional/unused for
-   * Google-auth accounts, where `deleteUser` alone succeeds if the session
-   * is fresh enough or otherwise surfaces `auth/requires-recent-login` for
-   * the caller to handle.
+   * Deletes all of the signed-in user's data (every course, task, mood
+   * entry, uploaded syllabus file - everything under `users/{uid}`) via
+   * `/api/account/delete`, then deletes the Firebase Auth account itself via
+   * `deleteUser`. Also a "sensitive" operation subject to the same
+   * recent-login requirement as `changePassword` - `currentPassword` is
+   * required for email/password accounts (re-authenticated the same way)
+   * and optional/unused for Google-auth accounts, where `deleteUser` alone
+   * succeeds if the session is fresh enough or otherwise surfaces
+   * `auth/requires-recent-login` for the caller to handle. Data deletion
+   * always runs first: if it fails, the Auth account is left untouched so
+   * the user isn't locked out mid-deletion with orphaned data either way.
    */
   deleteAccount: (currentPassword?: string) => Promise<boolean>;
   clearError: () => void;
@@ -194,6 +198,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const credential = EmailAuthProvider.credential(current.email, currentPassword);
         await reauthenticateWithCredential(current, credential);
       }
+
+      // Delete all Firestore/Storage data before the Auth account - if this
+      // fails, the account stays intact rather than being deleted with the
+      // data left behind (the original bug this replaces).
+      const token = await current.getIdToken();
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Failed to delete your data. Try again.');
+      }
+
       await deleteUser(current);
     });
 

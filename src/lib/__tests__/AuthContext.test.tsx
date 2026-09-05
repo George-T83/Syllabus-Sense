@@ -25,6 +25,7 @@ const {
     email: 'student@campus.edu',
     displayName: 'Student One',
     providerData: [{ providerId: 'password' }],
+    getIdToken: vi.fn().mockResolvedValue('mock-id-token'),
   },
   updatePasswordMock: vi.fn(),
   deleteUserMock: vi.fn(),
@@ -136,14 +137,20 @@ describe('AuthContext - changePassword', () => {
 });
 
 describe('AuthContext - deleteAccount', () => {
+  const fetchMock = vi.fn();
+
   beforeEach(() => {
     deleteUserMock.mockReset();
     reauthenticateWithCredentialMock.mockReset();
     credentialMock.mockClear();
+    mockCurrentUser.getIdToken.mockClear();
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('re-authenticates then calls deleteUser when a password is supplied', async () => {
+  it('re-authenticates, deletes server-side data, then calls deleteUser when a password is supplied', async () => {
     reauthenticateWithCredentialMock.mockResolvedValue(undefined);
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
     deleteUserMock.mockResolvedValue(undefined);
     renderAuth();
 
@@ -153,10 +160,17 @@ describe('AuthContext - deleteAccount', () => {
 
     expect(credentialMock).toHaveBeenCalledWith('student@campus.edu', 'oldpass123');
     expect(reauthenticateWithCredentialMock).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/account/delete',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer mock-id-token' }),
+      }),
+    );
     expect(deleteUserMock).toHaveBeenCalledWith(mockCurrentUser);
   });
 
-  it('maps a wrong password rejection to a friendly error and never calls deleteUser', async () => {
+  it('maps a wrong password rejection to a friendly error and never calls the delete endpoint or deleteUser', async () => {
     reauthenticateWithCredentialMock.mockRejectedValue({ code: 'auth/wrong-password' });
     renderAuth();
 
@@ -164,8 +178,26 @@ describe('AuthContext - deleteAccount', () => {
       fireEvent.click(screen.getByTestId('delete-account-btn'));
     });
 
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(deleteUserMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('auth-error').textContent).toMatch(/incorrect email or password/i);
+  });
+
+  it('never calls deleteUser when server-side data deletion fails, leaving the account intact', async () => {
+    reauthenticateWithCredentialMock.mockResolvedValue(undefined);
+    fetchMock.mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'Failed to delete your data. Try again.' }),
+    });
+    renderAuth();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('delete-account-btn'));
+    });
+
+    expect(fetchMock).toHaveBeenCalled();
+    expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('auth-error').textContent).toMatch(/failed to delete your data/i);
   });
 });
 

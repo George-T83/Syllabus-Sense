@@ -1,5 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { verifyFirebaseIdToken } from '../verifyFirebaseIdToken';
+
+// Only the production-guard test below needs this: it proves control flow
+// reaches real JWKS signature verification (jwtVerify) instead of the
+// emulator's decode-only branch, without making a real network call to
+// Google's JWKS endpoint.
+vi.mock('jose', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('jose')>();
+  return {
+    ...actual,
+    createRemoteJWKSet: vi.fn(
+      () => (() => {}) as unknown as ReturnType<typeof actual.createRemoteJWKSet>,
+    ),
+    jwtVerify: vi.fn().mockRejectedValue(new Error('mock-signature-rejected')),
+  };
+});
 
 const PROJECT_ID = 'demo-syllabus-sense';
 
@@ -80,5 +95,26 @@ describe('verifyFirebaseIdToken (emulator branch)', () => {
     await expect(verifyFirebaseIdToken(token, PROJECT_ID)).rejects.toThrow(
       'Token payload is missing a subject (uid).',
     );
+  });
+
+  it('never bypasses signature verification when NODE_ENV is production, even with the emulator host var set', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const token = fakeToken({
+        iss: `https://securetoken.google.com/${PROJECT_ID}`,
+        aud: PROJECT_ID,
+        sub: 'test-uid-123',
+      });
+
+      // Rejects with the mocked jwtVerify's error specifically - proving
+      // control flow reached real signature verification instead of the
+      // emulator's decode-only branch, which would have resolved this
+      // well-formed payload successfully without ever calling jwtVerify.
+      await expect(verifyFirebaseIdToken(token, PROJECT_ID)).rejects.toThrow(
+        'mock-signature-rejected',
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

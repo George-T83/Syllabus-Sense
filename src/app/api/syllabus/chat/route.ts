@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
-import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
+import { requireUser } from '@/lib/auth/requireUser';
+import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { generateOfflineSyllabusAnswer, type ChatRequestBody } from '@/lib/syllabus/chatEngine';
 
@@ -13,18 +14,6 @@ function detectFileKind(fileBase64: string): 'pdf' | 'docx' | null {
   if (fileBase64.startsWith('JVBERi0')) return 'pdf';
   if (fileBase64.startsWith('UEsDB')) return 'docx';
   return null;
-}
-
-async function requireUser(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  if (!token || !projectId) return null;
-  try {
-    return await verifyFirebaseIdToken(token, projectId);
-  } catch {
-    return null;
-  }
 }
 
 export async function POST(req: NextRequest) {
@@ -44,6 +33,21 @@ export async function POST(req: NextRequest) {
   const isProd = process.env.NODE_ENV === 'production';
   if (isProd && !user && process.env.FIREBASE_ADMIN_PROJECT_ID) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  // Unauthenticated demo/dev calls have no stable identity to cap by, and
+  // that path is only reachable outside prod or without an admin project
+  // configured in the first place - only meter identified callers.
+  if (user) {
+    const usage = await checkAndIncrementAiUsage(user);
+    if (!usage.allowed) {
+      return NextResponse.json(
+        {
+          error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.`,
+        },
+        { status: 429 },
+      );
+    }
   }
 
   // Rough size check on the base64 payload (base64 is ~4/3 the byte size) -
