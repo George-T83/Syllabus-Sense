@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '@/context/AppStateContext';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { useModalA11y } from '@/hooks/useModalA11y';
@@ -10,8 +12,12 @@ import {
   calculateCurrentWeightedGrade,
   calculateRequiredFinalScore,
   calculateSemesterGpa,
+  deriveCategoriesFromScheduleItems,
   STANDARD_GRADE_SCALE,
 } from '@/lib/academic/gradeMath';
+import { useGradeScenarios } from '@/lib/firestore/useGradeScenarios';
+import { saveGradeScenario, deleteGradeScenario } from '@/lib/firestore/gradeScenarios';
+import type { ScheduleItem } from '@/types/schedule';
 
 export interface GradeCalculatorModalProps {
   isOpen: boolean;
@@ -19,10 +25,23 @@ export interface GradeCalculatorModalProps {
   initialCourseId?: string;
 }
 
-const DEFAULT_CATEGORIES: GradeCategory[] = [
-  { id: 'cat-1', name: 'Homework & Problem Sets', weight: 25, score: 92 },
-  { id: 'cat-2', name: 'Midterm Exam', weight: 25, score: 86 },
-  { id: 'cat-3', name: 'Projects & Labs', weight: 20, score: 95 },
+/** A friendly, editable starting point for a course with no graded items on
+ * record yet - distinct from `deriveCategoriesFromScheduleItems`'s real
+ * data, which returns an empty array in that case. Labeled generically since
+ * there's nothing course-specific to seed it with. */
+const STARTER_CATEGORIES: GradeCategory[] = [
+  { id: 'starter-1', name: 'Homework & Problem Sets', weight: 25, score: 90 },
+  { id: 'starter-2', name: 'Midterm Exam', weight: 25, score: 90 },
+  { id: 'starter-3', name: 'Projects & Labs', weight: 20, score: 90 },
+];
+
+const CATEGORY_BAR_COLORS = [
+  'bg-primary',
+  'bg-load-medium',
+  'bg-load-low',
+  'bg-load-high',
+  'bg-accent',
+  'bg-load-critical',
 ];
 
 export function GradeCalculatorModal({
@@ -31,20 +50,56 @@ export function GradeCalculatorModal({
   initialCourseId,
 }: GradeCalculatorModalProps) {
   const { state } = useAppState();
+  const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourseId || '');
-  const [categories, setCategories] = useState<GradeCategory[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<GradeCategory[]>([]);
   const [finalExamWeight, setFinalExamWeight] = useState<number>(30);
   const [targetPercentage, setTargetPercentage] = useState<number>(93.0); // Target 'A'
   const [activeTab, setActiveTab] = useState<'course' | 'semester'>('course');
+  const [savingScenario, setSavingScenario] = useState(false);
+  const [scenarioNameDraft, setScenarioNameDraft] = useState('');
+  const [deletingScenarioId, setDeletingScenarioId] = useState<string | null>(null);
 
-  // Initialize course selection
+  const scenarios = useGradeScenarios(user?.uid, selectedCourseId);
+
+  // Initialize course selection. Only reacts to `initialCourseId` actually
+  // changing (e.g. opening the modal from a different course's page) or the
+  // course list loading in - never to the user's own dropdown selection,
+  // which would otherwise get immediately overwritten back to
+  // `initialCourseId` on every change.
   useEffect(() => {
     if (initialCourseId) {
       setSelectedCourseId(initialCourseId);
-    } else if (state.courses.length > 0 && !selectedCourseId) {
-      setSelectedCourseId(state.courses[0].id);
+    } else if (state.courses.length > 0) {
+      setSelectedCourseId((prev) => prev || state.courses[0].id);
     }
-  }, [initialCourseId, state.courses, selectedCourseId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCourseId, state.courses.length]);
+
+  /** A course's real standing, derived from its own graded schedule items -
+   * the actual source of truth the simulator seeds itself from, and what
+   * the Semester tab uses for every course, not just the one being edited. */
+  const realCategoriesFor = (courseId: string): GradeCategory[] =>
+    deriveCategoriesFromScheduleItems(
+      state.scheduleItems.filter((i: ScheduleItem) => i.courseId === courseId),
+    );
+
+  const hasRealDataForSelectedCourse = useMemo(
+    () => realCategoriesFor(selectedCourseId).length > 0,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedCourseId, state.scheduleItems],
+  );
+
+  // Re-seed the working categories from real data whenever the selected
+  // course changes - each course gets its own real starting point rather
+  // than carrying over whatever was being simulated for the last one.
+  useEffect(() => {
+    if (!selectedCourseId) return;
+    const real = realCategoriesFor(selectedCourseId);
+    setCategories(real.length > 0 ? real : STARTER_CATEGORIES);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCourseId]);
 
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
@@ -62,17 +117,23 @@ export function GradeCalculatorModal({
     return categories.reduce((sum, c) => sum + (c.weight || 0), 0) + finalExamWeight;
   }, [categories, finalExamWeight]);
 
-  // Semester GPA Calculation
+  // Semester GPA Calculation - every enrolled course's REAL current standing
+  // from its own graded items, except the course being actively simulated,
+  // which uses the live what-if numbers so adjusting it here is reflected
+  // immediately in the semester projection too.
   const semesterGpaResult = useMemo(() => {
     const coursesList = state.courses.map((course) => {
       const cr = (course as { credits?: number }).credits ?? 3;
       if (course.id === selectedCourseId) {
         return { credits: cr, percentage: currentGrade.currentPercentage };
       }
-      return { credits: cr, percentage: 88 }; // baseline estimated
+      const real = realCategoriesFor(course.id);
+      if (real.length === 0) return { credits: cr, percentage: undefined };
+      return { credits: cr, percentage: calculateCurrentWeightedGrade(real).currentPercentage };
     });
-    return calculateSemesterGpa(coursesList);
-  }, [state.courses, selectedCourseId, currentGrade.currentPercentage]);
+    return calculateSemesterGpa(coursesList.filter((c) => c.percentage !== undefined));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.courses, state.scheduleItems, selectedCourseId, currentGrade.currentPercentage]);
 
   // Category handlers
   const handleUpdateCategory = (
@@ -107,9 +168,49 @@ export function GradeCalculatorModal({
   };
 
   const handleReset = () => {
-    setCategories(DEFAULT_CATEGORIES);
+    const real = realCategoriesFor(selectedCourseId);
+    setCategories(real.length > 0 ? real : STARTER_CATEGORIES);
     setFinalExamWeight(30);
     setTargetPercentage(93.0);
+  };
+
+  const handleSaveScenario = async () => {
+    if (!user || !selectedCourseId || !scenarioNameDraft.trim()) return;
+    setSavingScenario(true);
+    try {
+      await saveGradeScenario(user.uid, selectedCourseId, {
+        name: scenarioNameDraft.trim(),
+        categories,
+        finalExamWeight,
+        targetPercentage,
+      });
+      showSuccess('Scenario saved', `"${scenarioNameDraft.trim()}" is ready to reload anytime.`);
+      setScenarioNameDraft('');
+    } catch (err) {
+      showError('Could not save this scenario', err instanceof Error ? err.message : undefined);
+    } finally {
+      setSavingScenario(false);
+    }
+  };
+
+  const handleLoadScenario = (scenarioId: string) => {
+    const scenario = scenarios.find((s) => s.id === scenarioId);
+    if (!scenario) return;
+    setCategories(scenario.categories);
+    setFinalExamWeight(scenario.finalExamWeight);
+    setTargetPercentage(scenario.targetPercentage);
+  };
+
+  const handleDeleteScenario = async (scenarioId: string) => {
+    if (!user || !selectedCourseId) return;
+    setDeletingScenarioId(scenarioId);
+    try {
+      await deleteGradeScenario(user.uid, selectedCourseId, scenarioId);
+    } catch (err) {
+      showError('Could not delete this scenario', err instanceof Error ? err.message : undefined);
+    } finally {
+      setDeletingScenarioId(null);
+    }
   };
 
   if (!isOpen) return null;
@@ -223,6 +324,88 @@ export function GradeCalculatorModal({
         <div className="max-h-[65vh] overflow-y-auto p-5 space-y-5">
           {activeTab === 'course' ? (
             <>
+              {/* Data provenance - is this the student's real standing, or a
+                  starter template they haven't customized yet? */}
+              <div
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${
+                  hasRealDataForSelectedCourse
+                    ? 'border-load-low/30 bg-load-low/10 text-load-low'
+                    : 'border-load-medium/30 bg-load-medium/10 text-load-medium'
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    hasRealDataForSelectedCourse ? 'bg-load-low' : 'bg-load-medium'
+                  }`}
+                  aria-hidden="true"
+                />
+                {hasRealDataForSelectedCourse
+                  ? 'Seeded from your actual graded work for this course - edit anything below to simulate a change.'
+                  : "No graded scores on record for this course yet - showing an editable starter template. Enter scores on graded tasks and they'll appear here automatically."}
+              </div>
+
+              {/* Saved Scenarios */}
+              <div className="rounded-xl border border-border/40 bg-muted/10 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Saved Scenarios
+                  </span>
+                </div>
+                {scenarios.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {scenarios.map((scenario) => (
+                      <div
+                        key={scenario.id}
+                        className="flex items-center gap-1 rounded-full border border-border bg-card pl-3 pr-1 py-1"
+                      >
+                        <button
+                          onClick={() => handleLoadScenario(scenario.id)}
+                          className="text-xs font-semibold text-foreground hover:text-primary"
+                        >
+                          {scenario.name}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteScenario(scenario.id)}
+                          disabled={deletingScenarioId === scenario.id}
+                          aria-label={`Delete scenario ${scenario.name}`}
+                          className="rounded-full p-1 text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors disabled:opacity-50"
+                        >
+                          <svg
+                            className="h-3 w-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={scenarioNameDraft}
+                    onChange={(e) => setScenarioNameDraft(e.target.value)}
+                    placeholder='Name this scenario, e.g. "Best case"'
+                    className="flex-1 rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    onClick={handleSaveScenario}
+                    disabled={!scenarioNameDraft.trim() || savingScenario}
+                    className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {savingScenario ? 'Saving…' : 'Save current'}
+                  </button>
+                </div>
+              </div>
+
               {/* Current Standing & Target Result Overview */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {/* Current Standing Card */}
@@ -328,6 +511,49 @@ export function GradeCalculatorModal({
                     </CardActionButton>
                   </div>
                 </div>
+
+                {/* Segmented bar - each category's share of the grade
+                    computed so far, at a glance before reading the table. */}
+                {categories.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                      {categories.map((cat, idx) => (
+                        <div
+                          key={cat.id || idx}
+                          className={CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]}
+                          style={{
+                            width: `${totalWeight > 0 ? ((cat.weight || 0) / totalWeight) * 100 : 0}%`,
+                          }}
+                          title={`${cat.name}: ${cat.weight}% weight`}
+                        />
+                      ))}
+                      <div
+                        className="bg-border"
+                        style={{
+                          width: `${totalWeight > 0 ? (finalExamWeight / totalWeight) * 100 : 0}%`,
+                        }}
+                        title={`Final Exam: ${finalExamWeight}% weight`}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                      {categories.map((cat, idx) => (
+                        <span
+                          key={cat.id || idx}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground"
+                        >
+                          <span
+                            className={`h-2 w-2 rounded-full ${CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]}`}
+                          />
+                          {cat.name}
+                        </span>
+                      ))}
+                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <span className="h-2 w-2 rounded-full bg-border" />
+                        Final Exam
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   {categories.map((cat, idx) => (
@@ -480,9 +706,15 @@ export function GradeCalculatorModal({
                 {state.courses.map((course) => {
                   const isCurrent = course.id === selectedCourseId;
                   const credits = (course as { credits?: number }).credits ?? 3;
-                  const percent = isCurrent ? currentGrade.currentPercentage : 88;
-                  const letter = isCurrent ? currentGrade.letterGrade : 'B+';
-                  const gpaPts = isCurrent ? currentGrade.gpaPoints : 3.3;
+                  const real = isCurrent ? null : realCategoriesFor(course.id);
+                  const realGrade =
+                    real && real.length > 0 ? calculateCurrentWeightedGrade(real) : null;
+                  const hasData = isCurrent || realGrade !== null;
+                  const percent = isCurrent
+                    ? currentGrade.currentPercentage
+                    : realGrade?.currentPercentage;
+                  const letter = isCurrent ? currentGrade.letterGrade : realGrade?.letterGrade;
+                  const gpaPts = isCurrent ? currentGrade.gpaPoints : realGrade?.gpaPoints;
 
                   return (
                     <div
@@ -500,16 +732,26 @@ export function GradeCalculatorModal({
                         </p>
                       </div>
                       <div className="flex items-center gap-3 text-right">
-                        <div>
-                          <span className="text-sm font-extrabold text-foreground">{percent}%</span>
-                          <p className="text-xs font-semibold text-primary">
-                            {letter} ({gpaPts} pts)
-                          </p>
-                        </div>
+                        {hasData ? (
+                          <div>
+                            <span className="text-sm font-extrabold text-foreground">
+                              {percent}%
+                            </span>
+                            <p className="text-xs font-semibold text-primary">
+                              {letter} ({gpaPts} pts)
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No grades yet</span>
+                        )}
                       </div>
                     </div>
                   );
                 })}
+                <p className="pt-1 text-[11px] text-muted-foreground">
+                  Courses with no graded work yet are excluded from the GPA above rather than
+                  guessed at.
+                </p>
               </div>
             </div>
           )}
