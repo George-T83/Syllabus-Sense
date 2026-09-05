@@ -76,6 +76,28 @@ describe('getMeetingsForDay term bounding', () => {
   });
 });
 
+describe('getMeetingsForDay skipDates', () => {
+  const courseWithBreak: Course = {
+    id: 'c6',
+    code: 'CSCI 213',
+    title: 'Computer Science I',
+    color: 'bg-blue-500',
+    meetingTimes: [{ dayOfWeek: 1, startTime: '09:00', endTime: '10:15' }],
+    skipDates: ['2026-09-07'],
+  };
+
+  it("omits a meeting on a date listed in the course's skipDates", () => {
+    expect(getMeetingsForDay([courseWithBreak], monday)).toEqual([]);
+  });
+
+  it('still renders the same weekday meeting on a date not in skipDates', () => {
+    const nextMonday = new Date(2026, 8, 14);
+    expect(getMeetingsForDay([courseWithBreak], nextMonday).map((m) => m.course.id)).toEqual([
+      'c6',
+    ]);
+  });
+});
+
 describe('formatTimeLabel', () => {
   it('formats morning times', () => {
     expect(formatTimeLabel('09:00')).toBe('9:00 AM');
