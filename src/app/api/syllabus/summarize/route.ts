@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
-import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
+import { requireUser } from '@/lib/auth/requireUser';
+import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { adminStorage } from '@/lib/firebase/adminStorage';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { COURSE_SUMMARY_SYSTEM_PROMPT, COURSE_SUMMARY_TOOL } from '@/lib/ai/courseSummaryTool';
@@ -9,24 +10,12 @@ import { courseSummarySchema } from '@/types/courseSummary';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-async function requireUser(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  if (!token || !projectId) return null;
-  try {
-    return await verifyFirebaseIdToken(token, projectId);
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Summarizes an already-uploaded syllabus into a plain-English course
  * summary plus "important notes" the student could get burned by missing -
- * reuses the same daily AI-usage budget as extraction (checkAndIncrement-
- * ExtractionCount) rather than a separate limiter, since both are Anthropic
- * calls against a student's own uploaded documents.
+ * shares the same daily AI-usage budget as every other Anthropic-calling
+ * route via checkAndIncrementAiUsage, since all of them are calls against
+ * a student's own uploaded documents.
  *
  * Takes the file's storage path directly (not a syllabus id looked up
  * server-side) - same trust model as the file proxy: the path is checked
@@ -37,6 +26,14 @@ export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const usage = await checkAndIncrementAiUsage(user);
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.` },
+      { status: 429 },
+    );
   }
 
   let body: { storagePath?: string; fileName?: string };

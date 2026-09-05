@@ -10,6 +10,116 @@ function requireDb() {
   return db;
 }
 
+interface PendingCourseWriteEntry {
+  promise: Promise<unknown>;
+  latestCourse?: Course;
+  pendingCount: number;
+}
+
+/**
+ * Per-course write queue, keyed by course id - same reasoning and shape as
+ * scheduleItems.ts's enqueueWrite. Materials, learning objectives, and
+ * absences all live as arrays on the one course document (not their own
+ * subcollection documents), so two overlapping edits - e.g. adding a
+ * material right after adding an objective - each carry the FULL course
+ * object, not a partial patch. Without ordering, whichever setDoc resolves
+ * last on the wire wins regardless of which edit was requested last,
+ * silently dropping the earlier one. Chaining writes for the same course id
+ * forces them to land in request order instead of racing.
+ */
+const pendingCourseWrites = new Map<string, PendingCourseWriteEntry>();
+const pendingCourseDeletions = new Set<string>();
+
+export function hasPendingCourseWrites(courseId: string): boolean {
+  return (
+    (pendingCourseWrites.get(courseId)?.pendingCount ?? 0) > 0 ||
+    pendingCourseDeletions.has(courseId)
+  );
+}
+
+export function isPendingCourseDeletion(courseId: string): boolean {
+  return pendingCourseDeletions.has(courseId);
+}
+
+export function getLatestPendingCourse(courseId: string): Course | undefined {
+  return pendingCourseWrites.get(courseId)?.latestCourse;
+}
+
+/** Resets in-memory write queues (used for test isolation). */
+export function resetPendingCourseWrites(): void {
+  pendingCourseWrites.clear();
+  pendingCourseDeletions.clear();
+}
+
+function enqueueCourseWrite(
+  courseId: string,
+  course: Course,
+  write: () => Promise<unknown>,
+): Promise<unknown> {
+  const existing = pendingCourseWrites.get(courseId);
+  const previous = existing?.promise ?? Promise.resolve();
+  const currentCount = (existing?.pendingCount ?? 0) + 1;
+
+  const run = previous.catch(() => {}).then(write);
+
+  const entry: PendingCourseWriteEntry = {
+    promise: run,
+    latestCourse: course,
+    pendingCount: currentCount,
+  };
+  pendingCourseWrites.set(courseId, entry);
+
+  run
+    .finally(() => {
+      const current = pendingCourseWrites.get(courseId);
+      if (current) {
+        current.pendingCount -= 1;
+        if (current.pendingCount <= 0 || current.promise === run) {
+          pendingCourseWrites.delete(courseId);
+        }
+      }
+    })
+    .catch(() => {});
+
+  return run;
+}
+
+/**
+ * Reconciles an incoming remote Firestore snapshot of courses with active
+ * local state, the same way reconcileScheduleItems does: a course with an
+ * in-flight write or deletion keeps its local optimistic state instead of
+ * flickering to whatever the snapshot happened to catch mid-write.
+ */
+export function reconcileCourses(remoteCourses: Course[], localCourses: Course[] = []): Course[] {
+  const remoteMap = new Map(remoteCourses.map((c) => [c.id, c]));
+  const localMap = new Map(localCourses.map((c) => [c.id, c]));
+  const reconciled: Course[] = [];
+
+  for (const remoteCourse of remoteCourses) {
+    if (pendingCourseDeletions.has(remoteCourse.id)) continue;
+
+    if (hasPendingCourseWrites(remoteCourse.id)) {
+      const localCourse =
+        localMap.get(remoteCourse.id) ?? getLatestPendingCourse(remoteCourse.id) ?? remoteCourse;
+      reconciled.push(localCourse);
+    } else {
+      reconciled.push(remoteCourse);
+    }
+  }
+
+  for (const localCourse of localCourses) {
+    if (
+      !remoteMap.has(localCourse.id) &&
+      hasPendingCourseWrites(localCourse.id) &&
+      !pendingCourseDeletions.has(localCourse.id)
+    ) {
+      reconciled.push(localCourse);
+    }
+  }
+
+  return reconciled;
+}
+
 /**
  * Dispatches the optimistic update immediately so the UI feels instant, then
  * writes to Firestore. On failure, dispatches the inverse action to roll the
@@ -22,7 +132,9 @@ export async function createCourse(
 ): Promise<void> {
   dispatch({ type: 'ADD_COURSE', payload: course });
   try {
-    await setDoc(doc(requireDb(), 'users', userId, 'courses', course.id), course);
+    await enqueueCourseWrite(course.id, course, () =>
+      setDoc(doc(requireDb(), 'users', userId, 'courses', course.id), course),
+    );
   } catch (err) {
     dispatch({ type: 'REMOVE_COURSE', payload: course.id });
     throw err;
@@ -105,16 +217,18 @@ export async function updateCourse(
 
   try {
     const database = requireDb();
-    if (termChanged && updatedContacts.length > 0) {
-      const batch = writeBatch(database);
-      batch.set(doc(database, 'users', userId, 'courses', updatedCourse.id), updatedCourse);
-      updatedContacts.forEach((c) => {
-        batch.set(doc(database, 'users', userId, 'contacts', c.id), c);
-      });
-      await batch.commit();
-    } else {
-      await setDoc(doc(database, 'users', userId, 'courses', updatedCourse.id), updatedCourse);
-    }
+    await enqueueCourseWrite(updatedCourse.id, updatedCourse, async () => {
+      if (termChanged && updatedContacts.length > 0) {
+        const batch = writeBatch(database);
+        batch.set(doc(database, 'users', userId, 'courses', updatedCourse.id), updatedCourse);
+        updatedContacts.forEach((c) => {
+          batch.set(doc(database, 'users', userId, 'contacts', c.id), c);
+        });
+        await batch.commit();
+      } else {
+        await setDoc(doc(database, 'users', userId, 'courses', updatedCourse.id), updatedCourse);
+      }
+    });
   } catch (err) {
     dispatch({ type: 'UPDATE_COURSE', payload: previousCourse });
     if (termChanged && affectedContacts.length > 0) {
@@ -137,6 +251,7 @@ export async function deleteCourse(
   relatedContacts: Contact[] = [],
 ): Promise<void> {
   dispatch({ type: 'REMOVE_COURSE', payload: course.id });
+  pendingCourseDeletions.add(course.id);
   try {
     const database = requireDb();
     const batch = writeBatch(database);
@@ -170,5 +285,7 @@ export async function deleteCourse(
       dispatch({ type: 'ADD_CONTACTS', payload: relatedContacts });
     }
     throw err;
+  } finally {
+    pendingCourseDeletions.delete(course.id);
   }
 }
