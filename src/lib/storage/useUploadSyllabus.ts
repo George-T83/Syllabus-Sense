@@ -8,7 +8,7 @@ import {
   deleteObject,
   type UploadTask,
 } from 'firebase/storage';
-import { doc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
 import { storage, db } from '@/lib/firebase/client';
 import type { SyllabusUpload } from '@/types/syllabus';
 
@@ -73,11 +73,29 @@ export function useUploadSyllabus(userId: string, courseId: string) {
                 downloadURL,
                 sizeBytes: file.size,
                 uploadedAt: new Date().toISOString(),
+                isPrimary: true,
               };
-              await setDoc(
-                doc(dbInstance, 'users', userId, 'courses', courseId, 'syllabi', id),
-                record,
+              const collectionRef = collection(
+                dbInstance,
+                'users',
+                userId,
+                'courses',
+                courseId,
+                'syllabi',
               );
+              // The most recently uploaded syllabus becomes the course's
+              // primary version by default - demote whichever upload held
+              // that spot before, in the same batch as creating the new
+              // record.
+              const existing = await getDocs(collectionRef);
+              const batch = writeBatch(dbInstance);
+              existing.docs.forEach((d) => {
+                if ((d.data() as SyllabusUpload).isPrimary) {
+                  batch.update(d.ref, { isPrimary: false });
+                }
+              });
+              batch.set(doc(collectionRef, id), record);
+              await batch.commit();
               setState({ status: 'success', progress: 100, error: null });
               resolve(record);
             } catch (err) {
