@@ -13,7 +13,7 @@
  * conflict (the crash is specific to jwks-rsa's internal `require()`, not to
  * importing jose at all).
  */
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify, decodeJwt } from 'jose';
 
 const GOOGLE_CERTS_URL =
   'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -25,10 +25,37 @@ export interface VerifiedFirebaseToken {
   email?: string;
 }
 
+function subjectFromPayload(payload: { sub?: string; email?: unknown }): VerifiedFirebaseToken {
+  if (typeof payload.sub !== 'string' || !payload.sub) {
+    throw new Error('Token payload is missing a subject (uid).');
+  }
+  return {
+    uid: payload.sub,
+    ...(typeof payload.email === 'string' ? { email: payload.email } : {}),
+  };
+}
+
 export async function verifyFirebaseIdToken(
   idToken: string,
   projectId: string,
 ): Promise<VerifiedFirebaseToken> {
+  // The Auth emulator issues tokens that are never signed with Google's real
+  // key, so signature verification against the production JWKS below would
+  // reject every emulator-issued token unconditionally - this route would be
+  // impossible to verify against the required local emulator setup otherwise.
+  // Decode-only is safe specifically because this branch only activates when
+  // FIREBASE_AUTH_EMULATOR_HOST is set, which real deployments never set.
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+    const payload = decodeJwt(idToken);
+    if (
+      payload.iss !== `https://securetoken.google.com/${projectId}` ||
+      payload.aud !== projectId
+    ) {
+      throw new Error('Emulator token has an unexpected issuer or audience.');
+    }
+    return subjectFromPayload(payload);
+  }
+
   if (!jwks) {
     jwks = createRemoteJWKSet(new URL(GOOGLE_CERTS_URL));
   }
@@ -38,12 +65,5 @@ export async function verifyFirebaseIdToken(
     audience: projectId,
   });
 
-  if (typeof payload.sub !== 'string' || !payload.sub) {
-    throw new Error('Token payload is missing a subject (uid).');
-  }
-
-  return {
-    uid: payload.sub,
-    ...(typeof payload.email === 'string' ? { email: payload.email } : {}),
-  };
+  return subjectFromPayload(payload);
 }

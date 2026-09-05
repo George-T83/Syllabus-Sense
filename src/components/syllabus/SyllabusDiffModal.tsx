@@ -6,8 +6,8 @@ import { analyzeSyllabusRevision, PolicyChange, PolicyDiffReport } from '@/lib/s
 import { useModalA11y } from '@/hooks/useModalA11y';
 
 export interface SyllabusDiffModalProps {
-  courseCode?: string;
-  courseTitle?: string;
+  courseCode: string;
+  courseTitle: string;
   originalSyllabusText: string;
   revisedSyllabusText: string;
   isOpen: boolean;
@@ -16,8 +16,8 @@ export interface SyllabusDiffModalProps {
 }
 
 export function SyllabusDiffModal({
-  courseCode = 'CS 301',
-  courseTitle = 'Data Structures',
+  courseCode,
+  courseTitle,
   originalSyllabusText,
   revisedSyllabusText,
   isOpen,
