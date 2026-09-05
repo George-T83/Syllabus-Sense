@@ -5,6 +5,8 @@
  * final exam target score solving, and cumulative semester GPA modeling.
  */
 
+import type { ScheduleItem } from '@/types/schedule';
+
 export interface GradeCategory {
   id?: string;
   name: string;
@@ -99,6 +101,41 @@ export function calculateCurrentWeightedGrade(categories: GradeCategory[]): {
   };
 }
 
+/**
+ * Turns a course's real, graded schedule items into `GradeCategory` rows -
+ * the actual standing to seed the what-if calculator with, instead of a
+ * fictional starting point the student has to re-enter by hand every time.
+ * An item only counts once it has both a weight and a received score;
+ * grading category defaults to "Other" for an item with a weight but no
+ * category name on record, rather than silently dropping its weight from
+ * the total. Multiple items in the same category are combined into one row
+ * (weight summed, score weighted by each item's own weight).
+ */
+export function deriveCategoriesFromScheduleItems(items: ScheduleItem[]): GradeCategory[] {
+  const graded = items.filter(
+    (item) => typeof item.gradeWeight === 'number' && typeof item.earnedScore === 'number',
+  );
+
+  const byCategory = new Map<string, { weight: number; weightedScore: number }>();
+  for (const item of graded) {
+    const name = item.gradeCategory?.trim() || 'Other';
+    const weight = item.gradeWeight ?? 0;
+    const score = item.earnedScore ?? 0;
+    const existing = byCategory.get(name) ?? { weight: 0, weightedScore: 0 };
+    byCategory.set(name, {
+      weight: existing.weight + weight,
+      weightedScore: existing.weightedScore + weight * score,
+    });
+  }
+
+  return Array.from(byCategory.entries()).map(([name, { weight, weightedScore }]) => ({
+    id: `real-${name}`,
+    name,
+    weight: Math.round(weight * 100) / 100,
+    score: weight > 0 ? Math.round((weightedScore / weight) * 100) / 100 : 0,
+  }));
+}
+
 export type TargetScoreStatus = 'already_achieved' | 'achievable' | 'challenging' | 'impossible';
 
 export interface FinalExamTargetResult {
@@ -122,7 +159,7 @@ export interface FinalExamTargetResult {
 export function calculateRequiredFinalScore(
   nonFinalCategories: GradeCategory[],
   finalExamWeight: number,
-  targetPercentage: number
+  targetPercentage: number,
 ): FinalExamTargetResult {
   const targetGrade = percentageToLetterGrade(targetPercentage);
   const finalWeight = Math.max(0.1, finalExamWeight);
@@ -145,7 +182,7 @@ export function calculateRequiredFinalScore(
   const targetTotalPoints = (targetPercentage * totalCourseWeight) / 100;
 
   const pointsNeededFromFinal = targetTotalPoints - nonFinalPoints;
-  const rawRequiredFinalScore = (pointsNeededFromFinal / (finalWeight / 100));
+  const rawRequiredFinalScore = pointsNeededFromFinal / (finalWeight / 100);
   const roundedRequired = Math.round(rawRequiredFinalScore * 10) / 10;
 
   let status: TargetScoreStatus = 'achievable';
@@ -191,7 +228,7 @@ export interface SemesterCourseProjection {
  * Calculates term GPA weighted by credit hours.
  */
 export function calculateSemesterGpa(
-  courses: { credits?: number; gpaPoints?: number; percentage?: number }[]
+  courses: { credits?: number; gpaPoints?: number; percentage?: number }[],
 ): {
   gpa: number;
   totalCredits: number;

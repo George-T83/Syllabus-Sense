@@ -19,6 +19,7 @@ import {
 } from '@/lib/firestore/scheduleItems';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
+import { GradeCalculatorModal } from '@/components/courses/GradeCalculatorModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
 import { SyllabusList } from '@/components/syllabus/SyllabusList';
@@ -209,6 +210,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   } | null>(null);
 
   const [editCourseOpen, setEditCourseOpen] = useState(false);
+  const [gradeCalculatorOpen, setGradeCalculatorOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [confirmingDeleteCourse, setConfirmingDeleteCourse] = useState(false);
@@ -746,6 +748,22 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
               <CardActionButton onClick={() => setEditCourseOpen(true)}>Edit</CardActionButton>
+              <CardActionButton onClick={() => setGradeCalculatorOpen(true)}>
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+                Grade Calculator
+              </CardActionButton>
               {items.length > 0 && (
                 <CardActionButton onClick={handleExportICS}>
                   <svg
@@ -1585,6 +1603,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         onClose={() => setEditCourseOpen(false)}
         onSubmit={handleEditCourse}
         initialCourse={course}
+      />
+      <GradeCalculatorModal
+        isOpen={gradeCalculatorOpen}
+        onClose={() => setGradeCalculatorOpen(false)}
+        initialCourseId={course.id}
       />
       <TaskFormModal
         open={addTaskOpen}
