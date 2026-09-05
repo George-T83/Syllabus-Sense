@@ -25,7 +25,7 @@ describe('SyllabusDiffModal (Item 46)', () => {
         revisedSyllabusText={SAMPLE_REVISED}
         isOpen={true}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByRole('dialog')).toBeDefined();
@@ -39,11 +39,12 @@ describe('SyllabusDiffModal (Item 46)', () => {
     render(
       <SyllabusDiffModal
         courseCode="CS 301"
+        courseTitle="Data Structures"
         originalSyllabusText={SAMPLE_ORIGINAL}
         revisedSyllabusText={SAMPLE_REVISED}
         isOpen={true}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     const diffTab = screen.getByTestId('tab-diff');
@@ -58,12 +59,13 @@ describe('SyllabusDiffModal (Item 46)', () => {
     render(
       <SyllabusDiffModal
         courseCode="CS 301"
+        courseTitle="Data Structures"
         originalSyllabusText={SAMPLE_ORIGINAL}
         revisedSyllabusText={SAMPLE_REVISED}
         isOpen={true}
         onClose={vi.fn()}
         onApplyChanges={onApply}
-      />
+      />,
     );
 
     const applyBtn = screen.getByTestId('apply-diff-btn');
@@ -77,11 +79,13 @@ describe('SyllabusDiffModal (Item 46)', () => {
   it('does not render when isOpen is false', () => {
     const { container } = render(
       <SyllabusDiffModal
+        courseCode="CS 301"
+        courseTitle="Data Structures"
         originalSyllabusText={SAMPLE_ORIGINAL}
         revisedSyllabusText={SAMPLE_REVISED}
         isOpen={false}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(container.firstChild).toBeNull();

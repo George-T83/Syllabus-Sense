@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 
 import { useEffect } from 'react';
 import { GradeCalculatorModal } from '@/components/courses/GradeCalculatorModal';
-import { SyllabusDiffModal } from '@/components/syllabus/SyllabusDiffModal';
 
 type SortMode = 'code' | 'title' | 'term';
 
@@ -40,7 +39,6 @@ export function CoursesListView() {
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
-  const [diffOpen, setDiffOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -49,9 +47,6 @@ export function CoursesListView() {
         window.location.search.includes('grade=true')
       ) {
         setSimulatorOpen(true);
-      }
-      if (window.location.search.includes('diff=true')) {
-        setDiffOpen(true);
       }
       // CommandPalette's "Add New Course" / "Upload Syllabus" actions - both
       // previously navigated here with no query param this page read, so
@@ -371,12 +366,6 @@ export function CoursesListView() {
       />
       <SyllabusAutofillModal open={autofillOpen} onClose={() => setAutofillOpen(false)} />
       <GradeCalculatorModal isOpen={simulatorOpen} onClose={() => setSimulatorOpen(false)} />
-      <SyllabusDiffModal
-        isOpen={diffOpen}
-        onClose={() => setDiffOpen(false)}
-        originalSyllabusText=""
-        revisedSyllabusText=""
-      />
     </>
   );
 }

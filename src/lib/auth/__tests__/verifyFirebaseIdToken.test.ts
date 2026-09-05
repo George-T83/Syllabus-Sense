@@ -1,0 +1,84 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { verifyFirebaseIdToken } from '../verifyFirebaseIdToken';
+
+const PROJECT_ID = 'demo-syllabus-sense';
+
+function base64url(input: object): string {
+  return Buffer.from(JSON.stringify(input))
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/** Builds a JWT-shaped string with an arbitrary payload and no real
+ * signature - fine here since these tests only exercise the emulator
+ * branch, which intentionally never checks the signature (the Auth
+ * emulator's own tokens aren't signed with Google's real key either). */
+function fakeToken(payload: object): string {
+  const header = base64url({ alg: 'none', typ: 'JWT' });
+  const body = base64url(payload);
+  return `${header}.${body}.fake-signature`;
+}
+
+describe('verifyFirebaseIdToken (emulator branch)', () => {
+  const originalEmulatorHost = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+
+  beforeEach(() => {
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+  });
+
+  afterEach(() => {
+    if (originalEmulatorHost === undefined) {
+      delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    } else {
+      process.env.FIREBASE_AUTH_EMULATOR_HOST = originalEmulatorHost;
+    }
+  });
+
+  it('accepts a well-formed emulator token and extracts uid/email', async () => {
+    const token = fakeToken({
+      iss: `https://securetoken.google.com/${PROJECT_ID}`,
+      aud: PROJECT_ID,
+      sub: 'test-uid-123',
+      email: 'student@example.edu',
+    });
+
+    const result = await verifyFirebaseIdToken(token, PROJECT_ID);
+
+    expect(result).toEqual({ uid: 'test-uid-123', email: 'student@example.edu' });
+  });
+
+  it('omits email when the token has none', async () => {
+    const token = fakeToken({
+      iss: `https://securetoken.google.com/${PROJECT_ID}`,
+      aud: PROJECT_ID,
+      sub: 'test-uid-456',
+    });
+
+    const result = await verifyFirebaseIdToken(token, PROJECT_ID);
+
+    expect(result).toEqual({ uid: 'test-uid-456' });
+  });
+
+  it('rejects a token for the wrong project (audience mismatch)', async () => {
+    const token = fakeToken({
+      iss: `https://securetoken.google.com/${PROJECT_ID}`,
+      aud: 'some-other-project',
+      sub: 'test-uid-789',
+    });
+
+    await expect(verifyFirebaseIdToken(token, PROJECT_ID)).rejects.toThrow();
+  });
+
+  it('rejects a token missing a subject', async () => {
+    const token = fakeToken({
+      iss: `https://securetoken.google.com/${PROJECT_ID}`,
+      aud: PROJECT_ID,
+    });
+
+    await expect(verifyFirebaseIdToken(token, PROJECT_ID)).rejects.toThrow(
+      'Token payload is missing a subject (uid).',
+    );
+  });
+});

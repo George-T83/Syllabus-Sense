@@ -22,6 +22,10 @@ import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
 import { SyllabusList } from '@/components/syllabus/SyllabusList';
+import { SyllabusDiffModal } from '@/components/syllabus/SyllabusDiffModal';
+import { useSyllabi } from '@/lib/firestore/useSyllabi';
+import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
+import type { SyllabusUpload } from '@/types/syllabus';
 import { CourseAiSummaryCard } from '@/components/courses/CourseAiSummaryCard';
 import { SourcesCard } from '@/components/courses/SourcesCard';
 import { ExamCramPlanCard } from '@/components/courses/ExamCramPlanCard';
@@ -197,6 +201,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
+  const syllabi = useSyllabi(user?.uid, courseId);
+  const currentPrimarySyllabus = getPrimarySyllabus(syllabi) ?? null;
+  const [syllabusDiff, setSyllabusDiff] = useState<{
+    original: SyllabusUpload;
+    revised: SyllabusUpload;
+  } | null>(null);
 
   const [editCourseOpen, setEditCourseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -789,8 +799,48 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-base font-semibold text-foreground">Syllabus</h2>
           <SyllabusList userId={user?.uid} courseId={course.id} />
-          <SyllabusUploader userId={user?.uid ?? ''} courseId={course.id} />
+          <SyllabusUploader
+            userId={user?.uid ?? ''}
+            courseId={course.id}
+            currentPrimarySyllabus={currentPrimarySyllabus}
+            onUploaded={(newUpload, previousPrimary) => {
+              // Only offer a diff when there's something real to compare -
+              // a genuinely new upload replacing an older one, with text
+              // extracted from both. A course's first-ever upload, or one
+              // where extraction failed on either side, has nothing to
+              // diff against, so it's skipped rather than shown empty.
+              if (
+                previousPrimary &&
+                previousPrimary.id !== newUpload.id &&
+                previousPrimary.rawText &&
+                newUpload.rawText
+              ) {
+                setSyllabusDiff({ original: previousPrimary, revised: newUpload });
+              }
+            }}
+          />
         </Card>
+
+        {syllabusDiff && (
+          <SyllabusDiffModal
+            isOpen
+            onClose={() => setSyllabusDiff(null)}
+            courseCode={course.code}
+            courseTitle={course.title}
+            originalSyllabusText={syllabusDiff.original.rawText ?? ''}
+            revisedSyllabusText={syllabusDiff.revised.rawText ?? ''}
+            onApplyChanges={() => {
+              // The new upload already became primary at upload time
+              // (useUploadSyllabus) - reviewing changes here doesn't need
+              // its own persistence step, just an acknowledgement.
+              showSuccess(
+                'Reviewed',
+                `${syllabusDiff.revised.fileName} is the current version for this course.`,
+              );
+              setSyllabusDiff(null);
+            }}
+          />
+        )}
 
         <CourseAiSummaryCard course={course} />
 
