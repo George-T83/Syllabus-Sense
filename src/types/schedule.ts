@@ -196,6 +196,12 @@ export interface ScheduleItem {
   gradeWeight?: number;
   /** Grading category this item falls under, e.g. 'Homework', 'Exam' */
   gradeCategory?: string;
+  /** The score actually received on this item, as a percentage (0-100+,
+   * so extra credit isn't clipped). Distinct from `gradeWeight` - weight is
+   * planned before the fact, this is entered once the grade comes back.
+   * Only meaningful alongside `gradeWeight`; an item with a score but no
+   * weight has nothing for the grade calculator to weight it by. */
+  earnedScore?: number;
   /** Free-text name of who owns this sub-task on a group project - a
    * private label only the signed-in user sees, not a shared assignment
    * system. Lets a chunked group project ("Literature review", "Data
