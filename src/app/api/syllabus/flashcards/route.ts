@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
-import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
+import { requireUser } from '@/lib/auth/requireUser';
+import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { adminStorage } from '@/lib/firebase/adminStorage';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { FLASHCARDS_SYSTEM_PROMPT, FLASHCARDS_TOOL } from '@/lib/ai/flashcardsTool';
@@ -8,18 +9,6 @@ import { generatedFlashcardsSchema } from '@/types/flashcard';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
-
-async function requireUser(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  if (!token || !projectId) return null;
-  try {
-    return await verifyFirebaseIdToken(token, projectId);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Generates study flashcards from an already-uploaded syllabus. Same trust
@@ -32,6 +21,14 @@ export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const usage = await checkAndIncrementAiUsage(user);
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.` },
+      { status: 429 },
+    );
   }
 
   let body: { storagePath?: string; fileName?: string };
