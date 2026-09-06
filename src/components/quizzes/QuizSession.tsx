@@ -16,6 +16,7 @@ export function QuizSession({ quiz, onClose, onComplete }: QuizSessionProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   const open = !!quiz;
   const dialogRef = useModalA11y<HTMLDivElement>(open, handleClose);
@@ -24,6 +25,7 @@ export function QuizSession({ quiz, onClose, onComplete }: QuizSessionProps) {
     setIndex(0);
     setSelected(null);
     setScore(0);
+    setSaveFailed(false);
     onClose();
   }
 
@@ -48,6 +50,9 @@ export function QuizSession({ quiz, onClose, onComplete }: QuizSessionProps) {
       setSubmitting(true);
       try {
         await onComplete(score, quiz.questions.length);
+        setSaveFailed(false);
+      } catch {
+        setSaveFailed(true);
       } finally {
         setSubmitting(false);
       }
@@ -107,8 +112,12 @@ export function QuizSession({ quiz, onClose, onComplete }: QuizSessionProps) {
               <p className="text-lg font-bold text-foreground">
                 {score} / {quiz.questions.length}
               </p>
-              <p className="text-sm text-muted-foreground">
-                {submitting ? 'Saving your score…' : 'Score saved to this course.'}
+              <p className={`text-sm ${saveFailed ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {submitting
+                  ? 'Saving your score…'
+                  : saveFailed
+                    ? "Couldn't save your score. Your result isn't recorded for this course."
+                    : 'Score saved to this course.'}
               </p>
               <button
                 type="button"
