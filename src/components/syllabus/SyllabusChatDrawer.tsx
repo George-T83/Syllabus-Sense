@@ -8,6 +8,11 @@ import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { normalizeMaterials } from '@/lib/courses/materials';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useToast } from '@/components/ui/Toast';
+import { TIME_FORMATTER } from '@/lib/dateFormatters';
+
+function formatTimestamp(): string {
+  return TIME_FORMATTER.format(new Date());
+}
 
 export interface SuggestedChunk {
   title: string;
@@ -56,7 +61,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
       id: 'welcome-msg',
       sender: 'assistant',
       text: "👋 Hi! I'm your **AI Syllabus & Study Copilot**. Ask me anything about your enrolled course syllabi — such as grading breakdowns, late penalties, exam schedules, or professor office hours!",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: formatTimestamp(),
     },
   ]);
 
@@ -115,7 +120,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
         id: `user-${Date.now()}`,
         sender: 'user',
         text: trimmed,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: formatTimestamp(),
       };
 
       setMessages((prev) => [...prev, userMessage]);
@@ -161,7 +166,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
           text: data.reply || 'Here is the relevant syllabus information.',
           citations: data.citations || [],
           suggestedChunks: data.suggestedChunks || undefined,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: formatTimestamp(),
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
@@ -174,7 +179,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             sender: 'assistant',
             text: `I had trouble connecting to the server, but according to **${selectedCourse?.code || 'your course'}** standards: deadlines are strict, office hours are weekly, and attendance is recommended. Please check the course page for full details.`,
             citations: [`[${selectedCourse?.code || 'Course'} Overview]`],
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: formatTimestamp(),
           },
         ]);
       } finally {
@@ -196,7 +201,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
         id: 'welcome-msg-reset',
         sender: 'assistant',
         text: `Conversation cleared. What else would you like to know about **${selectedCourse?.code || 'your courses'}**?`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: formatTimestamp(),
       },
     ]);
   };

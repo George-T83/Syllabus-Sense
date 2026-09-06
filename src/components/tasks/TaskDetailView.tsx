@@ -18,8 +18,10 @@ import { LatePenaltyAdvisor } from './LatePenaltyAdvisor';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { AssignmentType, Course, ScheduleItem } from '@/types/schedule';
 import { cn } from '@/lib/utils';
-
-const shortDueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+import {
+  SHORT_DATE_FORMATTER as shortDueDateFormatter,
+  WEEKDAY_LONG_DATE_YEAR_FORMATTER as dueDateFormatter,
+} from '@/lib/dateFormatters';
 
 /** Plain-English sentence comparing `item`'s grade weight to the rest of
  * its course, so "worth 25%" comes with a sense of scale instead of a bare
@@ -157,13 +159,6 @@ const PROGRESS_STEP = 5;
  * dragging the slider or typing an hour value fires one write instead of
  * one per tick/keystroke. */
 const COMMIT_DEBOUNCE_MS = 400;
-
-const dueDateFormatter = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-});
 
 /** Which workload-ramp CSS var a given progress percentage should render
  * as, for the slider's fill/thumb color. Quartile-banded rather than a

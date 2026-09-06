@@ -31,14 +31,11 @@ import { parseDayKey } from '@/lib/calendar/dates';
 import { cn } from '@/lib/utils';
 import type { WorkloadLevel } from '@/types/schedule';
 import type { MoodValue } from '@/types/mood';
-
-const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const FULL_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-});
-const MONTH_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'short' });
+import {
+  SHORT_DATE_FORMATTER,
+  WEEKDAY_SHORT_DATE_FORMATTER as FULL_DATE_FORMATTER,
+  MONTH_SHORT_FORMATTER as MONTH_FORMATTER,
+} from '@/lib/dateFormatters';
 
 // Same GitHub-contribution-graph convention as the semester heatmap: only
 // every other weekday row gets a label, so the gutter doesn't crowd the

@@ -16,8 +16,7 @@ import { clampProgress } from '@/lib/taskStatus';
 import { cn } from '@/lib/utils';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { ScheduleItem, AssignmentType, Priority } from '@/types/schedule';
-
-const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+import { SHORT_DATE_FORMATTER as dueDateFormatter } from '@/lib/dateFormatters';
 
 type StatusFilter = 'all' | 'pending' | 'completed';
 /** What organizes the list into sections. 'date' buckets by due-date
