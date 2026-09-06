@@ -71,6 +71,18 @@ export const WORKLOAD_SOLID_BADGE_CLASS: Record<WorkloadLevel, string> = {
   critical: 'bg-load-critical text-white border-transparent',
 };
 
+/** Same 4-step palette as the classes above, as raw CSS color strings - a
+ * charting library (e.g. Recharts) draws its own SVG and can't consume
+ * Tailwind utility classes, so a `fill`/`stroke`/`stopColor` prop needs the
+ * literal value. Reads the same `--load-*` custom properties so a chart's
+ * colors and every Tailwind-class-based workload indicator stay in sync. */
+export const WORKLOAD_RAW_COLOR: Record<WorkloadLevel, string> = {
+  low: 'hsl(var(--load-low))',
+  medium: 'hsl(var(--load-medium))',
+  high: 'hsl(var(--load-high))',
+  critical: 'hsl(var(--load-critical))',
+};
+
 /**
  * Card border + ambient glow that escalates with real severity (globals.css
  * defines the actual .glow-edge* rules) - 'low' stays the calm, static
