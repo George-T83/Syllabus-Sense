@@ -246,7 +246,7 @@ type ViewMode = 'month' | 'week' | 'agenda';
 export function MonthCalendar() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
-  const { showError } = useToast();
+  const { showSuccess, showError } = useToast();
   const searchParams = useSearchParams();
   // A deep link from the semester heatmap (or any other day-grid) lands here
   // pre-selected and scrolled to that day, instead of the plain "today"
@@ -410,16 +410,28 @@ export function MonthCalendar() {
     const visibleItems = state.scheduleItems.filter(
       (item) => !hiddenCourseIds.has(item.courseId) && (showCompleted || !item.completed),
     );
-    const ics = generateICS(visibleItems, state.courses, new Date());
-    const blob = createICSBlob(ics);
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = buildICSFilename('syllabus-sense-calendar');
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    if (visibleItems.length === 0) {
+      showError('Nothing to export', 'No visible items match the current filters.');
+      return;
+    }
+    try {
+      const ics = generateICS(visibleItems, state.courses, new Date());
+      const blob = createICSBlob(ics);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = buildICSFilename('syllabus-sense-calendar');
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      showSuccess(
+        'Calendar exported',
+        `${visibleItems.length} ${visibleItems.length === 1 ? 'item' : 'items'} saved as .ics.`,
+      );
+    } catch (err) {
+      showError('Could not export calendar', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const selectDay = (day: Date) => {

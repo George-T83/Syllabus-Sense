@@ -188,9 +188,11 @@ describe('Item 21: Mobile Touch Targets Minimum 44x44px Audit', () => {
     render(
       <ThemeProvider>
         <AuthProvider>
-          <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: mockItems }}>
-            <Navbar />
-          </AppStateProvider>
+          <ToastProvider>
+            <AppStateProvider initialState={{ courses: mockCourses, scheduleItems: mockItems }}>
+              <Navbar />
+            </AppStateProvider>
+          </ToastProvider>
         </AuthProvider>
       </ThemeProvider>,
     );

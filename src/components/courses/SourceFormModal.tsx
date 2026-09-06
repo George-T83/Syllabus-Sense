@@ -3,6 +3,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useDirtyClose } from '@/hooks/useDirtyClose';
+import { DiscardConfirmCard } from '@/components/ui/DiscardConfirmCard';
 import type { Source, SourceAuthor, SourceType } from '@/types/source';
 
 export interface SourceFormValues {
@@ -77,16 +79,24 @@ const labelClass = 'block text-xs font-semibold text-muted-foreground mb-1';
 
 export function SourceFormModal({ open, onClose, onSubmit, initialSource }: SourceFormModalProps) {
   const [values, setValues] = useState<SourceFormValues>(emptyValues());
+  const [baseline, setBaseline] = useState<SourceFormValues>(emptyValues());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setValues(initialSource ? valuesFromSource(initialSource) : emptyValues());
+    const initial = initialSource ? valuesFromSource(initialSource) : emptyValues();
+    setValues(initial);
+    setBaseline(initial);
     setError(null);
   }, [open, initialSource]);
 
-  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+  const { requestClose, confirmingDiscard, confirmDiscard, cancelDiscard } = useDirtyClose(
+    values,
+    baseline,
+    onClose,
+  );
+  const dialogRef = useModalA11y<HTMLDivElement>(open, requestClose);
 
   if (!open) return null;
 
@@ -133,257 +143,270 @@ export function SourceFormModal({ open, onClose, onSubmit, initialSource }: Sour
       role="dialog"
       aria-modal="true"
       aria-labelledby="source-form-title"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="w-full max-w-lg outline-none"
+        className="relative w-full max-w-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <Card accent="none">
-          <CardHeader>
-            <CardTitle id="source-form-title">
-              {initialSource ? 'Edit Source' : 'Add Source'}
-            </CardTitle>
-            <CardDescription>Formatted into APA, MLA, or Chicago automatically.</CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="max-h-[65vh] space-y-4 overflow-y-auto">
-              {error && (
-                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
-                  {error}
-                </div>
-              )}
+          {confirmingDiscard ? (
+            <DiscardConfirmCard
+              title="Discard unsaved changes?"
+              description="You have changes to this source that haven't been saved."
+              onCancel={cancelDiscard}
+              onConfirm={confirmDiscard}
+            />
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle id="source-form-title">
+                  {initialSource ? 'Edit Source' : 'Add Source'}
+                </CardTitle>
+                <CardDescription>
+                  Formatted into APA, MLA, or Chicago automatically.
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSubmit}>
+                <CardContent className="max-h-[65vh] space-y-4 overflow-y-auto">
+                  {error && (
+                    <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
+                      {error}
+                    </div>
+                  )}
 
-              <div>
-                <label className={labelClass}>Source type</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {SOURCE_TYPE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => update('type', opt.value)}
-                      className={`min-h-[36px] rounded-full px-3 text-xs font-semibold transition-colors ${
-                        values.type === opt.value
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted/50 text-muted-foreground hover:bg-accent'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="source-title" className={labelClass}>
-                  Title
-                </label>
-                <input
-                  id="source-title"
-                  value={values.title}
-                  onChange={(e) => update('title', e.target.value)}
-                  className={fieldClass}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className={labelClass}>Authors</label>
-                <div className="space-y-2">
-                  {values.authors.map((author, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        aria-label={`Author ${i + 1} first name`}
-                        placeholder="First name"
-                        value={author.firstName}
-                        onChange={(e) => updateAuthor(i, 'firstName', e.target.value)}
-                        className={fieldClass}
-                      />
-                      <input
-                        aria-label={`Author ${i + 1} last name`}
-                        placeholder="Last name"
-                        value={author.lastName}
-                        onChange={(e) => updateAuthor(i, 'lastName', e.target.value)}
-                        className={fieldClass}
-                      />
-                      {values.authors.length > 1 && (
+                  <div>
+                    <label className={labelClass}>Source type</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SOURCE_TYPE_OPTIONS.map((opt) => (
                         <button
+                          key={opt.value}
                           type="button"
-                          onClick={() => removeAuthor(i)}
-                          aria-label={`Remove author ${i + 1}`}
-                          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive"
+                          onClick={() => update('type', opt.value)}
+                          className={`min-h-[36px] rounded-full px-3 text-xs font-semibold transition-colors ${
+                            values.type === opt.value
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted/50 text-muted-foreground hover:bg-accent'
+                          }`}
                         >
-                          ×
+                          {opt.label}
                         </button>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={addAuthor}
-                  className="mt-2 text-xs font-semibold text-primary hover:underline"
-                >
-                  + Add another author
-                </button>
-              </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="source-year" className={labelClass}>
-                    Year
-                  </label>
-                  <input
-                    id="source-year"
-                    value={values.year}
-                    onChange={(e) => update('year', e.target.value)}
-                    placeholder="2024"
-                    className={fieldClass}
-                  />
-                </div>
+                  <div>
+                    <label htmlFor="source-title" className={labelClass}>
+                      Title
+                    </label>
+                    <input
+                      id="source-title"
+                      value={values.title}
+                      onChange={(e) => update('title', e.target.value)}
+                      className={fieldClass}
+                      required
+                    />
+                  </div>
 
-                {values.type === 'book' && (
                   <div>
-                    <label htmlFor="source-publisher" className={labelClass}>
-                      Publisher
-                    </label>
-                    <input
-                      id="source-publisher"
-                      value={values.publisher}
-                      onChange={(e) => update('publisher', e.target.value)}
-                      className={fieldClass}
-                    />
+                    <label className={labelClass}>Authors</label>
+                    <div className="space-y-2">
+                      {values.authors.map((author, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input
+                            aria-label={`Author ${i + 1} first name`}
+                            placeholder="First name"
+                            value={author.firstName}
+                            onChange={(e) => updateAuthor(i, 'firstName', e.target.value)}
+                            className={fieldClass}
+                          />
+                          <input
+                            aria-label={`Author ${i + 1} last name`}
+                            placeholder="Last name"
+                            value={author.lastName}
+                            onChange={(e) => updateAuthor(i, 'lastName', e.target.value)}
+                            className={fieldClass}
+                          />
+                          {values.authors.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeAuthor(i)}
+                              aria-label={`Remove author ${i + 1}`}
+                              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-destructive"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addAuthor}
+                      className="mt-2 text-xs font-semibold text-primary hover:underline"
+                    >
+                      + Add another author
+                    </button>
                   </div>
-                )}
-              </div>
 
-              {values.type === 'website' && (
-                <>
-                  <div>
-                    <label htmlFor="source-site-name" className={labelClass}>
-                      Site name
-                    </label>
-                    <input
-                      id="source-site-name"
-                      value={values.siteName}
-                      onChange={(e) => update('siteName', e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="source-url" className={labelClass}>
-                      URL
-                    </label>
-                    <input
-                      id="source-url"
-                      type="url"
-                      value={values.url}
-                      onChange={(e) => update('url', e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="source-accessed" className={labelClass}>
-                      Accessed on
-                    </label>
-                    <input
-                      id="source-accessed"
-                      type="date"
-                      value={values.accessedDate}
-                      onChange={(e) => update('accessedDate', e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                </>
-              )}
-
-              {values.type === 'journal' && (
-                <>
-                  <div>
-                    <label htmlFor="source-journal-name" className={labelClass}>
-                      Journal name
-                    </label>
-                    <input
-                      id="source-journal-name"
-                      value={values.journalName}
-                      onChange={(e) => update('journalName', e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="source-volume" className={labelClass}>
-                        Volume
+                      <label htmlFor="source-year" className={labelClass}>
+                        Year
                       </label>
                       <input
-                        id="source-volume"
-                        value={values.volume}
-                        onChange={(e) => update('volume', e.target.value)}
+                        id="source-year"
+                        value={values.year}
+                        onChange={(e) => update('year', e.target.value)}
+                        placeholder="2024"
                         className={fieldClass}
                       />
                     </div>
-                    <div>
-                      <label htmlFor="source-issue" className={labelClass}>
-                        Issue
-                      </label>
-                      <input
-                        id="source-issue"
-                        value={values.issue}
-                        onChange={(e) => update('issue', e.target.value)}
-                        className={fieldClass}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="source-pages" className={labelClass}>
-                        Pages
-                      </label>
-                      <input
-                        id="source-pages"
-                        value={values.pages}
-                        onChange={(e) => update('pages', e.target.value)}
-                        placeholder="210-234"
-                        className={fieldClass}
-                      />
-                    </div>
+
+                    {values.type === 'book' && (
+                      <div>
+                        <label htmlFor="source-publisher" className={labelClass}>
+                          Publisher
+                        </label>
+                        <input
+                          id="source-publisher"
+                          value={values.publisher}
+                          onChange={(e) => update('publisher', e.target.value)}
+                          className={fieldClass}
+                        />
+                      </div>
+                    )}
                   </div>
-                </>
-              )}
 
-              {values.type === 'other' && (
-                <div>
-                  <label htmlFor="source-notes" className={labelClass}>
-                    Notes
-                  </label>
-                  <textarea
-                    id="source-notes"
-                    value={values.notes}
-                    onChange={(e) => update('notes', e.target.value)}
-                    rows={2}
-                    className={fieldClass}
-                  />
+                  {values.type === 'website' && (
+                    <>
+                      <div>
+                        <label htmlFor="source-site-name" className={labelClass}>
+                          Site name
+                        </label>
+                        <input
+                          id="source-site-name"
+                          value={values.siteName}
+                          onChange={(e) => update('siteName', e.target.value)}
+                          className={fieldClass}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="source-url" className={labelClass}>
+                          URL
+                        </label>
+                        <input
+                          id="source-url"
+                          type="url"
+                          value={values.url}
+                          onChange={(e) => update('url', e.target.value)}
+                          className={fieldClass}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="source-accessed" className={labelClass}>
+                          Accessed on
+                        </label>
+                        <input
+                          id="source-accessed"
+                          type="date"
+                          value={values.accessedDate}
+                          onChange={(e) => update('accessedDate', e.target.value)}
+                          className={fieldClass}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {values.type === 'journal' && (
+                    <>
+                      <div>
+                        <label htmlFor="source-journal-name" className={labelClass}>
+                          Journal name
+                        </label>
+                        <input
+                          id="source-journal-name"
+                          value={values.journalName}
+                          onChange={(e) => update('journalName', e.target.value)}
+                          className={fieldClass}
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label htmlFor="source-volume" className={labelClass}>
+                            Volume
+                          </label>
+                          <input
+                            id="source-volume"
+                            value={values.volume}
+                            onChange={(e) => update('volume', e.target.value)}
+                            className={fieldClass}
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="source-issue" className={labelClass}>
+                            Issue
+                          </label>
+                          <input
+                            id="source-issue"
+                            value={values.issue}
+                            onChange={(e) => update('issue', e.target.value)}
+                            className={fieldClass}
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="source-pages" className={labelClass}>
+                            Pages
+                          </label>
+                          <input
+                            id="source-pages"
+                            value={values.pages}
+                            onChange={(e) => update('pages', e.target.value)}
+                            placeholder="210-234"
+                            className={fieldClass}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {values.type === 'other' && (
+                    <div>
+                      <label htmlFor="source-notes" className={labelClass}>
+                        Notes
+                      </label>
+                      <textarea
+                        id="source-notes"
+                        value={values.notes}
+                        onChange={(e) => update('notes', e.target.value)}
+                        rows={2}
+                        className={fieldClass}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+
+                <div className="flex items-center justify-end gap-2 border-t border-border p-4">
+                  <button
+                    type="button"
+                    onClick={requestClose}
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting ? 'Saving...' : initialSource ? 'Save Changes' : 'Add Source'}
+                  </button>
                 </div>
-              )}
-            </CardContent>
-
-            <div className="flex items-center justify-end gap-2 border-t border-border p-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? 'Saving...' : initialSource ? 'Save Changes' : 'Add Source'}
-              </button>
-            </div>
-          </form>
+              </form>
+            </>
+          )}
         </Card>
       </div>
     </div>

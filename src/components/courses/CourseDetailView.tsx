@@ -19,9 +19,14 @@ import {
 } from '@/lib/firestore/scheduleItems';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
+import { GradeCalculatorModal } from '@/components/courses/GradeCalculatorModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusUploader } from '@/components/syllabus/SyllabusUploader';
 import { SyllabusList } from '@/components/syllabus/SyllabusList';
+import { SyllabusDiffModal } from '@/components/syllabus/SyllabusDiffModal';
+import { useSyllabi } from '@/lib/firestore/useSyllabi';
+import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
+import type { SyllabusUpload } from '@/types/syllabus';
 import { CourseAiSummaryCard } from '@/components/courses/CourseAiSummaryCard';
 import { SourcesCard } from '@/components/courses/SourcesCard';
 import { ExamCramPlanCard } from '@/components/courses/ExamCramPlanCard';
@@ -34,7 +39,7 @@ import { normalizeMaterials, sumMaterialCosts } from '@/lib/courses/materials';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { Course, ScheduleItem, Contact, ContactRole } from '@/types/schedule';
+import type { Course, ScheduleItem, Contact, ContactRole, AbsenceRecord } from '@/types/schedule';
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -122,6 +127,7 @@ function ContactFormFields({
         >
           <option value="professor">Professor</option>
           <option value="ta">TA</option>
+          <option value="classmate">Classmate</option>
         </select>
       </div>
       <div className="col-span-2 space-y-1.5 sm:col-span-1">
@@ -197,8 +203,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
+  const syllabi = useSyllabi(user?.uid, courseId);
+  const currentPrimarySyllabus = getPrimarySyllabus(syllabi) ?? null;
+  const [syllabusDiff, setSyllabusDiff] = useState<{
+    original: SyllabusUpload;
+    revised: SyllabusUpload;
+  } | null>(null);
 
   const [editCourseOpen, setEditCourseOpen] = useState(false);
+  const [gradeCalculatorOpen, setGradeCalculatorOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [confirmingDeleteCourse, setConfirmingDeleteCourse] = useState(false);
@@ -394,6 +407,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       );
       setNewContact(EMPTY_CONTACT_FORM);
       setAddContactOpen(false);
+    } catch (err) {
+      showError('Could not add contact', err instanceof Error ? err.message : undefined);
     } finally {
       setSavingContact(false);
     }
@@ -414,26 +429,32 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
   const handleSaveContact = async (contact: Contact) => {
     if (!user || !editContact.fullName.trim()) return;
-    await updateContact(
-      user.uid,
-      contact,
-      {
-        ...contact,
-        role: editContact.role,
-        fullName: editContact.fullName.trim(),
-        ...(editContact.title.trim() ? { title: editContact.title.trim() } : {}),
-        ...(editContact.howToAddress.trim()
-          ? { howToAddress: editContact.howToAddress.trim() }
-          : {}),
-        ...(editContact.email.trim() ? { email: editContact.email.trim() } : {}),
-        ...(editContact.officeHours.trim() ? { officeHours: editContact.officeHours.trim() } : {}),
-        ...(editContact.officeLocation.trim()
-          ? { officeLocation: editContact.officeLocation.trim() }
-          : {}),
-      },
-      dispatch,
-    );
-    setEditingContactId(null);
+    try {
+      await updateContact(
+        user.uid,
+        contact,
+        {
+          ...contact,
+          role: editContact.role,
+          fullName: editContact.fullName.trim(),
+          ...(editContact.title.trim() ? { title: editContact.title.trim() } : {}),
+          ...(editContact.howToAddress.trim()
+            ? { howToAddress: editContact.howToAddress.trim() }
+            : {}),
+          ...(editContact.email.trim() ? { email: editContact.email.trim() } : {}),
+          ...(editContact.officeHours.trim()
+            ? { officeHours: editContact.officeHours.trim() }
+            : {}),
+          ...(editContact.officeLocation.trim()
+            ? { officeLocation: editContact.officeLocation.trim() }
+            : {}),
+        },
+        dispatch,
+      );
+      setEditingContactId(null);
+    } catch (err) {
+      showError('Could not save contact', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleDeleteContact = async (contact: Contact) => {
@@ -464,13 +485,17 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     } else {
       current.splice(index, 1);
     }
-    await updateCourse(
-      user.uid,
-      course,
-      { ...course, learningObjectives: current, learningObjectivesApproved: true },
-      dispatch,
-    );
-    setEditingObjectiveIndex(null);
+    try {
+      await updateCourse(
+        user.uid,
+        course,
+        { ...course, learningObjectives: current, learningObjectivesApproved: true },
+        dispatch,
+      );
+      setEditingObjectiveIndex(null);
+    } catch (err) {
+      showError('Could not save that objective', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleDeleteObjective = async (index: number) => {
@@ -486,6 +511,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         dispatch,
       );
       setConfirmingDeleteObjectiveIndex(null);
+    } catch (err) {
+      showError('Could not delete that objective', err instanceof Error ? err.message : undefined);
     } finally {
       setDeletingObjectiveIndex(null);
     }
@@ -499,14 +526,18 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       return;
     }
     const current = [...(course.learningObjectives ?? []), trimmed];
-    await updateCourse(
-      user.uid,
-      course,
-      { ...course, learningObjectives: current, learningObjectivesApproved: true },
-      dispatch,
-    );
-    setNewObjectiveDraft('');
-    setAddingObjective(false);
+    try {
+      await updateCourse(
+        user.uid,
+        course,
+        { ...course, learningObjectives: current, learningObjectivesApproved: true },
+        dispatch,
+      );
+      setNewObjectiveDraft('');
+      setAddingObjective(false);
+    } catch (err) {
+      showError('Could not add that objective', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleStartEditMaterial = (index: number) => {
@@ -529,8 +560,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     } else {
       current.splice(index, 1);
     }
-    await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
-    setEditingMaterialIndex(null);
+    try {
+      await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
+      setEditingMaterialIndex(null);
+    } catch (err) {
+      showError('Could not save that material', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleDeleteMaterial = async (index: number) => {
@@ -541,6 +576,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       current.splice(index, 1);
       await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
       setConfirmingDeleteMaterialIndex(null);
+    } catch (err) {
+      showError('Could not delete that material', err instanceof Error ? err.message : undefined);
     } finally {
       setDeletingMaterialIndex(null);
     }
@@ -561,23 +598,59 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         ...(!Number.isNaN(parsedCost) && parsedCost >= 0 ? { cost: parsedCost } : {}),
       },
     ];
-    await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
-    setNewMaterialDraft('');
-    setNewMaterialCostDraft('');
-    setAddingMaterial(false);
+    try {
+      await updateCourse(user.uid, course, { ...course, materials: current }, dispatch);
+      setNewMaterialDraft('');
+      setNewMaterialCostDraft('');
+      setAddingMaterial(false);
+    } catch (err) {
+      showError('Could not add that material', err instanceof Error ? err.message : undefined);
+    }
+  };
+
+  const handleLogAbsence = async (record: AbsenceRecord) => {
+    if (!user) return;
+    const current = [record, ...(course.absences ?? [])];
+    try {
+      await updateCourse(user.uid, course, { ...course, absences: current }, dispatch);
+    } catch (err) {
+      showError('Could not save that absence', err instanceof Error ? err.message : undefined);
+    }
+  };
+
+  const handleDeleteAbsence = async (id: string) => {
+    if (!user) return;
+    const current = (course.absences ?? []).filter((a) => a.id !== id);
+    try {
+      await updateCourse(user.uid, course, { ...course, absences: current }, dispatch);
+    } catch (err) {
+      showError('Could not remove that absence', err instanceof Error ? err.message : undefined);
+    }
   };
 
   const handleExportICS = () => {
-    const ics = generateICS(items, [course], new Date());
-    const blob = createICSBlob(ics);
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = buildICSFilename(course.code);
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    if (items.length === 0) {
+      showError('Nothing to export', 'This course has no tasks yet.');
+      return;
+    }
+    try {
+      const ics = generateICS(items, [course], new Date());
+      const blob = createICSBlob(ics);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = buildICSFilename(course.code);
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      showSuccess(
+        'Calendar exported',
+        `${items.length} ${items.length === 1 ? 'item' : 'items'} saved as .ics.`,
+      );
+    } catch (err) {
+      showError('Could not export calendar', err instanceof Error ? err.message : undefined);
+    }
   };
 
   return (
@@ -680,6 +753,22 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
 
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
               <CardActionButton onClick={() => setEditCourseOpen(true)}>Edit</CardActionButton>
+              <CardActionButton onClick={() => setGradeCalculatorOpen(true)}>
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+                Grade Calculator
+              </CardActionButton>
               {items.length > 0 && (
                 <CardActionButton onClick={handleExportICS}>
                   <svg
@@ -733,8 +822,48 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-base font-semibold text-foreground">Syllabus</h2>
           <SyllabusList userId={user?.uid} courseId={course.id} />
-          <SyllabusUploader userId={user?.uid ?? ''} courseId={course.id} />
+          <SyllabusUploader
+            userId={user?.uid ?? ''}
+            courseId={course.id}
+            currentPrimarySyllabus={currentPrimarySyllabus}
+            onUploaded={(newUpload, previousPrimary) => {
+              // Only offer a diff when there's something real to compare -
+              // a genuinely new upload replacing an older one, with text
+              // extracted from both. A course's first-ever upload, or one
+              // where extraction failed on either side, has nothing to
+              // diff against, so it's skipped rather than shown empty.
+              if (
+                previousPrimary &&
+                previousPrimary.id !== newUpload.id &&
+                previousPrimary.rawText &&
+                newUpload.rawText
+              ) {
+                setSyllabusDiff({ original: previousPrimary, revised: newUpload });
+              }
+            }}
+          />
         </Card>
+
+        {syllabusDiff && (
+          <SyllabusDiffModal
+            isOpen
+            onClose={() => setSyllabusDiff(null)}
+            courseCode={course.code}
+            courseTitle={course.title}
+            originalSyllabusText={syllabusDiff.original.rawText ?? ''}
+            revisedSyllabusText={syllabusDiff.revised.rawText ?? ''}
+            onApplyChanges={() => {
+              // The new upload already became primary at upload time
+              // (useUploadSyllabus) - reviewing changes here doesn't need
+              // its own persistence step, just an acknowledgement.
+              showSuccess(
+                'Reviewed',
+                `${syllabusDiff.revised.fileName} is the current version for this course.`,
+              );
+              setSyllabusDiff(null);
+            }}
+          />
+        )}
 
         <CourseAiSummaryCard course={course} />
 
@@ -742,6 +871,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
           courseCode={course.code}
           courseTitle={course.title}
           maxAllowedAbsences={course.notes?.toLowerCase().includes('attendance') ? 3 : 4}
+          initialAbsences={course.absences ?? []}
+          onAbsenceLogged={handleLogAbsence}
+          onAbsenceDeleted={handleDeleteAbsence}
         />
 
         <Card className="rounded-2xl p-6 space-y-4">
@@ -1227,42 +1359,16 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           <button
                             type="button"
                             onClick={() => handleStartEditMaterial(i)}
-                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                            aria-label="Edit material"
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                           >
-                            <svg
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
-                              />
-                            </svg>
+                            Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => setConfirmingDeleteMaterialIndex(i)}
-                            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                            aria-label="Delete material"
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                           >
-                            <svg
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                              />
-                            </svg>
+                            Delete
                           </button>
                         </>
                       )}
@@ -1476,6 +1582,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         onClose={() => setEditCourseOpen(false)}
         onSubmit={handleEditCourse}
         initialCourse={course}
+      />
+      <GradeCalculatorModal
+        isOpen={gradeCalculatorOpen}
+        onClose={() => setGradeCalculatorOpen(false)}
+        initialCourseId={course.id}
       />
       <TaskFormModal
         open={addTaskOpen}

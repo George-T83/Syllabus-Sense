@@ -599,10 +599,14 @@ export function ProfileView() {
               {changingPassword && (
                 <form onSubmit={handleChangePassword} className="mt-3 space-y-2.5">
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor="change-password-current"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
                       Current password
                     </label>
                     <input
+                      id="change-password-current"
                       type="password"
                       autoFocus
                       required
@@ -616,10 +620,14 @@ export function ProfileView() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor="change-password-new"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
                       New password
                     </label>
                     <input
+                      id="change-password-new"
                       type="password"
                       required
                       minLength={6}
@@ -633,10 +641,14 @@ export function ProfileView() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor="change-password-confirm"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
                       Confirm new password
                     </label>
                     <input
+                      id="change-password-confirm"
                       type="password"
                       required
                       minLength={6}
@@ -737,10 +749,14 @@ export function ProfileView() {
             <div className="mt-3 space-y-2.5">
               {canChangePassword && (
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label
+                    htmlFor="delete-account-password"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
                     Current password
                   </label>
                   <input
+                    id="delete-account-password"
                     type="password"
                     value={deletePassword}
                     onChange={(e) => {
@@ -752,10 +768,14 @@ export function ProfileView() {
                 </div>
               )}
               <div>
-                <label className="text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="delete-account-confirm-text"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Type {DELETE_CONFIRM_PHRASE} to confirm
                 </label>
                 <input
+                  id="delete-account-confirm-text"
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}

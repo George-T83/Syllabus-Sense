@@ -54,10 +54,14 @@ function GradeImpactPanel({
   item,
   course,
   courseItems,
+  scoreText,
+  onScoreChange,
 }: {
   item: ScheduleItem;
   course: Course | undefined;
   courseItems: ScheduleItem[];
+  scoreText: string;
+  onScoreChange: (raw: string) => void;
 }) {
   if (item.gradeWeight === undefined) return null;
 
@@ -95,6 +99,25 @@ function GradeImpactPanel({
             <p className="mt-2 text-sm text-foreground">
               {describeGradeImpact(item, courseItems, courseLabel)}
             </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-primary/10 pt-3">
+          <label htmlFor="earned-score" className="text-sm font-medium text-foreground">
+            Score received
+          </label>
+          <div className="flex items-center gap-1.5">
+            <input
+              id="earned-score"
+              type="number"
+              min={0}
+              inputMode="decimal"
+              placeholder="Not graded yet"
+              value={scoreText}
+              onChange={(e) => onScoreChange(e.target.value)}
+              className="w-28 rounded-lg border border-border bg-card px-2.5 py-1.5 text-right text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <span className="text-sm text-muted-foreground">%</span>
           </div>
         </div>
       </div>
@@ -195,6 +218,9 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
    * doesn't get coerced mid-keystroke. null once the debounced write lands. */
   const [hoursDraft, setHoursDraft] = useState<string | null>(null);
   const hoursCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Same pattern again, for the "score received" field on a graded item. */
+  const [scoreDraft, setScoreDraft] = useState<string | null>(null);
+  const scoreCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const item = state.scheduleItems.find((i) => i.id === taskId);
   const course = item ? state.courses.find((c) => c.id === item.courseId) : undefined;
@@ -270,6 +296,41 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
       setHoursDraft(null);
     }, COMMIT_DEBOUNCE_MS);
   };
+
+  const handleSetEarnedScore = async (value: number | undefined) => {
+    if (!user) return;
+    try {
+      const next = { ...item } as ScheduleItem;
+      if (value === undefined) {
+        delete next.earnedScore;
+      } else {
+        next.earnedScore = value;
+      }
+      await updateScheduleItem(user.uid, item, next, dispatch);
+    } catch (err) {
+      console.error('Failed to update earned score:', err);
+      showError("Couldn't save that score. Try again in a moment.");
+    }
+  };
+
+  const handleScoreInputChange = (raw: string) => {
+    setScoreDraft(raw);
+    if (scoreCommitTimer.current) clearTimeout(scoreCommitTimer.current);
+    scoreCommitTimer.current = setTimeout(() => {
+      if (raw.trim() === '') {
+        handleSetEarnedScore(undefined);
+      } else {
+        const parsed = Number(raw);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          handleSetEarnedScore(Math.round(parsed * 10) / 10);
+        }
+      }
+      scoreCommitTimer.current = null;
+      setScoreDraft(null);
+    }, COMMIT_DEBOUNCE_MS);
+  };
+
+  const displayScoreText = scoreDraft ?? (item.earnedScore != null ? String(item.earnedScore) : '');
 
   const progressPct = clampProgress(item.progress ?? 0);
   // The slider's own value while dragging/settling, so the ring, the %
@@ -612,7 +673,13 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
             </div>
           </dl>
 
-          <GradeImpactPanel item={item} course={course} courseItems={courseItems} />
+          <GradeImpactPanel
+            item={item}
+            course={course}
+            courseItems={courseItems}
+            scoreText={displayScoreText}
+            onScoreChange={handleScoreInputChange}
+          />
 
           <div className="border-t border-border">
             <LatePenaltyAdvisor

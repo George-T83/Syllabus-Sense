@@ -6,6 +6,7 @@ import { CardActionButton } from '@/components/ui/CardAction';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useSyllabi } from '@/lib/firestore/useSyllabi';
+import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
 import { updateCourse } from '@/lib/firestore/courses';
 import { courseSummarySchema, type CourseSummaryNote } from '@/types/courseSummary';
 import type { Course } from '@/types/schedule';
@@ -37,14 +38,13 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Most recently uploaded syllabus - the one worth summarizing if there's
-  // more than one on file.
-  const latestSyllabus = syllabi
-    .slice()
-    .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())[0];
+  // The course's primary syllabus - the one worth summarizing if there's
+  // more than one on file, and the one a student marked current if a later
+  // upload turned out to be a duplicate or a mistake.
+  const primarySyllabus = getPrimarySyllabus(syllabi);
 
   const handleGenerate = async () => {
-    if (!user || !latestSyllabus) return;
+    if (!user || !primarySyllabus) return;
     setGenerating(true);
     setError(null);
     try {
@@ -53,8 +53,8 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          storagePath: latestSyllabus.storagePath,
-          fileName: latestSyllabus.fileName,
+          storagePath: primarySyllabus.storagePath,
+          fileName: primarySyllabus.fileName,
         }),
       });
       const body = await response.json();
@@ -69,7 +69,7 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
           aiSummary: {
             ...parsed,
             generatedAt: new Date().toISOString(),
-            sourceFileName: latestSyllabus.fileName,
+            sourceFileName: primarySyllabus.fileName,
           },
         },
         dispatch,
@@ -86,7 +86,7 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
   // it's better to have slightly stale info clearly labeled with its source
   // than to silently discard a real Anthropic result.
   const isStale =
-    !!summary && !!latestSyllabus && summary.sourceFileName !== latestSyllabus.fileName;
+    !!summary && !!primarySyllabus && summary.sourceFileName !== primarySyllabus.fileName;
 
   // CO-4: this card used to return null with no syllabus on file, so a fresh
   // course page showed nothing between the dropzone and Tasks - zero
@@ -95,7 +95,7 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
   // distinct (dashed, muted) from both the populated and the
   // ready-to-generate states below - reads as "not yet" instead of
   // "broken/missing".
-  if (!latestSyllabus) {
+  if (!primarySyllabus) {
     return (
       <Card accent="none" className="rounded-2xl border-dashed p-6 opacity-90">
         <div className="flex items-center gap-2.5">
@@ -154,14 +154,14 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
       {!summary && !generating && !error && (
         <p className="text-sm text-muted-foreground">
           Get a plain-English summary and a list of things to watch out for, generated from{' '}
-          {latestSyllabus.fileName}.
+          {primarySyllabus.fileName}.
         </p>
       )}
 
       {generating && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          Reading {latestSyllabus.fileName}…
+          Reading {primarySyllabus.fileName}…
         </div>
       )}
 

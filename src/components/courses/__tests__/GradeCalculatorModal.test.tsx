@@ -4,7 +4,34 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { GradeCalculatorModal } from '../GradeCalculatorModal';
 import { AppStateProvider, AppState } from '@/context/AppStateContext';
 import { ThemeProvider } from '@/context/ThemeProvider';
-import type { Course } from '@/types/schedule';
+import { AuthProvider } from '@/context/AuthContext';
+import { ToastProvider } from '@/components/ui/Toast';
+import type { Course, ScheduleItem } from '@/types/schedule';
+
+const gradedItems: ScheduleItem[] = [
+  {
+    id: 'item-1',
+    courseId: 'course-1',
+    title: 'Homework 1',
+    type: 'assignment',
+    dueDate: '2026-09-10',
+    completed: true,
+    gradeCategory: 'Homework',
+    gradeWeight: 40,
+    earnedScore: 88,
+  },
+  {
+    id: 'item-2',
+    courseId: 'course-1',
+    title: 'Midterm',
+    type: 'exam',
+    dueDate: '2026-10-10',
+    completed: true,
+    gradeCategory: 'Exams',
+    gradeWeight: 30,
+    earnedScore: 92,
+  },
+];
 
 const mockCourses: Course[] = [
   {
@@ -34,7 +61,11 @@ function renderWithProviders(ui: React.ReactElement, stateOverrides: Partial<App
 
   return render(
     <ThemeProvider>
-      <AppStateProvider initialState={initialState as AppState}>{ui}</AppStateProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <AppStateProvider initialState={initialState as AppState}>{ui}</AppStateProvider>
+        </ToastProvider>
+      </AuthProvider>
     </ThemeProvider>,
   );
 }
@@ -109,5 +140,44 @@ describe('GradeCalculatorModal (Item 36)', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows the starter-template banner when the course has no graded work on record', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
+
+    expect(screen.getByText(/No graded scores on record for this course yet/i)).toBeDefined();
+  });
+
+  it('seeds categories from real graded schedule items and shows the seeded-data banner', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />, {
+      scheduleItems: gradedItems,
+    });
+
+    expect(screen.getByText(/Seeded from your actual graded work/i)).toBeDefined();
+    expect(screen.getByDisplayValue('Homework')).toBeDefined();
+    expect(screen.getByDisplayValue('Exams')).toBeDefined();
+  });
+
+  it('shows "No grades yet" in the Semester GPA tab for a course with no graded items', () => {
+    renderWithProviders(
+      <GradeCalculatorModal isOpen={true} onClose={vi.fn()} initialCourseId="course-1" />,
+      { scheduleItems: gradedItems },
+    );
+
+    fireEvent.click(screen.getByText('Semester GPA Impact'));
+
+    expect(screen.getByText('No grades yet')).toBeDefined();
+  });
+
+  it('enables the Save Scenario button only once a scenario name is entered', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
+
+    const saveButton = screen.getByText('Save current').closest('button') as HTMLButtonElement;
+    expect(saveButton.disabled).toBe(true);
+
+    const nameInput = screen.getByPlaceholderText(/Name this scenario/i);
+    fireEvent.change(nameInput, { target: { value: 'Best case' } });
+
+    expect(saveButton.disabled).toBe(false);
   });
 });

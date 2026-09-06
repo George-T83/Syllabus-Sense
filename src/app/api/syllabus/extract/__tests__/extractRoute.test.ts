@@ -1,3 +1,9 @@
+// @vitest-environment node
+//
+// The route now imports aiUsageLimit.ts, which imports adminFirestore.ts -
+// that throws if `window` is defined (firebase-admin must never load in
+// client code), so this needs the real Node environment instead of the
+// project's default jsdom.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 

@@ -5,8 +5,22 @@ import {
   calculateCurrentWeightedGrade,
   calculateRequiredFinalScore,
   calculateSemesterGpa,
+  deriveCategoriesFromScheduleItems,
   GradeCategory,
 } from '../gradeMath';
+import type { ScheduleItem } from '@/types/schedule';
+
+function item(overrides: Partial<ScheduleItem>): ScheduleItem {
+  return {
+    id: overrides.id ?? 'item',
+    courseId: 'course-1',
+    title: 'Item',
+    type: 'assignment',
+    dueDate: '2026-09-10',
+    completed: true,
+    ...overrides,
+  };
+}
 
 describe('Academic Grade Math (Item 36)', () => {
   it('converts percentages to letter grades correctly across boundaries', () => {
@@ -83,9 +97,7 @@ describe('Academic Grade Math (Item 36)', () => {
   });
 
   it('detects already achieved / guaranteed grades (<=0% required on final)', () => {
-    const categories: GradeCategory[] = [
-      { name: 'Coursework', weight: 90, score: 98 },
-    ];
+    const categories: GradeCategory[] = [{ name: 'Coursework', weight: 90, score: 98 }];
     // Final is 10% weight, target 70% (C-)
     const result = calculateRequiredFinalScore(categories, 10, 70.0);
     expect(result.requiredFinalScore).toBeLessThanOrEqual(0);
@@ -107,5 +119,45 @@ describe('Academic Grade Math (Item 36)', () => {
     expect(result.totalCredits).toBe(10);
     expect(result.gpa).toBe(3.61);
     expect(result.qualityPoints).toBe(36.1);
+  });
+
+  it('derives grade categories from graded schedule items, grouped by category', () => {
+    const items: ScheduleItem[] = [
+      item({ id: 'a', gradeCategory: 'Homework', gradeWeight: 10, earnedScore: 90 }),
+      item({ id: 'b', gradeCategory: 'Homework', gradeWeight: 10, earnedScore: 80 }),
+      item({ id: 'c', gradeCategory: 'Exams', gradeWeight: 30, earnedScore: 88 }),
+    ];
+
+    const categories = deriveCategoriesFromScheduleItems(items);
+
+    const homework = categories.find((c) => c.name === 'Homework');
+    const exams = categories.find((c) => c.name === 'Exams');
+    expect(homework?.weight).toBe(20);
+    // (10*90 + 10*80) / 20 = 85
+    expect(homework?.score).toBe(85);
+    expect(exams?.weight).toBe(30);
+    expect(exams?.score).toBe(88);
+  });
+
+  it('excludes items missing a weight or score, and falls back to "Other" for an uncategorized item', () => {
+    const items: ScheduleItem[] = [
+      item({ id: 'no-score', gradeCategory: 'Homework', gradeWeight: 10 }),
+      item({ id: 'no-weight', gradeCategory: 'Homework', earnedScore: 90 }),
+      item({ id: 'uncategorized', gradeWeight: 15, earnedScore: 70 }),
+    ];
+
+    const categories = deriveCategoriesFromScheduleItems(items);
+
+    expect(categories).toHaveLength(1);
+    expect(categories[0].name).toBe('Other');
+    expect(categories[0].weight).toBe(15);
+    expect(categories[0].score).toBe(70);
+  });
+
+  it('returns an empty array when no schedule items have both a weight and a score', () => {
+    expect(deriveCategoriesFromScheduleItems([])).toEqual([]);
+    expect(
+      deriveCategoriesFromScheduleItems([item({ id: 'ungraded', gradeCategory: 'Homework' })]),
+    ).toEqual([]);
   });
 });

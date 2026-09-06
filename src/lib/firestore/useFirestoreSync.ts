@@ -8,6 +8,7 @@ import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/components/ui/Toast';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 import { reconcileScheduleItems } from '@/lib/firestore/scheduleItems';
+import { reconcileCourses } from '@/lib/firestore/courses';
 import type { Contact, Course, ScheduleItem } from '@/types/schedule';
 import type { Source } from '@/types/source';
 import type { Flashcard } from '@/types/flashcard';
@@ -55,7 +56,9 @@ export function useFirestoreSync() {
     const unsubCourses = onSnapshot(
       collection(db, 'users', user.uid, 'courses'),
       (snapshot) => {
-        dispatch({ type: 'SET_COURSES', payload: snapshot.docs.map((d) => d.data() as Course) });
+        const remoteCourses = snapshot.docs.map((d) => d.data() as Course);
+        const reconciled = reconcileCourses(remoteCourses, stateRef.current.courses);
+        dispatch({ type: 'SET_COURSES', payload: reconciled });
       },
       onSyncError('courses'),
     );

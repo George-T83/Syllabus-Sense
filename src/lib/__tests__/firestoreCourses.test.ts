@@ -34,7 +34,15 @@ vi.mock('firebase/storage', () => ({
   deleteObject: (...args: unknown[]) => deleteObjectMock(...args),
 }));
 
-import { createCourse, updateCourse, deleteCourse } from '@/lib/firestore/courses';
+import {
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  reconcileCourses,
+  hasPendingCourseWrites,
+  isPendingCourseDeletion,
+  resetPendingCourseWrites,
+} from '@/lib/firestore/courses';
 import { deleteAllCourseSyllabi, deleteSyllabusUpload } from '@/lib/firestore/syllabi';
 import type { SyllabusUpload } from '@/types/syllabus';
 
@@ -76,6 +84,7 @@ describe('Firestore courses service', () => {
     getDocsMock.mockReset().mockResolvedValue({ docs: [] });
     deleteObjectMock.mockReset().mockResolvedValue(undefined);
     deleteDocMock.mockReset().mockResolvedValue(undefined);
+    resetPendingCourseWrites();
   });
 
   it('createCourse dispatches optimistically then writes to Firestore', async () => {
@@ -226,6 +235,98 @@ describe('Firestore courses service', () => {
     await deleteCourse('u1', course, [relatedItem], dispatch);
 
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'REMOVE_COURSE', payload: otherCourse.id });
+  });
+
+  it('serializes overlapping updates to the same course instead of racing', async () => {
+    let resolveFirstWrite: () => void = () => {};
+    const firstWrite = new Promise<void>((resolve) => {
+      resolveFirstWrite = resolve;
+    });
+    setDocMock.mockImplementationOnce(() => firstWrite);
+    setDocMock.mockImplementationOnce(() => Promise.resolve());
+
+    const dispatch = vi.fn();
+    const renamedOnce: Course = { ...course, title: 'Intro to CS' };
+    const renamedTwice: Course = { ...renamedOnce, title: 'Intro to Computer Science' };
+
+    const firstUpdate = updateCourse('u1', course, renamedOnce, dispatch);
+    const secondUpdate = updateCourse('u1', renamedOnce, renamedTwice, dispatch);
+
+    expect(hasPendingCourseWrites(course.id)).toBe(true);
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(setDocMock).toHaveBeenCalledTimes(1);
+
+    resolveFirstWrite();
+    await firstUpdate;
+    await secondUpdate;
+
+    expect(setDocMock).toHaveBeenCalledTimes(2);
+    expect(hasPendingCourseWrites(course.id)).toBe(false);
+  });
+
+  describe('reconcileCourses (Snapshot Reconciliation)', () => {
+    it('returns authoritative remote courses when there are no active in-flight writes', () => {
+      const remote = [course, otherCourse];
+      const local = [course, otherCourse];
+      expect(reconcileCourses(remote, local)).toEqual(remote);
+    });
+
+    it('preserves local optimistic state when remote snapshot is stale during an in-flight write', async () => {
+      let resolveWrite: () => void = () => {};
+      setDocMock.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveWrite = resolve;
+          }),
+      );
+
+      const dispatch = vi.fn();
+      const renamed: Course = { ...course, title: 'Intro to CS' };
+      updateCourse('u1', course, renamed, dispatch);
+
+      expect(hasPendingCourseWrites(course.id)).toBe(true);
+
+      const staleRemoteSnapshot = [course, otherCourse];
+      const localState = [renamed, otherCourse];
+      const reconciled = reconcileCourses(staleRemoteSnapshot, localState);
+
+      expect(reconciled.find((c) => c.id === course.id)?.title).toBe('Intro to CS');
+      expect(reconciled.find((c) => c.id === otherCourse.id)?.title).toBe(otherCourse.title);
+
+      resolveWrite();
+      await Promise.resolve();
+    });
+
+    it('filters out a course pending deletion even if a stale remote snapshot still contains it', () => {
+      let resolveGetDocs: (v: { docs: never[] }) => void = () => {};
+      getDocsMock.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveGetDocs = resolve;
+          }),
+      );
+
+      const dispatch = vi.fn();
+      // Deliberately not awaited: deleteCourse's first await is the getDocs
+      // call above, which never resolves in this test - this only checks
+      // the synchronous pendingCourseDeletions bookkeeping and the
+      // reconciliation it drives, the same shape as the analogous
+      // scheduleItems "filters out pending deleted items" test.
+      void deleteCourse('u1', course, [], dispatch);
+
+      expect(isPendingCourseDeletion(course.id)).toBe(true);
+
+      const staleRemoteSnapshot = [course, otherCourse];
+      const localState = [otherCourse];
+      const reconciled = reconcileCourses(staleRemoteSnapshot, localState);
+
+      expect(reconciled.map((c) => c.id)).not.toContain(course.id);
+      expect(reconciled.map((c) => c.id)).toContain(otherCourse.id);
+
+      resolveGetDocs({ docs: [] });
+    });
   });
 });
 

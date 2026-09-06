@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
+import { toDayKey } from '@/lib/calendar/dates';
 import type { Course, MeetingTime } from '@/types/schedule';
 
 export interface NextClassHeroBannerProps {
@@ -77,6 +78,11 @@ export function findNextClassSession(
       const link = extractMeetingLink(course, meeting);
 
       if (meeting.dayOfWeek === currentDayOfWeek) {
+        // A course explicitly marked cancelled today (a holiday/break the AI
+        // extracted from the syllabus into skipDates) never shows as
+        // happening, even though today matches the recurring weekday.
+        if (course.skipDates?.includes(toDayKey(now))) return;
+
         const isHappeningNow = currentTotalMinutes >= startTotal && currentTotalMinutes <= endTotal;
         const minutesUntilStart = startTotal - currentTotalMinutes;
         const minutesRemaining = endTotal - currentTotalMinutes;
@@ -109,6 +115,10 @@ export function findNextClassSession(
         const futureDate = new Date(now);
         futureDate.setDate(now.getDate() + dayDiff);
         futureDate.setHours(startH || 0, startM || 0, 0, 0);
+
+        // Same skipDates check, against the future occurrence's own date
+        // rather than today's - a break weeks out shouldn't surface either.
+        if (course.skipDates?.includes(toDayKey(futureDate))) return;
 
         const futureEndDate = new Date(futureDate);
         futureEndDate.setHours(endH || 0, endM || 0, 0, 0);

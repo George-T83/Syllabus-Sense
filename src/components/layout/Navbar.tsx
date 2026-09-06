@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeProvider';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
+import { useToast } from '@/components/ui/Toast';
 import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
@@ -199,6 +200,7 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
   const { resolvedTheme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const { showError } = useToast();
   const [mounted, setMounted] = useState(false);
   const [openPanel, setOpenPanel] = useState<'search' | 'bell' | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -206,7 +208,11 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
 
   const handleSignOut = async () => {
     const success = await signOut();
-    if (success) router.push('/login');
+    if (success) {
+      router.push('/login');
+    } else {
+      showError('Could not sign out', 'Please try again in a moment.');
+    }
   };
 
   useEffect(() => {

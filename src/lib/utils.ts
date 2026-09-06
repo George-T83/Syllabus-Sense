@@ -36,3 +36,18 @@ export function normalizeContactName(name: string): string {
     .replace(/[^a-z\s]/g, '')
     .trim();
 }
+
+/** Reads a File as base64, stripping the `data:...;base64,` prefix a data
+ * URL comes with - every server route that accepts an uploaded file wants
+ * the raw base64 payload, not the full data URL. */
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}

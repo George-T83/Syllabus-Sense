@@ -1,5 +1,6 @@
 import type { Course, MeetingTime } from '@/types/schedule';
 import { isWithinEstimatedTerm } from '@/lib/calendar/termDates';
+import { toDayKey } from '@/lib/calendar/dates';
 
 export interface MeetingOccurrence {
   course: Course;
@@ -17,12 +18,18 @@ export interface MeetingOccurrence {
  * recurrence to `estimateTermRange`'s parse of that label instead of
  * matching every week forever - without it, a Spring course's MWF pattern
  * kept rendering on every month of the calendar, including next August.
+ *
+ * A course's `skipDates` (holidays/breaks the AI extracted from the
+ * syllabus) is checked here too - without it, a class explicitly marked
+ * cancelled for a break still rendered as happening that day.
  */
 export function getMeetingsForDay(courses: Course[], day: Date): MeetingOccurrence[] {
   const dayOfWeek = day.getDay();
+  const dayKey = toDayKey(day);
   const occurrences: MeetingOccurrence[] = [];
   for (const course of courses) {
     if (!isWithinEstimatedTerm(course.term, day)) continue;
+    if (course.skipDates?.includes(dayKey)) continue;
     for (const meeting of course.meetingTimes ?? []) {
       if (meeting.dayOfWeek === dayOfWeek) {
         occurrences.push({ course, meeting });

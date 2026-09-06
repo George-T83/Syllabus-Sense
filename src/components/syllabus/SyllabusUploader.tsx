@@ -4,14 +4,25 @@ import { useRef, useState, DragEvent } from 'react';
 import { useUploadSyllabus } from '@/lib/storage/useUploadSyllabus';
 import { validateSyllabusFile } from '@/lib/validation/syllabusFile';
 import { cn } from '@/lib/utils';
+import type { SyllabusUpload } from '@/types/syllabus';
 
 export interface SyllabusUploaderProps {
   userId: string;
   courseId: string;
-  onUploaded?: () => void;
+  /** Whichever upload is primary right now, captured at the moment a new
+   * upload starts - passed back on `onUploaded` so the caller can offer a
+   * diff against the version this upload is about to replace, without a
+   * race against the primary-flip the upload itself just caused. */
+  currentPrimarySyllabus?: SyllabusUpload | null;
+  onUploaded?: (newUpload: SyllabusUpload, previousPrimary: SyllabusUpload | null) => void;
 }
 
-export function SyllabusUploader({ userId, courseId, onUploaded }: SyllabusUploaderProps) {
+export function SyllabusUploader({
+  userId,
+  courseId,
+  currentPrimarySyllabus = null,
+  onUploaded,
+}: SyllabusUploaderProps) {
   const { status, progress, error, upload, pause, resume, cancel, reset } = useUploadSyllabus(
     userId,
     courseId,
@@ -27,8 +38,9 @@ export function SyllabusUploader({ userId, courseId, onUploaded }: SyllabusUploa
       return;
     }
     setValidationError(null);
+    const previousPrimary = currentPrimarySyllabus;
     upload(file)
-      .then(() => onUploaded?.())
+      .then((newUpload) => onUploaded?.(newUpload, previousPrimary))
       .catch(() => {
         // Error state is already surfaced via the hook's `error` field.
       });
