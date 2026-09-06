@@ -19,6 +19,7 @@ import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { WeeklyBriefingCard } from '@/components/dashboard/WeeklyBriefingCard';
+import { AdvisorInsightCard } from '@/components/dashboard/AdvisorInsightCard';
 import { MaterialsBudgetCard } from '@/components/dashboard/MaterialsBudgetCard';
 import { MoodCheckInCard } from '@/components/dashboard/MoodCheckInCard';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
@@ -251,6 +252,8 @@ export function DashboardView() {
             </button>
           </div>
         </div>
+
+        <AdvisorInsightCard />
 
         <WeeklyBriefingCard scheduleItems={state.scheduleItems} />
 
