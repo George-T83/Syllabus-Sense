@@ -39,6 +39,12 @@ import {
   WORKLOAD_TINT_CLASS,
 } from '@/lib/workload';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
+import {
+  MONTH_YEAR_FORMATTER as monthLabelFormatter,
+  WEEKDAY_LONG_DATE_FORMATTER as dayLabelFormatter,
+  WEEKDAY_SHORT_DATE_FORMATTER as agendaDayLabelFormatter,
+  SHORT_DATE_FORMATTER as weekLabelFormatter,
+} from '@/lib/dateFormatters';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
 import { useModalA11y } from '@/hooks/useModalA11y';
@@ -54,18 +60,6 @@ const FULL_WEEKDAY_NAMES = [
   'Friday',
   'Saturday',
 ];
-const monthLabelFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
-const dayLabelFormatter = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-});
-const agendaDayLabelFormatter = new Intl.DateTimeFormat('en-US', {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-});
-const weekLabelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
 /** Semantic icons for the calendar key (course chips / workload / markers),
  * replacing plain dots and squares so each row communicates what it means

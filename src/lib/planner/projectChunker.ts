@@ -1,4 +1,5 @@
 import type { ScheduleItem } from '@/types/schedule';
+import { WEEKDAY_SHORT_FORMATTER, SHORT_DATE_FORMATTER } from '@/lib/dateFormatters';
 
 export type ChunkableType =
   | 'project'
@@ -193,14 +194,24 @@ export function divideProjectIntoChunks(params: DivideProjectParams): ProjectChu
 
   const totalMinutes = Math.max(30, Math.round(hours * 60));
 
-  const startMs = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+  const startMs = new Date(
+    startDate.getFullYear(),
+    startDate.getMonth(),
+    startDate.getDate(),
+  ).getTime();
   const dueMs = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
 
   const totalDays = Math.max(1, Math.ceil((dueMs - startMs) / (1000 * 60 * 60 * 24)));
 
   const chunkCount =
     pace === 'daily'
-      ? Math.min(totalDays, Math.max(chunkType === 'quiz' || chunkType === 'flashcards' ? 2 : 4, Math.ceil(totalMinutes / 45)))
+      ? Math.min(
+          totalDays,
+          Math.max(
+            chunkType === 'quiz' || chunkType === 'flashcards' ? 2 : 4,
+            Math.ceil(totalMinutes / 45),
+          ),
+        )
       : Math.min(Math.max(1, Math.ceil(totalDays / 7)), Math.max(2, Math.ceil(totalMinutes / 120)));
 
   const baseMinutes = Math.floor(totalMinutes / chunkCount);
@@ -242,10 +253,10 @@ export function divideProjectIntoChunks(params: DivideProjectParams): ProjectChu
 export function shiftTaskDate(
   itemId: string,
   newDateStr: string,
-  scheduleItems: ScheduleItem[]
+  scheduleItems: ScheduleItem[],
 ): ScheduleItem[] {
   return scheduleItems.map((item) =>
-    item.id === itemId ? { ...item, dueDate: newDateStr } : item
+    item.id === itemId ? { ...item, dueDate: newDateStr } : item,
   );
 }
 
@@ -255,7 +266,7 @@ export function shiftTaskDate(
 export function calculateWorkloadBreakdown(
   scheduleItems: ScheduleItem[],
   customChunks: ProjectChunk[] = [],
-  referenceDate: Date | string = new Date()
+  referenceDate: Date | string = new Date(),
 ): WorkloadBreakdown {
   const refDate = parseDateString(referenceDate);
   const refYear = refDate.getFullYear();
@@ -270,8 +281,8 @@ export function calculateWorkloadBreakdown(
   for (let i = -2; i < 7; i++) {
     const d = new Date(refYear, refMonth, refDay + i);
     const dateStr = toLocalDateStr(d);
-    const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(d);
-    const formattedDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(d);
+    const dayName = WEEKDAY_SHORT_FORMATTER.format(d);
+    const formattedDate = SHORT_DATE_FORMATTER.format(d);
 
     daysMap.set(dateStr, {
       dateStr,
@@ -291,7 +302,11 @@ export function calculateWorkloadBreakdown(
     if (!item.dueDate) continue;
     const itemDate = parseDateString(item.dueDate);
     const dateStr = toLocalDateStr(itemDate);
-    const duration = item.estimatedHours ? Math.round(item.estimatedHours * 60) : (item.type === 'exam' ? 120 : 60);
+    const duration = item.estimatedHours
+      ? Math.round(item.estimatedHours * 60)
+      : item.type === 'exam'
+        ? 120
+        : 60;
 
     // Retroactive completion: if completed, count on original due date regardless of age
     if (item.completed) {

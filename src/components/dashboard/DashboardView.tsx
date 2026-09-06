@@ -28,9 +28,10 @@ import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { ScheduleItem } from '@/types/schedule';
-
-const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const forecastDayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
+import {
+  SHORT_DATE_FORMATTER as dueDateFormatter,
+  WEEKDAY_SHORT_FORMATTER as forecastDayFormatter,
+} from '@/lib/dateFormatters';
 
 function getGreeting(hour: number): string {
   if (hour < 5) return 'Working late';

@@ -41,8 +41,8 @@ import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { Course, ScheduleItem, Contact, ContactRole, AbsenceRecord } from '@/types/schedule';
+import { SHORT_DATE_FORMATTER as dueDateFormatter } from '@/lib/dateFormatters';
 
-const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /** Below this many logged tasks, `progressPct` is too small a sample to read

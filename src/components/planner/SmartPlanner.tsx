@@ -23,14 +23,11 @@ import {
 } from '@/lib/planner/computeSmartPlan';
 import { cn } from '@/lib/utils';
 import type { Course, ScheduleItem } from '@/types/schedule';
-
-const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const dayLabelFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
-const dayDetailFormatter = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-});
+import {
+  SHORT_DATE_FORMATTER as dueDateFormatter,
+  WEEKDAY_SHORT_FORMATTER as dayLabelFormatter,
+  WEEKDAY_LONG_DATE_FORMATTER as dayDetailFormatter,
+} from '@/lib/dateFormatters';
 
 /**
  * Formats a `YYYY-MM-DD` planning key (`PlannedItem.startDate`, always a
