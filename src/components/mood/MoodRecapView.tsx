@@ -26,6 +26,7 @@ import {
   computeBestAndWorstDay,
 } from '@/lib/mood/moodStats';
 import { MOOD_OPTIONS, MOOD_SWATCH_CLASS, getMoodOption } from '@/lib/mood/moodScale';
+import { WORKLOAD_RAW_COLOR } from '@/lib/workload/uiClasses';
 import { computeSemesterHeatmap } from '@/lib/planner/semesterHeatmap';
 import { parseDayKey } from '@/lib/calendar/dates';
 import { cn } from '@/lib/utils';
@@ -49,17 +50,15 @@ const WORKLOAD_LEVEL_LABEL: Record<WorkloadLevel, string> = {
   critical: 'Extreme',
 };
 
-/** Same 4-step palette as MOOD_SWATCH_CLASS/WORKLOAD_SWATCH_CLASS, as raw
- * CSS color strings - recharts draws its own SVG and can't consume
- * Tailwind's utility classes, but reading the same `--load-*` custom
- * properties keeps every chart on this page and the workload heatmap
- * drawing from one shared palette. */
-const CHART_COLOR: Record<WorkloadLevel, string> = {
-  low: 'hsl(var(--load-low))',
-  medium: 'hsl(var(--load-medium))',
-  high: 'hsl(var(--load-high))',
-  critical: 'hsl(var(--load-critical))',
+/** Recharts' shared tooltip look, reused by both charts below instead of
+ * two copies of the same object literal. */
+const CHART_TOOLTIP_STYLE = {
+  background: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: 8,
+  fontSize: 12,
 };
+
 export function MoodRecapView() {
   const { state } = useAppState();
   const entries = state.moodEntries;
@@ -188,8 +187,8 @@ export function MoodRecapView() {
             >
               <defs>
                 <linearGradient id="moodTrendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--load-low))" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="hsl(var(--load-low))" stopOpacity={0} />
+                  <stop offset="5%" stopColor={WORKLOAD_RAW_COLOR.low} stopOpacity={0.35} />
+                  <stop offset="95%" stopColor={WORKLOAD_RAW_COLOR.low} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -214,20 +213,15 @@ export function MoodRecapView() {
                   const mood = getMoodOption(Number(value) as MoodValue);
                   return [`${mood.emoji} ${mood.label}`, 'Mood'];
                 }}
-                contentStyle={{
-                  background: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
+                contentStyle={CHART_TOOLTIP_STYLE}
               />
               <Area
                 type="monotone"
                 dataKey="mood"
-                stroke="hsl(var(--load-low))"
+                stroke={WORKLOAD_RAW_COLOR.low}
                 strokeWidth={2}
                 fill="url(#moodTrendFill)"
-                dot={{ r: 3, fill: 'hsl(var(--load-low))', strokeWidth: 0 }}
+                dot={{ r: 3, fill: WORKLOAD_RAW_COLOR.low, strokeWidth: 0 }}
                 activeDot={{ r: 5 }}
               />
             </AreaChart>
@@ -285,12 +279,7 @@ export function MoodRecapView() {
                     'Mood',
                   ];
                 }}
-                contentStyle={{
-                  background: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
+                contentStyle={CHART_TOOLTIP_STYLE}
                 cursor={{ fill: 'hsl(var(--accent))', opacity: 0.5 }}
               />
               <Bar
@@ -309,7 +298,7 @@ export function MoodRecapView() {
                 {byWorkload.map((b) => (
                   <Cell
                     key={b.level}
-                    fill={CHART_COLOR[b.level]}
+                    fill={WORKLOAD_RAW_COLOR[b.level]}
                     fillOpacity={b.count ? 1 : 0.15}
                   />
                 ))}

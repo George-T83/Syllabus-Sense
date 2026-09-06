@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { NavIcon, DegreeNavIcon } from './NavIcon';
+import { usePopoverA11y } from '@/hooks/usePopoverA11y';
 
 interface TabItem {
   name: string;
@@ -57,6 +58,7 @@ export default function MobileTabBar() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const isMoreActive = moreItems.some((item) => pathname === item.href);
+  usePopoverA11y(isMoreOpen, () => setIsMoreOpen(false));
 
   return (
     <>

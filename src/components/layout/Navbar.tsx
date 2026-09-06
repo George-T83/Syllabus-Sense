@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/components/ui/Toast';
 import { CountBadge } from '@/components/ui/CountBadge';
+import { usePopoverA11y } from '@/hooks/usePopoverA11y';
 import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
@@ -99,6 +100,7 @@ function NotificationBell({
 }) {
   const { overdueCount, overdue, dueSoon } = useOverdueAndDueSoon();
   const hasAny = overdue.length > 0 || dueSoon.length > 0;
+  usePopoverA11y(open, onClose);
 
   return (
     <div className="relative">
