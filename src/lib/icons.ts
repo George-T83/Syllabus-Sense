@@ -52,6 +52,10 @@ export const NAV_ICON_PATHS = {
     'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
   mood: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   profile: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+  /** Same bolt glyph as ICON_PATHS.planner (the AI Copilot mark elsewhere in
+   * the app) - the Advisor is an AI feature, so it reuses the established
+   * "AI" glyph rather than introducing a second one. */
+  advisor: 'M13 10V3L4 14h7v7l9-11h-7z',
 } as const;
 
 export type NavIconKey = keyof typeof NAV_ICON_PATHS;

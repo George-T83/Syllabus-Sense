@@ -21,6 +21,7 @@ const tabItems: TabItem[] = [
 ];
 
 const moreItems: TabItem[] = [
+  { name: 'Advisor', href: '/advisor', icon: <NavIcon name="advisor" /> },
   { name: 'Flashcards', href: '/flashcards', icon: <NavIcon name="flashcards" /> },
   { name: 'Quizzes', href: '/quizzes', icon: <NavIcon name="quizzes" /> },
   { name: 'Planner', href: '/planner', icon: <NavIcon name="plannerList" /> },
