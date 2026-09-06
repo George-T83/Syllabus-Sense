@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { updateFlashcard } from '@/lib/firestore/flashcards';
@@ -14,6 +15,7 @@ import type { Flashcard } from '@/types/flashcard';
 export function FlashcardsView() {
   const { user } = useAuth();
   const { state, dispatch } = useAppState();
+  const { showError } = useToast();
   const [reviewQueue, setReviewQueue] = useState<Flashcard[] | null>(null);
 
   const dueCards = state.flashcards.filter((c) => isCardDue(c));
@@ -21,12 +23,17 @@ export function FlashcardsView() {
   const handleRate = async (card: Flashcard, rating: ReviewRating) => {
     if (!user) return;
     const next = applySM2(card, rating);
-    await updateFlashcard(
-      user.uid,
-      card,
-      { ...card, ...next, lastReviewedAt: new Date().toISOString() },
-      dispatch,
-    );
+    try {
+      await updateFlashcard(
+        user.uid,
+        card,
+        { ...card, ...next, lastReviewedAt: new Date().toISOString() },
+        dispatch,
+      );
+    } catch (err) {
+      showError("Couldn't save that rating", err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   };
 
   return (

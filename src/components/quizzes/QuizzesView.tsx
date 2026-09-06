@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { createQuizAttempt } from '@/lib/firestore/quizzes';
@@ -13,22 +14,28 @@ import type { Quiz } from '@/types/quiz';
 export function QuizzesView() {
   const { user } = useAuth();
   const { state, dispatch } = useAppState();
+  const { showError } = useToast();
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
 
   const handleComplete = async (score: number, total: number) => {
     if (!user || !activeQuiz) return;
-    await createQuizAttempt(
-      user.uid,
-      {
-        id: crypto.randomUUID(),
-        quizId: activeQuiz.id,
-        courseId: activeQuiz.courseId,
-        score,
-        total,
-        completedAt: new Date().toISOString(),
-      },
-      dispatch,
-    );
+    try {
+      await createQuizAttempt(
+        user.uid,
+        {
+          id: crypto.randomUUID(),
+          quizId: activeQuiz.id,
+          courseId: activeQuiz.courseId,
+          score,
+          total,
+          completedAt: new Date().toISOString(),
+        },
+        dispatch,
+      );
+    } catch (err) {
+      showError('Could not save your score', err instanceof Error ? err.message : undefined);
+      throw err;
+    }
   };
 
   return (

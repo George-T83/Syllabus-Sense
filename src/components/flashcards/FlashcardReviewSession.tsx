@@ -56,6 +56,9 @@ export function FlashcardReviewSession({ cards, onClose, onRate }: FlashcardRevi
       await onRate(card, r);
       setIndex((i) => i + 1);
       setRevealed(false);
+    } catch {
+      // onRate already surfaced an error toast - keep this card on screen
+      // instead of advancing past a rating that was never saved.
     } finally {
       setRating(false);
     }
