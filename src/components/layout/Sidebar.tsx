@@ -18,6 +18,7 @@ export default function Sidebar() {
   const navItems: NavItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: <NavIcon name="dashboard" /> },
     { name: 'Courses', href: '/courses', icon: <NavIcon name="courses" /> },
+    { name: 'Advisor', href: '/advisor', icon: <NavIcon name="advisor" /> },
     { name: 'Degree', href: '/degree-compass', icon: <DegreeNavIcon /> },
     { name: 'Contacts', href: '/contacts', icon: <NavIcon name="contacts" /> },
     { name: 'Tasks', href: '/tasks', icon: <NavIcon name="tasks" /> },
