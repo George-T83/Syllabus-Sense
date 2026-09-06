@@ -8,13 +8,10 @@ import { computeSemesterHeatmap, type SemesterHeatmapDay } from '@/lib/planner/s
 import { WORKLOAD_SWATCH_CLASS } from '@/lib/workload/uiClasses';
 import { parseDayKey } from '@/lib/calendar/dates';
 import { cn } from '@/lib/utils';
-
-const MONTH_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'short' });
-const DAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-});
+import {
+  MONTH_SHORT_FORMATTER as MONTH_FORMATTER,
+  WEEKDAY_SHORT_DATE_FORMATTER as DAY_FORMATTER,
+} from '@/lib/dateFormatters';
 
 // GitHub's own contribution graph only labels every other weekday row (Mon,
 // Wed, Fri) - a label on all 7 rows crowds the narrow gutter this grid has

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { getWorkloadLevel } from '@/lib/workload';
 import { courseSwatch } from '@/lib/courseColors';
 import type { AssignmentType, Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
+import { WEEKDAY_SHORT_FORMATTER as dayHeaderFormatter } from '@/lib/dateFormatters';
 
 // #CA-3: same short, uppercase, mobile-lead labels MonthCalendar uses for
 // its day-cell chips - kept in sync so a truncated item reads the same way
@@ -36,8 +37,6 @@ const DEFAULT_SCROLL_HOUR = 7;
 const VISIBLE_HOURS = 13;
 
 const HOUR_LABELS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
-
-const dayHeaderFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
 
 const HEAT_TINT_CLASS: Record<WorkloadLevel, string> = {
   low: '',

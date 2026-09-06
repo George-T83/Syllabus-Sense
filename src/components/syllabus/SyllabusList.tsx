@@ -8,6 +8,7 @@ import {
   getPrimarySyllabus,
 } from '@/lib/firestore/syllabi';
 import { DocumentViewerModal } from '@/components/syllabus/DocumentViewerModal';
+import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { useToast } from '@/components/ui/Toast';
 import type { SyllabusUpload } from '@/types/syllabus';
 
@@ -102,22 +103,12 @@ export function SyllabusList({ userId, courseId }: SyllabusListProps) {
             <span className="text-xs text-muted-foreground">{formatSize(syllabus.sizeBytes)}</span>
           </div>
           {confirmingDeleteId === syllabus.id ? (
-            <div className="flex items-center gap-1.5 text-xs shrink-0">
-              <button
-                onClick={() => handleDelete(syllabus)}
-                disabled={deletingId === syllabus.id}
-                className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {deletingId === syllabus.id ? 'Deleting…' : 'Confirm'}
-              </button>
-              <button
-                onClick={() => setConfirmingDeleteId(null)}
-                disabled={deletingId === syllabus.id}
-                className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
+            <ConfirmDeleteInline
+              deleting={deletingId === syllabus.id}
+              onConfirm={() => handleDelete(syllabus)}
+              onCancel={() => setConfirmingDeleteId(null)}
+              className="shrink-0"
+            />
           ) : (
             <div className="flex items-center gap-1.5 shrink-0">
               {syllabus.id !== primaryId && (

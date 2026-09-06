@@ -7,6 +7,8 @@ import { useTheme } from '@/context/ThemeProvider';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/components/ui/Toast';
+import { CountBadge } from '@/components/ui/CountBadge';
+import { usePopoverA11y } from '@/hooks/usePopoverA11y';
 import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
@@ -98,6 +100,7 @@ function NotificationBell({
 }) {
   const { overdueCount, overdue, dueSoon } = useOverdueAndDueSoon();
   const hasAny = overdue.length > 0 || dueSoon.length > 0;
+  usePopoverA11y(open, onClose);
 
   return (
     <div className="relative">
@@ -109,14 +112,7 @@ function NotificationBell({
         className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
       >
         <BellIcon />
-        {overdueCount > 0 && (
-          <span
-            className="absolute top-1 right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground"
-            aria-hidden="true"
-          >
-            {overdueCount > 9 ? '9+' : overdueCount}
-          </span>
-        )}
+        {overdueCount > 0 && <CountBadge count={overdueCount} className="absolute top-1 right-1" />}
       </button>
       {open && (
         <>
