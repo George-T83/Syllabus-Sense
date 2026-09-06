@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
+import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
@@ -147,24 +148,12 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
         )}
         {quiz &&
           (confirmingDelete ? (
-            <>
-              <button
-                type="button"
-                onClick={handleDeleteQuiz}
-                disabled={deleting}
-                className="inline-flex min-h-[36px] items-center justify-center rounded-full bg-destructive/10 px-3 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {deleting ? 'Deleting…' : 'Confirm'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingDelete(false)}
-                disabled={deleting}
-                className="inline-flex min-h-[36px] items-center justify-center rounded-full px-3 text-xs text-muted-foreground transition-colors hover:bg-accent"
-              >
-                Cancel
-              </button>
-            </>
+            <ConfirmDeleteInline
+              deleting={deleting}
+              onConfirm={handleDeleteQuiz}
+              onCancel={() => setConfirmingDelete(false)}
+              size="md"
+            />
           ) : (
             <button
               type="button"

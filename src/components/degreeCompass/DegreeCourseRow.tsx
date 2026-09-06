@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import type { DegreeCourse } from '@/types/degreeCompass';
 
 const STATUS_LABEL: Record<DegreeCourse['status'], string> = {
@@ -62,24 +63,11 @@ export function DegreeCourseRow({ course, categoryName, onEdit, onDelete }: Degr
       </div>
       <div className="flex items-center gap-1 shrink-0 opacity-80 transition-opacity group-hover:opacity-100">
         {confirmingDelete ? (
-          <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
-            <button
-              type="button"
-              onClick={handleConfirmDelete}
-              disabled={deleting}
-              className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-            >
-              {deleting ? 'Deleting…' : 'Confirm'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={deleting}
-              className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </div>
+          <ConfirmDeleteInline
+            deleting={deleting}
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setConfirmingDelete(false)}
+          />
         ) : (
           <>
             <button

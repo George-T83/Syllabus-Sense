@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BackLink } from '@/components/ui/BackLink';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
+import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { TaskRow } from '@/components/ui/TaskRow';
@@ -40,8 +41,8 @@ import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { Course, ScheduleItem, Contact, ContactRole, AbsenceRecord } from '@/types/schedule';
+import { SHORT_DATE_FORMATTER as dueDateFormatter } from '@/lib/dateFormatters';
 
-const dueDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /** Below this many logged tasks, `progressPct` is too small a sample to read
@@ -789,23 +790,13 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
               )}
               <div className="ml-auto">
                 {confirmingDeleteCourse ? (
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">Delete course and its tasks?</span>
-                    <button
-                      onClick={handleDeleteCourse}
-                      disabled={isDeletingCourse}
-                      className="rounded-full bg-destructive/10 px-3 py-1.5 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                    >
-                      {isDeletingCourse ? 'Deleting…' : 'Confirm'}
-                    </button>
-                    <button
-                      onClick={() => setConfirmingDeleteCourse(false)}
-                      disabled={isDeletingCourse}
-                      className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  <ConfirmDeleteInline
+                    deleting={isDeletingCourse}
+                    onConfirm={handleDeleteCourse}
+                    onCancel={() => setConfirmingDeleteCourse(false)}
+                    size="lg"
+                    message="Delete course and its tasks?"
+                  />
                 ) : (
                   <button
                     onClick={() => setConfirmingDeleteCourse(true)}
@@ -965,22 +956,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                             Edit
                           </button>
                           {confirmingDeleteContactId === contact.id ? (
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <button
-                                onClick={() => handleDeleteContact(contact)}
-                                disabled={deletingContactId === contact.id}
-                                className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                              >
-                                {deletingContactId === contact.id ? 'Deleting…' : 'Confirm'}
-                              </button>
-                              <button
-                                onClick={() => setConfirmingDeleteContactId(null)}
-                                disabled={deletingContactId === contact.id}
-                                className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                            <ConfirmDeleteInline
+                              deleting={deletingContactId === contact.id}
+                              onConfirm={() => handleDeleteContact(contact)}
+                              onCancel={() => setConfirmingDeleteContactId(null)}
+                            />
                           ) : (
                             <button
                               onClick={() => setConfirmingDeleteContactId(contact.id)}
@@ -1133,24 +1113,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     </div>
                     <div className="flex items-center gap-1 shrink-0 opacity-80 transition-opacity group-hover:opacity-100">
                       {confirmingDeleteObjectiveIndex === i ? (
-                        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteObjective(i)}
-                            disabled={deletingObjectiveIndex === i}
-                            className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                          >
-                            {deletingObjectiveIndex === i ? 'Deleting…' : 'Confirm'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmingDeleteObjectiveIndex(null)}
-                            disabled={deletingObjectiveIndex === i}
-                            className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        <ConfirmDeleteInline
+                          deleting={deletingObjectiveIndex === i}
+                          onConfirm={() => handleDeleteObjective(i)}
+                          onCancel={() => setConfirmingDeleteObjectiveIndex(null)}
+                        />
                       ) : (
                         <>
                           <button
@@ -1336,24 +1303,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     </div>
                     <div className="flex items-center gap-1 shrink-0 opacity-80 transition-opacity group-hover:opacity-100">
                       {confirmingDeleteMaterialIndex === i ? (
-                        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMaterial(i)}
-                            disabled={deletingMaterialIndex === i}
-                            className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                          >
-                            {deletingMaterialIndex === i ? 'Deleting…' : 'Confirm'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmingDeleteMaterialIndex(null)}
-                            disabled={deletingMaterialIndex === i}
-                            className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        <ConfirmDeleteInline
+                          deleting={deletingMaterialIndex === i}
+                          onConfirm={() => handleDeleteMaterial(i)}
+                          onCancel={() => setConfirmingDeleteMaterialIndex(null)}
+                        />
                       ) : (
                         <>
                           <button
@@ -1543,22 +1497,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           Edit
                         </button>
                         {confirmingDeleteItemId === item.id ? (
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <button
-                              onClick={() => handleDeleteTask(item)}
-                              disabled={deletingItemId === item.id}
-                              className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                            >
-                              {deletingItemId === item.id ? 'Deleting…' : 'Confirm'}
-                            </button>
-                            <button
-                              onClick={() => setConfirmingDeleteItemId(null)}
-                              disabled={deletingItemId === item.id}
-                              className="rounded-full px-2.5 py-1 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                          <ConfirmDeleteInline
+                            deleting={deletingItemId === item.id}
+                            onConfirm={() => handleDeleteTask(item)}
+                            onCancel={() => setConfirmingDeleteItemId(null)}
+                          />
                         ) : (
                           <button
                             onClick={() => setConfirmingDeleteItemId(item.id)}

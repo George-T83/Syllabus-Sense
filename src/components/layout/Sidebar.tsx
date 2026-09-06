@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { NavIcon, DegreeNavIcon } from './NavIcon';
 
 interface NavItem {
   name: string;
@@ -15,208 +16,17 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   const navItems: NavItem[] = [
-    {
-      name: 'Dashboard',
-      href: '/dashboard',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Courses',
-      href: '/courses',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Degree',
-      href: '/degree-compass',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l-2 5-5 2 2-5 5-2z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Contacts',
-      href: '/contacts',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Tasks',
-      href: '/tasks',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Flashcards',
-      href: '/flashcards',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9 4.5v15m0-15a1.5 1.5 0 011.5-1.5h9A1.5 1.5 0 0121 4.5v10.5a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 019 15M3 6.75h6M3 12h6m-6 5.25h6"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Quizzes',
-      href: '/quizzes',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Planner',
-      href: '/planner',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h10M4 18h7" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Calendar',
-      href: '/calendar',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Mood',
-      href: '/mood',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-    },
-    {
-      name: 'Profile',
-      href: '/profile',
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-          />
-        </svg>
-      ),
-    },
+    { name: 'Dashboard', href: '/dashboard', icon: <NavIcon name="dashboard" /> },
+    { name: 'Courses', href: '/courses', icon: <NavIcon name="courses" /> },
+    { name: 'Degree', href: '/degree-compass', icon: <DegreeNavIcon /> },
+    { name: 'Contacts', href: '/contacts', icon: <NavIcon name="contacts" /> },
+    { name: 'Tasks', href: '/tasks', icon: <NavIcon name="tasks" /> },
+    { name: 'Flashcards', href: '/flashcards', icon: <NavIcon name="flashcards" /> },
+    { name: 'Quizzes', href: '/quizzes', icon: <NavIcon name="quizzes" /> },
+    { name: 'Planner', href: '/planner', icon: <NavIcon name="plannerList" /> },
+    { name: 'Calendar', href: '/calendar', icon: <NavIcon name="calendar" /> },
+    { name: 'Mood', href: '/mood', icon: <NavIcon name="mood" /> },
+    { name: 'Profile', href: '/profile', icon: <NavIcon name="profile" /> },
   ];
 
   return (

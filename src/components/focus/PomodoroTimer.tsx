@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { saveSession } from '@/lib/focus/pomodoroSessions';
 
 const WORK_DURATION = 25 * 60; // 25 minutes
@@ -158,34 +159,32 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
 
   if (!visible) {
     return (
-      <button
+      <FloatingActionPill
         onClick={() => setVisible(true)}
-        aria-label="Open Pomodoro focus timer (Alt+P)"
+        ariaLabel="Open Pomodoro focus timer (Alt+P)"
         title="Focus Timer (Alt+P)"
-        className="fixed bottom-20 left-4 z-50 flex items-center gap-2.5 rounded-full border border-amber-400/30 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 px-4 py-2.5 text-xs font-semibold text-white shadow-[0_8px_25px_rgba(245,158,11,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:shadow-[0_12px_30px_rgba(245,158,11,0.6)] active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-400 md:bottom-6 md:left-6 dark:from-slate-900 dark:to-slate-800 dark:text-amber-400 dark:border-amber-500/40 dark:shadow-2xl"
-      >
-        <div className="relative flex h-2 w-2 items-center justify-center">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </div>
-        <svg
-          className="h-4 w-4 text-amber-100 dark:text-amber-400 shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span className="font-bold tracking-wide text-white dark:text-amber-300">Focus Timer</span>
-        <span className="hidden rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-mono text-white/90 sm:inline-block dark:bg-amber-500/20 dark:text-amber-300">
-          Alt+P
-        </span>
-      </button>
+        positionClassName="bottom-20 left-4 z-50 md:bottom-6 md:left-6"
+        colorClassName="border-amber-400/30 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 shadow-[0_8px_25px_rgba(245,158,11,0.4)] hover:shadow-[0_12px_30px_rgba(245,158,11,0.6)] focus:ring-amber-400 dark:from-slate-900 dark:to-slate-800 dark:text-amber-400 dark:border-amber-500/40 dark:shadow-2xl"
+        icon={
+          <svg
+            className="h-4 w-4 text-amber-100 dark:text-amber-400 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        }
+        label="Focus Timer"
+        labelClassName="text-white dark:text-amber-300"
+        shortcut="Alt+P"
+        shortcutClassName="dark:bg-amber-500/20 dark:text-amber-300"
+      />
     );
   }
 

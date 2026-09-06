@@ -17,12 +17,7 @@ import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
 import { StudyStreakCard } from './StudyStreakCard';
 import { type LetterGrade } from '@/lib/gpa/gpaMath';
-
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-});
+import { LONG_DATE_YEAR_FORMATTER as dateFormatter } from '@/lib/dateFormatters';
 
 const DELETE_CONFIRM_PHRASE = 'DELETE';
 
