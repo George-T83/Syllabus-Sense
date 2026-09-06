@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { StatTile } from '@/components/ui/StatTile';
 import { useAppState } from '@/context/AppStateContext';
 import {
   computeMoodStreak,
@@ -62,18 +63,6 @@ const CHART_COLOR: Record<WorkloadLevel, string> = {
   high: 'hsl(var(--load-high))',
   critical: 'hsl(var(--load-critical))',
 };
-function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Card className="rounded-2xl p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
-    </Card>
-  );
-}
-
 export function MoodRecapView() {
   const { state } = useAppState();
   const entries = state.moodEntries;

@@ -11,6 +11,7 @@ import MobileTabBar from './MobileTabBar';
 import FirestoreSync from './FirestoreSync';
 import OfflineBanner from './OfflineBanner';
 import { SyllabusChatDrawer } from '@/components/syllabus/SyllabusChatDrawer';
+import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { PomodoroTimer } from '@/components/focus/PomodoroTimer';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
 
@@ -83,33 +84,29 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             {/* Global Floating AI Copilot Drawer Trigger - only on routes with
                 course context; see COPILOT_EXCLUDED_ROUTES above. */}
             {copilotAvailable && (
-              <button
+              <FloatingActionPill
                 onClick={() => setIsChatOpen(true)}
-                aria-label="Open AI Syllabus Copilot Chat"
-                className="fixed bottom-20 right-5 z-40 flex items-center gap-2.5 rounded-full border border-indigo-400/30 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-semibold text-white shadow-[0_8px_25px_rgba(99,102,241,0.4)] backdrop-blur-md transition-all duration-300 hover:scale-105 hover:shadow-[0_12px_30px_rgba(99,102,241,0.6)] active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-400 md:bottom-6 md:right-6"
-              >
-                <div className="relative flex h-2 w-2 items-center justify-center">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                </div>
-                <svg
-                  className="h-4 w-4 text-violet-200"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                <span className="font-bold tracking-wide">AI Copilot</span>
-                <span className="hidden rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-mono text-white/90 sm:inline-block">
-                  {modKey}+K
-                </span>
-              </button>
+                ariaLabel="Open AI Syllabus Copilot Chat"
+                positionClassName="bottom-20 right-5 z-40 md:bottom-6 md:right-6"
+                colorClassName="border-indigo-400/30 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 shadow-[0_8px_25px_rgba(99,102,241,0.4)] hover:shadow-[0_12px_30px_rgba(99,102,241,0.6)] focus:ring-indigo-400"
+                icon={
+                  <svg
+                    className="h-4 w-4 text-violet-200"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                }
+                label="AI Copilot"
+                shortcut={`${modKey}+K`}
+              />
             )}
 
             <SyllabusChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
