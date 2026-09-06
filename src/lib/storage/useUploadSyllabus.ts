@@ -8,9 +8,32 @@ import {
   deleteObject,
   type UploadTask,
 } from 'firebase/storage';
-import { doc, setDoc } from 'firebase/firestore';
-import { storage, db } from '@/lib/firebase/client';
+import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
+import { storage, db, auth } from '@/lib/firebase/client';
+import { fileToBase64 } from '@/lib/utils';
 import type { SyllabusUpload } from '@/types/syllabus';
+
+/** Best-effort, non-blocking: a student's upload should never fail because
+ * this couldn't run. Missing `rawText` just means this upload can't be
+ * diffed against another version later - degrades gracefully rather than
+ * failing the upload itself. */
+async function tryExtractRawText(file: File): Promise<string | undefined> {
+  try {
+    const idToken = await auth?.currentUser?.getIdToken();
+    if (!idToken) return undefined;
+    const fileBase64 = await fileToBase64(file);
+    const response = await fetch('/api/syllabus/extract-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ fileBase64 }),
+    });
+    if (!response.ok) return undefined;
+    const body = await response.json();
+    return typeof body.text === 'string' && body.text ? body.text : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export type UploadStatus = 'idle' | 'uploading' | 'paused' | 'success' | 'error' | 'cancelled';
 
@@ -64,7 +87,10 @@ export function useUploadSyllabus(userId: string, courseId: string) {
           },
           async () => {
             try {
-              const downloadURL = await getDownloadURL(task.snapshot.ref);
+              const [downloadURL, rawText] = await Promise.all([
+                getDownloadURL(task.snapshot.ref),
+                tryExtractRawText(file),
+              ]);
               const record: SyllabusUpload = {
                 id,
                 courseId,
@@ -73,11 +99,30 @@ export function useUploadSyllabus(userId: string, courseId: string) {
                 downloadURL,
                 sizeBytes: file.size,
                 uploadedAt: new Date().toISOString(),
+                isPrimary: true,
+                ...(rawText ? { rawText } : {}),
               };
-              await setDoc(
-                doc(dbInstance, 'users', userId, 'courses', courseId, 'syllabi', id),
-                record,
+              const collectionRef = collection(
+                dbInstance,
+                'users',
+                userId,
+                'courses',
+                courseId,
+                'syllabi',
               );
+              // The most recently uploaded syllabus becomes the course's
+              // primary version by default - demote whichever upload held
+              // that spot before, in the same batch as creating the new
+              // record.
+              const existing = await getDocs(collectionRef);
+              const batch = writeBatch(dbInstance);
+              existing.docs.forEach((d) => {
+                if ((d.data() as SyllabusUpload).isPrimary) {
+                  batch.update(d.ref, { isPrimary: false });
+                }
+              });
+              batch.set(doc(collectionRef, id), record);
+              await batch.commit();
               setState({ status: 'success', progress: 100, error: null });
               resolve(record);
             } catch (err) {

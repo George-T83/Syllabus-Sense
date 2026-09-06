@@ -18,6 +18,8 @@ import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { useDirtyClose } from '@/hooks/useDirtyClose';
+import { DiscardConfirmCard } from '@/components/ui/DiscardConfirmCard';
 import type { Contact, ContactRole, Course } from '@/types/schedule';
 import { cn, normalizeContactName } from '@/lib/utils';
 
@@ -518,31 +520,39 @@ function ContactFormModal({
   initialContact,
 }: ContactFormModalProps) {
   const [values, setValues] = useState<ContactFormValues>(emptyFormValues(courses[0]?.id ?? ''));
+  const [baseline, setBaseline] = useState<ContactFormValues>(
+    emptyFormValues(courses[0]?.id ?? ''),
+  );
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormValues, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setValues(
-      initialContact
-        ? {
-            courseId: initialContact.courseId,
-            role: initialContact.role,
-            fullName: initialContact.fullName,
-            title: initialContact.title ?? '',
-            howToAddress: initialContact.howToAddress ?? '',
-            email: initialContact.email ?? '',
-            officeHours: initialContact.officeHours ?? '',
-            officeLocation: initialContact.officeLocation ?? '',
-          }
-        : emptyFormValues(courses[0]?.id ?? ''),
-    );
+    const initial = initialContact
+      ? {
+          courseId: initialContact.courseId,
+          role: initialContact.role,
+          fullName: initialContact.fullName,
+          title: initialContact.title ?? '',
+          howToAddress: initialContact.howToAddress ?? '',
+          email: initialContact.email ?? '',
+          officeHours: initialContact.officeHours ?? '',
+          officeLocation: initialContact.officeLocation ?? '',
+        }
+      : emptyFormValues(courses[0]?.id ?? '');
+    setValues(initial);
+    setBaseline(initial);
     setErrors({});
     setSubmitError(null);
   }, [open, initialContact, courses]);
 
-  const dialogRef = useModalA11y<HTMLDivElement>(open, onClose);
+  const { requestClose, confirmingDiscard, confirmDiscard, cancelDiscard } = useDirtyClose(
+    values,
+    baseline,
+    onClose,
+  );
+  const dialogRef = useModalA11y<HTMLDivElement>(open, requestClose);
 
   if (!open) return null;
 
@@ -583,147 +593,163 @@ function ContactFormModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="contact-form-title"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="w-full max-w-md outline-none"
+        className="relative w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <Card accent="none">
-          <CardHeader>
-            <CardTitle id="contact-form-title">
-              {initialContact ? 'Edit Contact' : 'Add Contact'}
-            </CardTitle>
-            <CardDescription>
-              {initialContact
-                ? 'Update this contact’s details.'
-                : 'Add a professor or TA to a course.'}
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {submitError && (
-                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
-                  {submitError}
-                </div>
-              )}
+          {confirmingDiscard ? (
+            <DiscardConfirmCard
+              title="Discard unsaved changes?"
+              description="You have changes to this contact that haven't been saved."
+              onCancel={cancelDiscard}
+              onConfirm={confirmDiscard}
+            />
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle id="contact-form-title">
+                  {initialContact ? 'Edit Contact' : 'Add Contact'}
+                </CardTitle>
+                <CardDescription>
+                  {initialContact
+                    ? 'Update this contact’s details.'
+                    : 'Add a professor or TA to a course.'}
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-4">
+                  {submitError && (
+                    <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
+                      {submitError}
+                    </div>
+                  )}
 
-              {initialContact ? (
-                <div className="space-y-1.5">
-                  <span className="text-sm font-medium text-foreground">Course</span>
-                  <p className="text-sm text-muted-foreground">
-                    {courseLabel(courses.find((c) => c.id === initialContact.courseId))}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <label htmlFor="contact-course" className="text-sm font-medium text-foreground">
-                    Course
-                  </label>
-                  <select
-                    id="contact-course"
-                    value={values.courseId}
-                    onChange={(e) => updateField('courseId', e.target.value)}
-                    className={cn(
-                      'w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
-                      errors.courseId ? 'border-destructive' : 'border-border',
-                    )}
-                  >
-                    <option value="">Select a course...</option>
-                    {courses.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {courseLabel(course)}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.courseId && <p className="text-xs text-destructive">{errors.courseId}</p>}
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <span className="text-sm font-medium text-foreground">Role</span>
-                <div className="flex gap-2">
-                  {(['professor', 'ta', 'classmate'] as ContactRole[]).map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setValues((s) => ({ ...s, role }))}
-                      className={cn(
-                        'inline-flex min-h-[44px] items-center justify-center rounded-lg border px-4 py-2 text-xs font-medium transition-colors',
-                        values.role === role
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border text-muted-foreground hover:bg-accent',
+                  {initialContact ? (
+                    <div className="space-y-1.5">
+                      <span className="text-sm font-medium text-foreground">Course</span>
+                      <p className="text-sm text-muted-foreground">
+                        {courseLabel(courses.find((c) => c.id === initialContact.courseId))}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="contact-course"
+                        className="text-sm font-medium text-foreground"
+                      >
+                        Course
+                      </label>
+                      <select
+                        id="contact-course"
+                        value={values.courseId}
+                        onChange={(e) => updateField('courseId', e.target.value)}
+                        className={cn(
+                          'w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+                          errors.courseId ? 'border-destructive' : 'border-border',
+                        )}
+                      >
+                        <option value="">Select a course...</option>
+                        {courses.map((course) => (
+                          <option key={course.id} value={course.id}>
+                            {courseLabel(course)}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.courseId && (
+                        <p className="text-xs text-destructive">{errors.courseId}</p>
                       )}
-                    >
-                      {ROLE_LABEL[role]}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                    </div>
+                  )}
 
-              <Field
-                id="fullName"
-                label="Full Name"
-                value={values.fullName}
-                error={errors.fullName}
-                onChange={(v) => updateField('fullName', v)}
-                placeholder="Dr. Amara Chen"
-              />
-              <Field
-                id="title"
-                label="Title"
-                value={values.title}
-                onChange={(v) => updateField('title', v)}
-                placeholder="Associate Professor of Computer Science"
-              />
-              <Field
-                id="howToAddress"
-                label="Address As"
-                value={values.howToAddress}
-                onChange={(v) => updateField('howToAddress', v)}
-                placeholder="Dr. Chen"
-              />
-              <Field
-                id="email"
-                label="Email"
-                value={values.email}
-                onChange={(v) => updateField('email', v)}
-                placeholder="a.chen@university.edu"
-              />
-              <Field
-                id="officeHours"
-                label="Office Hours"
-                value={values.officeHours}
-                onChange={(v) => updateField('officeHours', v)}
-                placeholder="Tue/Thu 2-3pm, or by appointment"
-              />
-              <Field
-                id="officeLocation"
-                label="Office Location"
-                value={values.officeLocation}
-                onChange={(v) => updateField('officeLocation', v)}
-                placeholder="Science Hall 214"
-              />
-            </CardContent>
-            <CardFooter className="justify-end gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {submitting ? 'Saving...' : initialContact ? 'Save Changes' : 'Add Contact'}
-              </button>
-            </CardFooter>
-          </form>
+                  <div className="space-y-1.5">
+                    <span className="text-sm font-medium text-foreground">Role</span>
+                    <div className="flex gap-2">
+                      {(['professor', 'ta', 'classmate'] as ContactRole[]).map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setValues((s) => ({ ...s, role }))}
+                          className={cn(
+                            'inline-flex min-h-[44px] items-center justify-center rounded-lg border px-4 py-2 text-xs font-medium transition-colors',
+                            values.role === role
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border text-muted-foreground hover:bg-accent',
+                          )}
+                        >
+                          {ROLE_LABEL[role]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Field
+                    id="fullName"
+                    label="Full Name"
+                    value={values.fullName}
+                    error={errors.fullName}
+                    onChange={(v) => updateField('fullName', v)}
+                    placeholder="Dr. Amara Chen"
+                  />
+                  <Field
+                    id="title"
+                    label="Title"
+                    value={values.title}
+                    onChange={(v) => updateField('title', v)}
+                    placeholder="Associate Professor of Computer Science"
+                  />
+                  <Field
+                    id="howToAddress"
+                    label="Address As"
+                    value={values.howToAddress}
+                    onChange={(v) => updateField('howToAddress', v)}
+                    placeholder="Dr. Chen"
+                  />
+                  <Field
+                    id="email"
+                    label="Email"
+                    value={values.email}
+                    onChange={(v) => updateField('email', v)}
+                    placeholder="a.chen@university.edu"
+                  />
+                  <Field
+                    id="officeHours"
+                    label="Office Hours"
+                    value={values.officeHours}
+                    onChange={(v) => updateField('officeHours', v)}
+                    placeholder="Tue/Thu 2-3pm, or by appointment"
+                  />
+                  <Field
+                    id="officeLocation"
+                    label="Office Location"
+                    value={values.officeLocation}
+                    onChange={(v) => updateField('officeLocation', v)}
+                    placeholder="Science Hall 214"
+                  />
+                </CardContent>
+                <CardFooter className="justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={requestClose}
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                  >
+                    {submitting ? 'Saving...' : initialContact ? 'Save Changes' : 'Add Contact'}
+                  </button>
+                </CardFooter>
+              </form>
+            </>
+          )}
         </Card>
       </div>
     </div>

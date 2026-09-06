@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
 import type { Contact } from '@/types/schedule';
 import { generateVCard, downloadVCardFile, generateContactQrMatrix } from '@/lib/export/vcard';
 
@@ -25,6 +26,7 @@ export function ContactShareModal({
   const [activeTab, setActiveTab] = useState<'qr' | 'vcard'>('qr');
   const [copiedVCard, setCopiedVCard] = useState(false);
   const [copiedSummary, setCopiedSummary] = useState(false);
+  const { showError } = useToast();
 
   const vcardText = useMemo(() => {
     if (!contact) return '';
@@ -40,15 +42,18 @@ export function ContactShareModal({
 
   if (!isOpen || !contact) return null;
 
-  const handleCopyVCard = () => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(vcardText);
+  const handleCopyVCard = async () => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(vcardText);
       setCopiedVCard(true);
       setTimeout(() => setCopiedVCard(false), 2000);
+    } catch {
+      showError('Could not copy', 'Try selecting and copying the vCard text manually.');
     }
   };
 
-  const handleCopySummary = () => {
+  const handleCopySummary = async () => {
     const summary = [
       `${contact.fullName} (${contact.role.toUpperCase()})`,
       contact.title ? `Title: ${contact.title}` : '',
@@ -60,10 +65,13 @@ export function ContactShareModal({
       .filter(Boolean)
       .join('\n');
 
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(summary);
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(summary);
       setCopiedSummary(true);
       setTimeout(() => setCopiedSummary(false), 2000);
+    } catch {
+      showError('Could not copy', 'Try selecting and copying the contact details manually.');
     }
   };
 

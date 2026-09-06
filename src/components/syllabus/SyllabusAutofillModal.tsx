@@ -16,7 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { COURSE_COLOR_PRESETS, courseSwatch, pickSuggestedCourseColor } from '@/lib/courseColors';
 import { COURSE_ICON_PRESETS, pickSuggestedCourseIcon } from '@/lib/courseIcons';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
-import { cn, normalizeContactName } from '@/lib/utils';
+import { cn, normalizeContactName, fileToBase64 } from '@/lib/utils';
 import type {
   ExtractedMeetingTime,
   ExtractedScheduleItem,
@@ -345,18 +345,6 @@ function omitDraftKey(item: DraftItem): Omit<DraftItem, 'key'> {
   const rest: Partial<DraftItem> = { ...item };
   delete rest.key;
   return rest as Omit<DraftItem, 'key'>;
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.slice(result.indexOf(',') + 1));
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }
 
 export interface SyllabusAutofillModalProps {

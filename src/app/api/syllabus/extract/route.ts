@@ -1,48 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
-import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
+import { requireUser } from '@/lib/auth/requireUser';
+import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import {
   SYLLABUS_EXTRACTION_SYSTEM_PROMPT,
   SYLLABUS_EXTRACTION_TOOL,
 } from '@/lib/ai/syllabusExtractionTool';
 import { syllabusExtractionSchema } from '@/types/extraction';
+import { detectSyllabusFileKind, extractRawSyllabusText } from '@/lib/syllabus/extractRawText';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-/**
- * Detected from magic bytes, not the client-declared MIME type (spoofable)
- * or file extension. Both prefixes are stable regardless of what follows -
- * base64 encodes in fixed 3-byte groups, so a known byte run at the start
- * of a file always produces the same leading base64 characters.
- * PDF: "%PDF-" (0x25 0x50 0x44 0x46 0x2D). DOCX: a .docx is a zip archive,
- * so it starts with the zip local-file-header signature (0x50 0x4B 0x03 0x04).
- */
-function detectFileKind(fileBase64: string): 'pdf' | 'docx' | null {
-  if (fileBase64.startsWith('JVBERi0')) return 'pdf';
-  if (fileBase64.startsWith('UEsDB')) return 'docx';
-  return null;
-}
-
-async function requireUser(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  if (!token || !projectId) return null;
-  try {
-    return await verifyFirebaseIdToken(token, projectId);
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const usage = await checkAndIncrementAiUsage(user);
+  if (!usage.allowed) {
+    return NextResponse.json(
+      { error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.` },
+      { status: 429 },
+    );
   }
 
   let body: { fileBase64?: string; fileName?: string };
@@ -62,7 +46,7 @@ export async function POST(req: NextRequest) {
   }
   // The client declares a MIME type, but that's spoofable - check the real
   // magic bytes server-side before spending an API call.
-  const fileKind = detectFileKind(fileBase64);
+  const fileKind = detectSyllabusFileKind(fileBase64);
   if (!fileKind) {
     return NextResponse.json(
       { error: 'That file is not a valid PDF or Word (.docx) document.' },
@@ -76,10 +60,7 @@ export async function POST(req: NextRequest) {
   let docxText: string | null = null;
   if (fileKind === 'docx') {
     try {
-      const mammoth = await import('mammoth');
-      const buffer = Buffer.from(fileBase64, 'base64');
-      const result = await mammoth.extractRawText({ buffer });
-      docxText = result.value.trim();
+      docxText = await extractRawSyllabusText(fileBase64, 'docx');
     } catch {
       return NextResponse.json(
         { error: "Couldn't read that Word document. Try re-saving it and uploading again." },

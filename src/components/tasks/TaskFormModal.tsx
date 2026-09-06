@@ -14,6 +14,7 @@ import type { Course, ScheduleItem, AssignmentType, Priority } from '@/types/sch
 import { cn } from '@/lib/utils';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useDirtyClose } from '@/hooks/useDirtyClose';
+import { DiscardConfirmCard } from '@/components/ui/DiscardConfirmCard';
 
 const TYPE_OPTIONS: { value: AssignmentType; label: string }[] = [
   { value: 'assignment', label: 'Assignment' },
@@ -148,226 +149,213 @@ export function TaskFormModal({
         className="relative w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {confirmingDiscard && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/90 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-xs space-y-3 rounded-xl border border-border bg-card p-4 shadow-lg">
-              <p className="text-sm font-medium text-foreground">Discard unsaved changes?</p>
-              <p className="text-xs text-muted-foreground">
-                You have changes to this task that haven&apos;t been saved.
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={cancelDiscard}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
-                >
-                  Keep editing
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmDiscard}
-                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
-                >
-                  Discard
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         <Card accent="none">
-          <CardHeader>
-            <CardTitle id="task-form-title">{initialItem ? 'Edit Task' : 'Add Task'}</CardTitle>
-            <CardDescription>
-              {initialItem ? 'Update this task’s details.' : 'Add an assignment, exam, or task.'}
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {submitError && (
-                <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
-                  {submitError}
-                </div>
-              )}
-
-              {courses.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Add a course first before creating tasks for it.
-                </p>
-              ) : (
-                <>
-                  <Field
-                    id="title"
-                    label="Title"
-                    value={values.title}
-                    error={errors.title}
-                    onChange={(v) => updateField('title', v)}
-                    placeholder="Programming Assignment 1"
-                  />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label htmlFor="courseId" className="text-sm font-medium text-foreground">
-                        Course
-                      </label>
-                      <select
-                        id="courseId"
-                        value={values.courseId}
-                        onChange={(e) => updateField('courseId', e.target.value)}
-                        className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        {courses.map((course) => (
-                          <option key={course.id} value={course.id}>
-                            {course.code}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label htmlFor="type" className="text-sm font-medium text-foreground">
-                        Type
-                      </label>
-                      <select
-                        id="type"
-                        value={values.type}
-                        onChange={(e) => updateField('type', e.target.value as AssignmentType)}
-                        className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        {TYPE_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field
-                      id="dueDate"
-                      label="Due Date"
-                      type="date"
-                      value={values.dueDate}
-                      error={errors.dueDate}
-                      onChange={(v) => updateField('dueDate', v)}
-                    />
-                    <Field
-                      id="estimatedHours"
-                      label="Est. Hours"
-                      type="number"
-                      value={values.estimatedHours ?? ''}
-                      error={errors.estimatedHours}
-                      onChange={(v) => updateField('estimatedHours', v)}
-                      placeholder="3"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-sm font-medium text-foreground">Priority</span>
-                    <div className="flex gap-2">
-                      {PRIORITY_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => updateField('priority', opt.value)}
-                          className={cn(
-                            'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
-                            values.priority === opt.value
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-border text-muted-foreground hover:bg-accent',
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {initialItem && (
-                    <div className="space-y-1.5">
-                      <label htmlFor="progress" className="text-sm font-medium text-foreground">
-                        Progress
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="progress"
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={5}
-                          value={values.progress ?? ''}
-                          placeholder="0"
-                          onChange={(e) => updateField('progress', e.target.value)}
-                          className={cn(
-                            'w-24 rounded-lg border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
-                            errors.progress ? 'border-destructive' : 'border-border',
-                          )}
-                        />
-                        <span className="text-sm text-muted-foreground">% complete</span>
-                      </div>
-                      {errors.progress && (
-                        <p className="text-xs text-destructive">{errors.progress}</p>
-                      )}
+          {confirmingDiscard ? (
+            <DiscardConfirmCard
+              title="Discard unsaved changes?"
+              description="You have changes to this task that haven't been saved."
+              onCancel={cancelDiscard}
+              onConfirm={confirmDiscard}
+            />
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle id="task-form-title">{initialItem ? 'Edit Task' : 'Add Task'}</CardTitle>
+                <CardDescription>
+                  {initialItem
+                    ? 'Update this task’s details.'
+                    : 'Add an assignment, exam, or task.'}
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-4">
+                  {submitError && (
+                    <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
+                      {submitError}
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field
-                      id="gradeWeight"
-                      label="Grade Weight (%)"
-                      type="number"
-                      value={values.gradeWeight ?? ''}
-                      error={errors.gradeWeight}
-                      onChange={(v) => updateField('gradeWeight', v)}
-                      placeholder="Optional"
-                    />
-                    <Field
-                      id="gradeCategory"
-                      label="Grade Category"
-                      value={values.gradeCategory ?? ''}
-                      error={errors.gradeCategory}
-                      onChange={(v) => updateField('gradeCategory', v)}
-                      placeholder="e.g. Homework"
-                    />
-                  </div>
+                  {courses.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Add a course first before creating tasks for it.
+                    </p>
+                  ) : (
+                    <>
+                      <Field
+                        id="title"
+                        label="Title"
+                        value={values.title}
+                        error={errors.title}
+                        onChange={(v) => updateField('title', v)}
+                        placeholder="Programming Assignment 1"
+                      />
 
-                  <Field
-                    id="assignedTo"
-                    label="Assigned To"
-                    value={values.assignedTo ?? ''}
-                    error={errors.assignedTo}
-                    onChange={(v) => updateField('assignedTo', v)}
-                    placeholder="e.g. Priya, or You - visible only to you"
-                  />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label htmlFor="courseId" className="text-sm font-medium text-foreground">
+                            Course
+                          </label>
+                          <select
+                            id="courseId"
+                            value={values.courseId}
+                            onChange={(e) => updateField('courseId', e.target.value)}
+                            className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                          >
+                            {courses.map((course) => (
+                              <option key={course.id} value={course.id}>
+                                {course.code}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                  <Field
-                    id="notes"
-                    label="Notes"
-                    value={values.notes ?? ''}
-                    error={errors.notes}
-                    onChange={(v) => updateField('notes', v)}
-                    placeholder="Optional"
-                  />
-                </>
-              )}
-            </CardContent>
-            <CardFooter className="justify-end gap-2">
-              <button
-                type="button"
-                onClick={requestClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting || courses.length === 0}
-                className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {submitting ? 'Saving...' : initialItem ? 'Save Changes' : 'Add Task'}
-              </button>
-            </CardFooter>
-          </form>
+                        <div className="space-y-1.5">
+                          <label htmlFor="type" className="text-sm font-medium text-foreground">
+                            Type
+                          </label>
+                          <select
+                            id="type"
+                            value={values.type}
+                            onChange={(e) => updateField('type', e.target.value as AssignmentType)}
+                            className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                          >
+                            {TYPE_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field
+                          id="dueDate"
+                          label="Due Date"
+                          type="date"
+                          value={values.dueDate}
+                          error={errors.dueDate}
+                          onChange={(v) => updateField('dueDate', v)}
+                        />
+                        <Field
+                          id="estimatedHours"
+                          label="Est. Hours"
+                          type="number"
+                          value={values.estimatedHours ?? ''}
+                          error={errors.estimatedHours}
+                          onChange={(v) => updateField('estimatedHours', v)}
+                          placeholder="3"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="text-sm font-medium text-foreground">Priority</span>
+                        <div className="flex gap-2">
+                          {PRIORITY_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => updateField('priority', opt.value)}
+                              className={cn(
+                                'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                                values.priority === opt.value
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border text-muted-foreground hover:bg-accent',
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {initialItem && (
+                        <div className="space-y-1.5">
+                          <label htmlFor="progress" className="text-sm font-medium text-foreground">
+                            Progress
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              id="progress"
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={5}
+                              value={values.progress ?? ''}
+                              placeholder="0"
+                              onChange={(e) => updateField('progress', e.target.value)}
+                              className={cn(
+                                'w-24 rounded-lg border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+                                errors.progress ? 'border-destructive' : 'border-border',
+                              )}
+                            />
+                            <span className="text-sm text-muted-foreground">% complete</span>
+                          </div>
+                          {errors.progress && (
+                            <p className="text-xs text-destructive">{errors.progress}</p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field
+                          id="gradeWeight"
+                          label="Grade Weight (%)"
+                          type="number"
+                          value={values.gradeWeight ?? ''}
+                          error={errors.gradeWeight}
+                          onChange={(v) => updateField('gradeWeight', v)}
+                          placeholder="Optional"
+                        />
+                        <Field
+                          id="gradeCategory"
+                          label="Grade Category"
+                          value={values.gradeCategory ?? ''}
+                          error={errors.gradeCategory}
+                          onChange={(v) => updateField('gradeCategory', v)}
+                          placeholder="e.g. Homework"
+                        />
+                      </div>
+
+                      <Field
+                        id="assignedTo"
+                        label="Assigned To"
+                        value={values.assignedTo ?? ''}
+                        error={errors.assignedTo}
+                        onChange={(v) => updateField('assignedTo', v)}
+                        placeholder="e.g. Priya, or You - visible only to you"
+                      />
+
+                      <Field
+                        id="notes"
+                        label="Notes"
+                        value={values.notes ?? ''}
+                        error={errors.notes}
+                        onChange={(v) => updateField('notes', v)}
+                        placeholder="Optional"
+                      />
+                    </>
+                  )}
+                </CardContent>
+                <CardFooter className="justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={requestClose}
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || courses.length === 0}
+                    className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+                  >
+                    {submitting ? 'Saving...' : initialItem ? 'Save Changes' : 'Add Task'}
+                  </button>
+                </CardFooter>
+              </form>
+            </>
+          )}
         </Card>
       </div>
     </div>
