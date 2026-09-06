@@ -84,6 +84,14 @@ const ownedDocPaths: Array<{ label: string; path: (uid: string) => string }> = [
     label: 'mood entry (users/{uid}/moodEntries/{id})',
     path: (uid) => `users/${uid}/moodEntries/2026-09-03`,
   },
+  {
+    label: 'degree profile (users/{uid}/degreeProfile/{id})',
+    path: (uid) => `users/${uid}/degreeProfile/profile`,
+  },
+  {
+    label: 'degree course (users/{uid}/degreeCourses/{id})',
+    path: (uid) => `users/${uid}/degreeCourses/course-1`,
+  },
 ];
 
 describe('firestore.rules: owner-only access', () => {
@@ -143,6 +151,8 @@ describe('firestore.rules: cross-user collection queries', () => {
     { label: 'quizzes', path: (uid) => `users/${uid}/quizzes` },
     { label: 'quizAttempts', path: (uid) => `users/${uid}/quizAttempts` },
     { label: 'moodEntries', path: (uid) => `users/${uid}/moodEntries` },
+    { label: 'degreeProfile', path: (uid) => `users/${uid}/degreeProfile` },
+    { label: 'degreeCourses', path: (uid) => `users/${uid}/degreeCourses` },
   ];
 
   describe.each(collectionPaths)("listing another user's $label", ({ path: collectionPath }) => {
