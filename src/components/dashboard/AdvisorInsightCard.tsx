@@ -1,6 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import { Card } from '@/components/ui/Card';
+import { CardActionLink } from '@/components/ui/CardAction';
+import { SectionIcon } from '@/components/ui/SectionIcon';
 import { useAuth } from '@/context/AuthContext';
 import { useDegreeProfile, useDegreeCourses } from '@/lib/firestore/useDegreeCompass';
 import { computeCategoryProgress, computeOverallProgress } from '@/lib/degreeCompass/progress';
@@ -55,33 +57,28 @@ export function AdvisorInsightCard() {
   const prompt = `Why is ${lagging.category.name} falling behind, and what should I do about it?`;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-brand p-5 text-white shadow-card">
-      <div className="relative z-10 space-y-3">
-        <span className="inline-flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-white/80">
-          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M13 2L3 14h7v8l10-12h-7z" />
-          </svg>
-          Advisor insight
-        </span>
-        <p className="text-h3 font-bold leading-snug text-white">
-          {lagging.category.name} is falling behind your other requirement categories.
-        </p>
-        <Link
+    <Card accent="none" className="rounded-2xl border-primary/20 bg-primary/5 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <SectionIcon icon="planner" />
+          <div className="min-w-0">
+            <span className="text-caption font-semibold uppercase tracking-wide text-primary">
+              Advisor insight
+            </span>
+            <p className="text-body-sm font-semibold text-foreground">
+              {lagging.category.name} is falling behind your other requirement categories.
+            </p>
+          </div>
+        </div>
+        <CardActionLink
           href={`/advisor?prompt=${encodeURIComponent(prompt)}`}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-label text-primary shadow-sm transition-transform hover:scale-[1.02]"
+          variant="solid"
+          withChevron
+          className="shrink-0"
         >
           Continue in Advisor
-          <svg
-            className="h-3.5 w-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
+        </CardActionLink>
       </div>
-    </div>
+    </Card>
   );
 }
