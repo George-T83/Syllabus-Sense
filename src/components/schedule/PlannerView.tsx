@@ -154,6 +154,7 @@ function groupByMonth(
 
 import { WorkloadOverviewDashboard } from '@/components/planner/WorkloadOverviewDashboard';
 import { SemesterHeatmapCard } from '@/components/planner/SemesterHeatmapCard';
+import { StudyBlockSuggestionsCard } from '@/components/planner/StudyBlockSuggestionsCard';
 
 /** Default number of task rows a group shows before collapsing the rest
  * behind a "Show N more" toggle. A real semester's task list can run into
@@ -510,6 +511,8 @@ export function PlannerView() {
 
         <SemesterHeatmapCard />
 
+        <StudyBlockSuggestionsCard />
+
         {/* Header, stats, and filters as one panel (matching the Card
          * language WorkloadOverviewDashboard already establishes above)
          * instead of a bare heading + a plain text stats strip + a loose
@@ -622,7 +625,7 @@ export function PlannerView() {
           </div>
         </Card>
 
-        <Card className="rounded-2xl p-6">
+        <Card className="rounded-2xl p-6" data-testid="tasks-list-card">
           <div className="mb-4 flex items-center gap-3">
             <SectionIcon icon="tasks" />
             <h2 className="text-base font-semibold text-foreground">
