@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 import { PlannerView } from '@/components/schedule/PlannerView';
 import { AppStateProvider } from '@/context/AppStateContext';
@@ -101,6 +101,12 @@ function renderPlanner() {
   );
 }
 
+// Task titles can also appear in the Suggested Study Blocks card above the
+// list, so assertions on title text/order are scoped to the list itself.
+function taskList() {
+  return within(screen.getByTestId('tasks-list-card'));
+}
+
 describe('PlannerView', () => {
   it('groups by due date by default, with completed items in their own group', () => {
     renderPlanner();
@@ -108,7 +114,7 @@ describe('PlannerView', () => {
     // date bucket (Overdue/Today/This Week/Later) they land in, and the
     // Completed bucket always renders last - so this ordering holds no
     // matter what "today" is when the test runs.
-    const titles = screen
+    const titles = taskList()
       .getAllByText(/^(Recursion HW|Midterm Exam|Finished Reading)$/)
       .map((el) => el.textContent);
     expect(titles).toEqual(['Midterm Exam', 'Recursion HW', 'Finished Reading']);
@@ -117,15 +123,15 @@ describe('PlannerView', () => {
   it('filters to only pending tasks', () => {
     renderPlanner();
     fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'pending' } });
-    expect(screen.queryByText('Finished Reading')).toBeNull();
-    expect(screen.getByText('Midterm Exam')).toBeDefined();
+    expect(taskList().queryByText('Finished Reading')).toBeNull();
+    expect(taskList().getByText('Midterm Exam')).toBeDefined();
   });
 
   it('filters to a single course', () => {
     renderPlanner();
     fireEvent.change(screen.getByDisplayValue('All Courses'), { target: { value: 'c2' } });
-    expect(screen.queryByText('Recursion HW')).toBeNull();
-    expect(screen.getByText('Midterm Exam')).toBeDefined();
+    expect(taskList().queryByText('Recursion HW')).toBeNull();
+    expect(taskList().getByText('Midterm Exam')).toBeDefined();
   });
 
   it('sorts by priority when selected, within a flat list', () => {
@@ -134,7 +140,7 @@ describe('PlannerView', () => {
     fireEvent.change(screen.getByDisplayValue('Then by: Due Date'), {
       target: { value: 'priority' },
     });
-    const titles = screen
+    const titles = taskList()
       .getAllByText(/^(Recursion HW|Midterm Exam|Finished Reading)$/)
       .map((el) => el.textContent);
     expect(titles).toEqual(['Midterm Exam', 'Finished Reading', 'Recursion HW']);
@@ -152,7 +158,7 @@ describe('PlannerView', () => {
     // CSCI 213 has Recursion HW (pending) and Finished Reading (completed) -
     // sorting the course group by status should put the pending item first
     // regardless of due date.
-    const csciTitles = screen
+    const csciTitles = taskList()
       .getAllByText(/^(Recursion HW|Finished Reading)$/)
       .map((el) => el.textContent);
     expect(csciTitles).toEqual(['Recursion HW', 'Finished Reading']);
