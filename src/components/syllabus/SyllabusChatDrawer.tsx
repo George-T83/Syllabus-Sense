@@ -9,6 +9,11 @@ import { normalizeMaterials } from '@/lib/courses/materials';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useToast } from '@/components/ui/Toast';
 import { TIME_FORMATTER } from '@/lib/dateFormatters';
+import { useDegreeProfile, useDegreeCourses } from '@/lib/firestore/useDegreeCompass';
+import { appendAdvisorMessage, useAdvisorMessages } from '@/lib/firestore/advisor';
+import type { AdvisorMessage } from '@/types/advisor';
+import { AdvisorWarningCard } from '@/components/advisor/AdvisorWarningCard';
+import { cn } from '@/lib/utils';
 
 function formatTimestamp(): string {
   return TIME_FORMATTER.format(new Date());
@@ -45,16 +50,37 @@ const STARTER_PROMPTS = [
   'Is attendance mandatory?',
 ];
 
+const ADVISOR_STARTER_PROMPTS = [
+  'What should I take next semester?',
+  'Am I on track to graduate?',
+  'How would dropping a course affect my plan?',
+  'Which requirement category am I furthest behind on?',
+];
+
+const ADVISOR_MAX_HISTORY_SENT = 8;
+
+type DrawerMode = 'syllabus' | 'advisor';
+
 export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: SyllabusChatDrawerProps) {
   const { state } = useAppState();
   const { user } = useAuth();
   const { showError } = useToast();
+  const [mode, setMode] = useState<DrawerMode>('syllabus');
   const [selectedCourseId, setSelectedCourseId] = useState<string>(initialCourseId || '');
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; base64: string } | null>(null);
   const [fileUploading, setFileUploading] = useState(false);
+
+  // "My Advisor" mode reasons over the whole degree plan rather than one
+  // course's syllabus - same backend (/api/advisor/chat) and persisted
+  // Firestore history as the dedicated /advisor page, so a question asked
+  // here and one asked there share one continuous conversation.
+  const { profile: degreeProfile } = useDegreeProfile(user?.uid);
+  const degreeCourses = useDegreeCourses(user?.uid);
+  const { messages: advisorMessages } = useAdvisorMessages(user?.uid);
+  const [advisorSending, setAdvisorSending] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -102,10 +128,10 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
     }
   }, [isOpen]);
 
-  // Scroll to bottom on message updates
+  // Scroll to bottom on message updates, in whichever mode is active
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, advisorMessages, advisorSending]);
 
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
@@ -189,6 +215,70 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
     [isLoading, user, selectedCourse, uploadedFile],
   );
 
+  const sendAdvisorMessage = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!user || !trimmed || advisorSending) return;
+      setAdvisorSending(true);
+
+      const userMessage: AdvisorMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+      };
+
+      const now = Date.now();
+      const pendingTaskCount = state.scheduleItems.filter((i) => !i.completed).length;
+      const overdueTaskCount = state.scheduleItems.filter(
+        (i) => !i.completed && new Date(i.dueDate).getTime() < now,
+      ).length;
+
+      try {
+        await appendAdvisorMessage(user.uid, userMessage);
+        setInputQuery('');
+
+        const token = await user.getIdToken();
+        const history = [...advisorMessages, userMessage]
+          .slice(-ADVISOR_MAX_HISTORY_SENT - 1, -1)
+          .map((m) => ({ role: m.role, content: m.content }));
+
+        const response = await fetch('/api/advisor/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            message: userMessage.content,
+            history,
+            degreeProfile,
+            degreeCourses,
+            courses: state.courses.map((c) => ({ code: c.code, title: c.title, term: c.term })),
+            pendingTaskCount,
+            overdueTaskCount,
+          }),
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? 'The Advisor request failed.');
+
+        const assistantMessage: AdvisorMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: body.reply,
+          ...(body.highStakes ? { warning: body.highStakes } : {}),
+          createdAt: new Date().toISOString(),
+        };
+        await appendAdvisorMessage(user.uid, assistantMessage);
+      } catch (err) {
+        showError(
+          "Couldn't reach the Advisor",
+          err instanceof Error ? err.message : 'Try again in a moment.',
+        );
+      } finally {
+        setAdvisorSending(false);
+      }
+    },
+    [user, advisorSending, advisorMessages, degreeProfile, degreeCourses, state, showError],
+  );
+
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -227,7 +317,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="AI Syllabus Chat & Study Copilot"
+      aria-label={mode === 'syllabus' ? 'AI Syllabus Chat & Study Copilot' : 'AI Advisor'}
       className="fixed inset-0 z-50 overflow-hidden bg-background/60 backdrop-blur-sm transition-opacity"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -258,38 +348,42 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
               </div>
               <div>
                 <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-1.5">
-                  AI Syllabus Copilot
+                  {mode === 'syllabus' ? 'AI Syllabus Copilot' : 'AI Advisor'}
                   <span className="rounded-full bg-primary/20 text-primary px-1.5 py-0.2 text-[10px] font-semibold">
                     Beta
                   </span>
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Instant policy, grade & schedule advisor
+                  {mode === 'syllabus'
+                    ? 'Instant policy, grade & schedule advisor'
+                    : 'Reasons over your whole degree plan, not one syllabus'}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
-              <button
-                onClick={handleClear}
-                title="Clear conversation"
-                aria-label="Clear conversation"
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
+              {mode === 'syllabus' && (
+                <button
+                  onClick={handleClear}
+                  title="Clear conversation"
+                  aria-label="Clear conversation"
+                  className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={onClose}
                 aria-label="Close AI Copilot drawer"
@@ -308,84 +402,160 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             </div>
           </div>
 
-          {/* Course Scope Selector */}
-          <div className="flex items-center justify-between border-b border-border/30 px-4 py-2 bg-muted/10 text-xs">
-            <span className="font-medium text-muted-foreground">Query Scope:</span>
-            <select
-              aria-label="Select course scope"
-              value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+          {/* Mode Toggle: "This syllabus" (course-scoped Q&A) vs. "My Advisor"
+              (whole-degree-plan reasoning) - same Advisor backend and
+              persisted Firestore history as the dedicated /advisor page. */}
+          <div
+            role="tablist"
+            aria-label="AI Copilot mode"
+            className="flex gap-1 border-b border-border/30 bg-muted/10 px-3 py-2"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'syllabus'}
+              onClick={() => setMode('syllabus')}
+              className={cn(
+                'flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors min-h-[36px]',
+                mode === 'syllabus'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
             >
-              {state.courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.code} — {course.title}
-                </option>
-              ))}
-            </select>
+              This syllabus
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'advisor'}
+              onClick={() => setMode('advisor')}
+              className={cn(
+                'flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors min-h-[36px]',
+                mode === 'advisor'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              My Advisor
+            </button>
           </div>
+
+          {/* Course Scope Selector - only meaningful in "This syllabus" mode;
+              the Advisor reasons across every course at once. */}
+          {mode === 'syllabus' && (
+            <div className="flex items-center justify-between border-b border-border/30 px-4 py-2 bg-muted/10 text-xs">
+              <span className="font-medium text-muted-foreground">Query Scope:</span>
+              <select
+                aria-label="Select course scope"
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+              >
+                {state.courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.code} — {course.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Chat Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-live="polite" role="log">
-            {messages.map((msg) => {
-              const isUser = msg.sender === 'user';
-              return (
+            {mode === 'advisor' && advisorMessages.length === 0 && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-2xl bg-muted/40 border border-border/40 p-3.5 text-sm leading-relaxed text-foreground">
+                  Hi — I&apos;m your AI Advisor. I can reason over your Degree Compass plan, your
+                  courses, and your tasks - not just one syllabus. Ask me what to take next, whether
+                  you&apos;re on track, or what a change would mean for your plan.
+                </div>
+              </div>
+            )}
+            {mode === 'advisor' &&
+              advisorMessages.map((m) => (
                 <div
-                  key={msg.id}
-                  className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                  key={m.id}
+                  className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl p-3.5 text-sm leading-relaxed ${
-                      isUser
+                      m.role === 'user'
                         ? 'bg-primary text-primary-foreground rounded-br-none shadow-md'
                         : 'bg-muted/40 text-foreground border border-border/40 rounded-bl-none shadow-sm'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap">{renderMessageContent(msg.text)}</div>
-
-                    {/* Citations Tag */}
-                    {msg.citations && msg.citations.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-border/30 flex flex-wrap gap-1">
-                        {msg.citations.map((cite, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center gap-1 rounded bg-card/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border/40"
-                          >
-                            📑 {cite}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Suggested Chunks Card */}
-                    {!isUser && msg.suggestedChunks && msg.suggestedChunks.length > 0 && (
-                      <SuggestedChunksCard
-                        chunks={msg.suggestedChunks}
-                        courseId={selectedCourseId}
-                        courseCode={selectedCourse?.code || 'Course'}
-                      />
-                    )}
-                  </div>
-
-                  {/* Message meta & copy button */}
-                  <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground px-1">
-                    <span>{msg.timestamp}</span>
-                    {!isUser && (
-                      <button
-                        onClick={() => handleCopy(msg.id, msg.text)}
-                        className="hover:text-foreground transition-colors"
-                        aria-label="Copy response"
-                      >
-                        {copiedId === msg.id ? '✓ Copied' : 'Copy'}
-                      </button>
-                    )}
+                    <div className="whitespace-pre-wrap">{m.content}</div>
+                    {m.warning && <AdvisorWarningCard warning={m.warning} />}
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            {mode === 'advisor' && advisorSending && (
+              <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted/40 border border-border/40 w-24">
+                <div className="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+                <div className="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+                <div className="h-2 w-2 rounded-full bg-primary animate-bounce" />
+              </div>
+            )}
+            {mode === 'syllabus' &&
+              messages.map((msg) => {
+                const isUser = msg.sender === 'user';
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl p-3.5 text-sm leading-relaxed ${
+                        isUser
+                          ? 'bg-primary text-primary-foreground rounded-br-none shadow-md'
+                          : 'bg-muted/40 text-foreground border border-border/40 rounded-bl-none shadow-sm'
+                      }`}
+                    >
+                      <div className="whitespace-pre-wrap">{renderMessageContent(msg.text)}</div>
+
+                      {/* Citations Tag */}
+                      {msg.citations && msg.citations.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-border/30 flex flex-wrap gap-1">
+                          {msg.citations.map((cite, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1 rounded bg-card/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border/40"
+                            >
+                              📑 {cite}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Suggested Chunks Card */}
+                      {!isUser && msg.suggestedChunks && msg.suggestedChunks.length > 0 && (
+                        <SuggestedChunksCard
+                          chunks={msg.suggestedChunks}
+                          courseId={selectedCourseId}
+                          courseCode={selectedCourse?.code || 'Course'}
+                        />
+                      )}
+                    </div>
+
+                    {/* Message meta & copy button */}
+                    <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground px-1">
+                      <span>{msg.timestamp}</span>
+                      {!isUser && (
+                        <button
+                          onClick={() => handleCopy(msg.id, msg.text)}
+                          className="hover:text-foreground transition-colors"
+                          aria-label="Copy response"
+                        >
+                          {copiedId === msg.id ? '✓ Copied' : 'Copy'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
 
             {/* Loading Indicator */}
-            {isLoading && (
+            {mode === 'syllabus' && isLoading && (
               <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted/40 border border-border/40 w-24">
                 <div className="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
                 <div className="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
@@ -398,20 +568,24 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
 
           {/* Quick Prompt Starter Chips */}
           <div className="border-t border-border/30 px-3 py-2 bg-muted/10 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-1.5 text-xs">
-            {STARTER_PROMPTS.map((prompt, idx) => (
-              <button
-                key={idx}
-                onClick={() => sendMessage(prompt)}
-                disabled={isLoading}
-                className="shrink-0 rounded-full border border-border/60 bg-card px-2.5 py-1 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all disabled:opacity-50"
-              >
-                {prompt}
-              </button>
-            ))}
+            {(mode === 'syllabus' ? STARTER_PROMPTS : ADVISOR_STARTER_PROMPTS).map(
+              (prompt, idx) => (
+                <button
+                  key={idx}
+                  onClick={() =>
+                    mode === 'syllabus' ? sendMessage(prompt) : sendAdvisorMessage(prompt)
+                  }
+                  disabled={mode === 'syllabus' ? isLoading : advisorSending}
+                  className="shrink-0 rounded-full border border-border/60 bg-card px-2.5 py-1 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ),
+            )}
           </div>
 
-          {/* File Preview Badge */}
-          {uploadedFile && (
+          {/* File Preview Badge - syllabus mode only, the Advisor doesn't take file uploads */}
+          {mode === 'syllabus' && uploadedFile && (
             <div className="px-3 py-1.5 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5 truncate">
                 <span>📄</span>
@@ -435,54 +609,66 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              sendMessage(inputQuery);
+              if (mode === 'syllabus') {
+                sendMessage(inputQuery);
+              } else {
+                sendAdvisorMessage(inputQuery);
+              }
             }}
             className="border-t border-border/40 p-3 bg-card flex items-center gap-2"
           >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".pdf,.docx"
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading || fileUploading}
-              aria-label="Upload syllabus or assignment rubric document"
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-input text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-            >
-              {fileUploading ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              ) : (
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
+            {mode === 'syllabus' && (
+              <>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".pdf,.docx"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading || fileUploading}
+                  aria-label="Upload syllabus or assignment rubric document"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border bg-input text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                  />
-                </svg>
-              )}
-            </button>
+                  {fileUploading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  ) : (
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </>
+            )}
             <input
               ref={inputRef}
               type="text"
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
-              placeholder={`Ask anything about ${selectedCourse?.code || 'syllabus'}...`}
-              disabled={isLoading}
+              placeholder={
+                mode === 'syllabus'
+                  ? `Ask anything about ${selectedCourse?.code || 'syllabus'}...`
+                  : 'Ask about your degree, GPA, or what to take next…'
+              }
+              disabled={mode === 'syllabus' ? isLoading : advisorSending}
               className="flex-1 rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
             />
             <button
               type="submit"
-              disabled={!inputQuery.trim() || isLoading}
+              disabled={!inputQuery.trim() || (mode === 'syllabus' ? isLoading : advisorSending)}
               aria-label="Send query to AI Copilot"
               className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 shadow-sm"
             >

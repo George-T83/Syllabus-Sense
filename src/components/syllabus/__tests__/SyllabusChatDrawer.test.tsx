@@ -16,6 +16,18 @@ vi.mock('@/context/AuthContext', () => ({
   }),
 }));
 
+vi.mock('@/lib/firestore/useDegreeCompass', () => ({
+  useDegreeProfile: () => ({ profile: null, loading: false }),
+  useDegreeCourses: () => [],
+}));
+
+const appendAdvisorMessage = vi.fn().mockResolvedValue(undefined);
+let mockAdvisorMessages: { id: string; role: 'user' | 'assistant'; content: string }[] = [];
+vi.mock('@/lib/firestore/advisor', () => ({
+  appendAdvisorMessage: (...args: unknown[]) => appendAdvisorMessage(...args),
+  useAdvisorMessages: () => ({ messages: mockAdvisorMessages, loading: false }),
+}));
+
 const mockCourses: Course[] = [
   {
     id: 'course-1',
@@ -62,6 +74,7 @@ function renderWithProviders(ui: React.ReactElement, stateOverrides: Partial<App
 describe('SyllabusChatDrawer (Item 35)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAdvisorMessages = [];
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -153,5 +166,74 @@ describe('SyllabusChatDrawer (Item 35)', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  describe('This syllabus / My Advisor mode toggle (Direction A)', () => {
+    it('defaults to "This syllabus" mode with the course selector visible', () => {
+      renderWithProviders(<SyllabusChatDrawer isOpen={true} onClose={vi.fn()} />);
+
+      const syllabusTab = screen.getByRole('tab', { name: 'This syllabus' });
+      expect(syllabusTab.getAttribute('aria-selected')).toBe('true');
+      expect(screen.getByLabelText(/Select course scope/i)).toBeDefined();
+    });
+
+    it('switching to "My Advisor" hides the course selector and shows the Advisor welcome message', () => {
+      renderWithProviders(<SyllabusChatDrawer isOpen={true} onClose={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('tab', { name: 'My Advisor' }));
+
+      expect(screen.getByRole('heading', { name: /AI Advisor/i })).toBeDefined();
+      expect(screen.queryByLabelText(/Select course scope/i)).toBeNull();
+      expect(screen.getByText(/reason over your Degree Compass plan/i)).toBeDefined();
+      expect(
+        screen.getByPlaceholderText(/Ask about your degree, GPA, or what to take next/i),
+      ).toBeDefined();
+    });
+
+    it('switching back to "This syllabus" restores the course-scoped UI', () => {
+      renderWithProviders(<SyllabusChatDrawer isOpen={true} onClose={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('tab', { name: 'My Advisor' }));
+      fireEvent.click(screen.getByRole('tab', { name: 'This syllabus' }));
+
+      expect(screen.getByLabelText(/Select course scope/i)).toBeDefined();
+      expect(screen.getByPlaceholderText(/Ask anything about/i)).toBeDefined();
+    });
+
+    it('sends an Advisor message to /api/advisor/chat and persists it via appendAdvisorMessage', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+        if (url === '/api/advisor/chat') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ reply: 'You are on track to graduate in Spring 2028.' }),
+          });
+        }
+        return Promise.reject(new Error(`Unexpected fetch to ${url}`));
+      });
+
+      renderWithProviders(<SyllabusChatDrawer isOpen={true} onClose={vi.fn()} />);
+      fireEvent.click(screen.getByRole('tab', { name: 'My Advisor' }));
+
+      const input = screen.getByPlaceholderText(/Ask about your degree/i);
+      fireEvent.change(input, { target: { value: 'Am I on track to graduate?' } });
+      fireEvent.click(screen.getByRole('button', { name: /Send query/i }));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/advisor/chat',
+          expect.objectContaining({ method: 'POST' }),
+        );
+        expect(appendAdvisorMessage).toHaveBeenCalled();
+      });
+    });
+
+    it('does not show the file-upload button in Advisor mode', () => {
+      renderWithProviders(<SyllabusChatDrawer isOpen={true} onClose={vi.fn()} />);
+
+      expect(screen.getByLabelText(/Upload syllabus or assignment rubric/i)).toBeDefined();
+
+      fireEvent.click(screen.getByRole('tab', { name: 'My Advisor' }));
+      expect(screen.queryByLabelText(/Upload syllabus or assignment rubric/i)).toBeNull();
+    });
   });
 });
