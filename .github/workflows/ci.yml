@@ -88,11 +88,15 @@ jobs:
       # Gated at "critical" only, not the repo's current baseline of high/
       # moderate findings (all in transitive deps requiring a major-version
       # bump tracked separately) - this exists to catch a *new* critical
-      # regression, not to silently pass while masking the known gap.
+      # regression, not to silently pass while masking the known gap. The
+      # script (not a bare `npm audit --audit-level=critical`) checks each
+      # critical finding against scripts/acceptedCriticalVulnerabilities.json
+      # so an already-tracked, dated, reasoned exception doesn't block every
+      # future PR forever - see that file for what's currently accepted.
       - name: Check for Critical Dependency Vulnerabilities
         id: audit
         run: |
-          if npm audit --audit-level=critical; then
+          if node scripts/check-critical-audit.mjs; then
             echo "status=Pass" >> $GITHUB_OUTPUT
           else
             echo "status=Fail" >> $GITHUB_OUTPUT
