@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs } from 'firebase/firestore';
 import { Card } from '@/components/ui/Card';
+import { CardActionButton } from '@/components/ui/CardAction';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState } from '@/context/AppStateContext';
@@ -12,6 +13,7 @@ import { useToast } from '@/components/ui/Toast';
 import { db } from '@/lib/firebase/client';
 import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
 import type { SyllabusUpload } from '@/types/syllabus';
+import type { MeetingTime } from '@/types/schedule';
 import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
@@ -90,6 +92,18 @@ const PREFERENCE_ROWS: {
   },
 ];
 
+const WEEKDAY_OPTIONS = [
+  { value: 0, label: 'Sun' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+];
+
+const emptyWorkShift: MeetingTime = { dayOfWeek: 1, startTime: '17:00', endTime: '21:00' };
+
 /** `.edu` email domain -> a small read-only "this is your school" badge.
  * Real signal (no backend needed): a proper school/LMS connection is a
  * separate, larger feature (see the Canvas-sync row below), but showing
@@ -156,6 +170,28 @@ export function ProfileView() {
       // actually made it to Firestore if this particular write failed.
     }
   };
+
+  // --- Work schedule: recurring weekly shifts the study-block
+  // auto-scheduler (lib/planner/suggestStudyBlocks.ts) also blocks out,
+  // same optimistic-write pattern as handleSelectRowVariant above.
+  const workShifts = preferences.workShifts ?? [];
+
+  const persistWorkShifts = async (nextShifts: MeetingTime[]) => {
+    const next = { ...preferences, workShifts: nextShifts };
+    dispatch({ type: 'SET_PREFERENCES', payload: next });
+    try {
+      await updateUserPreferences(user.uid, next);
+    } catch {
+      // Non-fatal: the realtime listener will correct the UI to whatever
+      // actually made it to Firestore if this particular write failed.
+    }
+  };
+
+  const addWorkShift = () => persistWorkShifts([...workShifts, { ...emptyWorkShift }]);
+  const updateWorkShift = (index: number, patch: Partial<MeetingTime>) =>
+    persistWorkShifts(workShifts.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+  const removeWorkShift = (index: number) =>
+    persistWorkShifts(workShifts.filter((_, i) => i !== index));
 
   const handleSelectAvatarColor = async (color: string | undefined) => {
     const next = { ...preferences, avatarColor: color };
@@ -495,6 +531,103 @@ export function ProfileView() {
             ))}
           </div>
         </div>
+      </Card>
+
+      {/* ---------------------------------------------------------------
+          Work schedule - recurring weekly shifts or commitments outside
+          class. Unlike the Notifications rows below, this is fully live:
+          the Suggested Study Blocks card on the Planner page reads it
+          immediately, no delivery backend required. */}
+      <SectionHeading
+        icon="clock"
+        title="Work schedule"
+        description="Recurring shifts or commitments outside class."
+      />
+
+      <Card className="rounded-2xl p-6" data-testid="work-schedule-card">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Suggested Study Blocks on the Planner page will work around these too, the same way it
+            already does for your class meetings.
+          </p>
+          <CardActionButton variant="solid" withPlus onClick={addWorkShift} className="shrink-0">
+            Add shift
+          </CardActionButton>
+        </div>
+        {workShifts.length === 0 ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            No recurring shifts yet — add one if you have a job or standing commitment during the
+            week.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {workShifts.map((shift, index) => {
+              const timeInvalid =
+                !!shift.startTime && !!shift.endTime && shift.endTime <= shift.startTime;
+              return (
+                <div key={index} className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2">
+                    <select
+                      aria-label={`Shift ${index + 1} day of week`}
+                      value={shift.dayOfWeek}
+                      onChange={(e) =>
+                        updateWorkShift(index, { dayOfWeek: Number(e.target.value) })
+                      }
+                      className="rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      {WEEKDAY_OPTIONS.map((d) => (
+                        <option key={d.value} value={d.value}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      aria-label={`Shift ${index + 1} start time`}
+                      type="time"
+                      value={shift.startTime}
+                      onChange={(e) => updateWorkShift(index, { startTime: e.target.value })}
+                      className={cn(
+                        'rounded-md border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+                        timeInvalid ? 'border-destructive' : 'border-border',
+                      )}
+                    />
+                    <span className="text-xs text-muted-foreground">to</span>
+                    <input
+                      aria-label={`Shift ${index + 1} end time`}
+                      type="time"
+                      value={shift.endTime}
+                      onChange={(e) => updateWorkShift(index, { endTime: e.target.value })}
+                      className={cn(
+                        'rounded-md border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+                        timeInvalid ? 'border-destructive' : 'border-border',
+                      )}
+                    />
+                    <input
+                      aria-label={`Shift ${index + 1} label`}
+                      value={shift.location ?? ''}
+                      onChange={(e) => updateWorkShift(index, { location: e.target.value })}
+                      placeholder="Label (optional, e.g. Coffee Shop)"
+                      className="min-w-[9rem] flex-1 rounded-md border border-border bg-input px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeWorkShift(index)}
+                      aria-label={`Remove shift ${index + 1}`}
+                      className="rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {timeInvalid && (
+                    <p className="text-xs text-destructive" role="alert">
+                      End time must be after start time.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
 
       {/* ---------------------------------------------------------------
