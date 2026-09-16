@@ -1,13 +1,13 @@
-import type { Course, ScheduleItem } from '@/types/schedule';
+import type { Course, MeetingTime, ScheduleItem } from '@/types/schedule';
 import { getMeetingsForDay, timeToFractionalHours } from '@/lib/calendar/meetings';
 import { toDayKey, addDays, sortItemsByUrgency } from '@/lib/calendar/dates';
 
 /**
  * Time-blocking auto-scheduler (Part B): turns the upcoming backlog into
  * concrete "when" suggestions instead of leaving a student to figure out
- * where study time actually fits around class. Read-only and advisory -
- * nothing here is persisted; it's recomputed fresh from the same
- * scheduleItems/courses already loaded everywhere else.
+ * where study time actually fits around class and work. Read-only and
+ * advisory - nothing here is persisted; it's recomputed fresh from the
+ * same scheduleItems/courses/preferences already loaded everywhere else.
  */
 
 /** The day is only ever filled between these hours - suggesting a 6am or
@@ -33,20 +33,39 @@ const DEFAULT_ITEM_HOURS = 1;
 /** Below this, a remaining slot is too small to bother suggesting. */
 const MIN_BLOCK_HOURS = 0.25;
 
+/** A short break inserted between two consecutive suggested blocks, when
+ * there's room for one - back-to-back study blocks for hours on end isn't
+ * a realistic plan. */
+const BREAK_HOURS = 0.25;
+
 interface FreeInterval {
   start: number;
   end: number;
 }
 
 /** The gaps left in the study window on `day` once every recurring class
- * meeting is subtracted out - a standard sweep over sorted busy intervals. */
-function computeFreeIntervals(courses: Course[], day: Date): FreeInterval[] {
-  const busy = getMeetingsForDay(courses, day)
-    .map((occurrence) => ({
-      start: timeToFractionalHours(occurrence.meeting.startTime),
-      end: timeToFractionalHours(occurrence.meeting.endTime),
-    }))
-    .sort((a, b) => a.start - b.start);
+ * meeting and work shift is subtracted out - a standard sweep over sorted
+ * busy intervals. Class meetings and work shifts are both "recurring
+ * weekly busy time" (MeetingTime), so they're merged into one busy list
+ * rather than handled as two separate passes. */
+function computeFreeIntervals(
+  courses: Course[],
+  workShifts: MeetingTime[],
+  day: Date,
+): FreeInterval[] {
+  const dayOfWeek = day.getDay();
+  const classBusy = getMeetingsForDay(courses, day).map((occurrence) => ({
+    start: timeToFractionalHours(occurrence.meeting.startTime),
+    end: timeToFractionalHours(occurrence.meeting.endTime),
+  }));
+  const shiftBusy = workShifts
+    .filter((shift) => shift.dayOfWeek === dayOfWeek)
+    .map((shift) => ({
+      start: timeToFractionalHours(shift.startTime),
+      end: timeToFractionalHours(shift.endTime),
+    }));
+
+  const busy = [...classBusy, ...shiftBusy].sort((a, b) => a.start - b.start);
 
   const free: FreeInterval[] = [];
   let cursor = STUDY_WINDOW_START;
@@ -70,6 +89,7 @@ function toTimeString(hours: number): string {
 }
 
 export interface StudyBlockSuggestion {
+  kind: 'study';
   /** YYYY-MM-DD, local time. */
   dateKey: string;
   /** 24-hour "HH:mm", matching MeetingTime's format. */
@@ -78,20 +98,34 @@ export interface StudyBlockSuggestion {
   item: ScheduleItem;
 }
 
+export interface StudyBreakSuggestion {
+  kind: 'break';
+  dateKey: string;
+  startTime: string;
+  endTime: string;
+}
+
+export type StudyScheduleEntry = StudyBlockSuggestion | StudyBreakSuggestion;
+
 /**
  * Suggests concrete study time blocks for the upcoming, incomplete backlog
  * over the next `HORIZON_DAYS` days, filling the gaps left by each day's
- * recurring class meetings. Most urgent items (lib/calendar/dates.ts's
- * existing priority/overdue/due-date ranking) get first claim on the
- * earliest free time. Best-effort: an item that doesn't fully fit within
- * the horizon simply gets partial coverage rather than blocking everything
- * else behind it.
+ * recurring class meetings and work shifts. Most urgent items
+ * (lib/calendar/dates.ts's existing priority/overdue/due-date ranking) get
+ * first claim on the earliest free time. A short break is suggested
+ * between two consecutive blocks whenever the free interval has room for
+ * one - never squeezed in right against a class/work boundary or the last
+ * block of the day, where it would just be a suggestion nobody could act
+ * on. Best-effort: an item that doesn't fully fit within the horizon
+ * simply gets partial coverage rather than blocking everything else
+ * behind it.
  */
 export function suggestStudyBlocks(
   scheduleItems: ScheduleItem[],
   courses: Course[],
+  workShifts: MeetingTime[] = [],
   referenceDate: Date = new Date(),
-): StudyBlockSuggestion[] {
+): StudyScheduleEntry[] {
   const today = new Date(
     referenceDate.getFullYear(),
     referenceDate.getMonth(),
@@ -109,13 +143,13 @@ export function suggestStudyBlocks(
       item.estimatedHours && item.estimatedHours > 0 ? item.estimatedHours : DEFAULT_ITEM_HOURS,
   }));
 
-  const suggestions: StudyBlockSuggestion[] = [];
+  const entries: StudyScheduleEntry[] = [];
   let queueIndex = 0;
 
   for (let dayOffset = 0; dayOffset <= HORIZON_DAYS && queueIndex < queue.length; dayOffset++) {
     const day = addDays(today, dayOffset);
     const dayKey = toDayKey(day);
-    const freeIntervals = computeFreeIntervals(courses, day);
+    const freeIntervals = computeFreeIntervals(courses, workShifts, day);
     let dailyAllocated = 0;
 
     for (const interval of freeIntervals) {
@@ -142,7 +176,8 @@ export function suggestStudyBlocks(
         );
         if (blockLength < MIN_BLOCK_HOURS) break;
 
-        suggestions.push({
+        entries.push({
+          kind: 'study',
           dateKey: dayKey,
           startTime: toTimeString(cursor),
           endTime: toTimeString(cursor + blockLength),
@@ -153,9 +188,24 @@ export function suggestStudyBlocks(
         dailyAllocated += blockLength;
         entry.remainingHours -= blockLength;
         if (entry.remainingHours < MIN_BLOCK_HOURS) queueIndex++;
+
+        // Include a break if their time allows: enough room left in this
+        // same free interval for both the break and at least one more
+        // minimal block, and there's still something left to schedule.
+        const moreToSchedule =
+          queueIndex < queue.length && dailyAllocated < MAX_DAILY_SUGGESTED_HOURS;
+        if (moreToSchedule && cursor + BREAK_HOURS + MIN_BLOCK_HOURS <= interval.end) {
+          entries.push({
+            kind: 'break',
+            dateKey: dayKey,
+            startTime: toTimeString(cursor),
+            endTime: toTimeString(cursor + BREAK_HOURS),
+          });
+          cursor += BREAK_HOURS;
+        }
       }
     }
   }
 
-  return suggestions;
+  return entries;
 }
