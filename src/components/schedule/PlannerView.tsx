@@ -16,7 +16,11 @@ import { clampProgress } from '@/lib/taskStatus';
 import { cn } from '@/lib/utils';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { ScheduleItem, AssignmentType, Priority } from '@/types/schedule';
-import { SHORT_DATE_FORMATTER as dueDateFormatter } from '@/lib/dateFormatters';
+import {
+  SHORT_DATE_FORMATTER as dueDateFormatter,
+  MONTH_LONG_FORMATTER,
+  MONTH_YEAR_FORMATTER,
+} from '@/lib/dateFormatters';
 
 type StatusFilter = 'all' | 'pending' | 'completed';
 /** What organizes the list into sections. 'date' buckets by due-date
@@ -114,11 +118,7 @@ interface ItemGroup {
  * this one. */
 function monthSubGroupLabel(date: Date, today: Date): string {
   const sameYear = date.getFullYear() === today.getFullYear();
-  const formatter = new Intl.DateTimeFormat(
-    'en-US',
-    sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' },
-  );
-  return formatter.format(date);
+  return (sameYear ? MONTH_LONG_FORMATTER : MONTH_YEAR_FORMATTER).format(date);
 }
 
 /** Chunks an already-sorted list of items into per-calendar-month buckets,
