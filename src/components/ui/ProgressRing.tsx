@@ -1,3 +1,5 @@
+import { BRAND_GRADIENT_STOPS } from '@/lib/theme/brandGradient';
+
 export interface ProgressRingProps {
   /** 0-100 */
   percent: number;
@@ -21,9 +23,9 @@ export function ProgressRing({ percent, size = 96, strokeWidth = 8, children }: 
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#8c6eff" />
-            <stop offset="55%" stopColor="#5b3df5" />
-            <stop offset="100%" stopColor="#00bfa0" />
+            {BRAND_GRADIENT_STOPS.map((stop) => (
+              <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+            ))}
           </linearGradient>
         </defs>
         <circle

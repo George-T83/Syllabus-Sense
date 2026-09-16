@@ -46,6 +46,15 @@
     --load-high: 24 95% 53%;
     --load-critical: 0 84% 60%;
 
+    /* Logo mark's gradient stops (Logo.tsx) - the single source every other
+       brand gradient (.bg-gradient-brand, .text-gradient-brand,
+       .spinner-gradient, the Pomodoro focus ring) reads from, so the
+       identity only needs to change in one place. Fixed across themes -
+       it's the brand mark's own color, not a surface that adapts. */
+    --brand-gradient-start: #8c6eff;
+    --brand-gradient-mid: #5b3df5;
+    --brand-gradient-end: #00bfa0;
+
     /* Card v2: a soft, brand-tinted shadow rather than a flat gray one, so
        every card (they all share this component) reads as "lifted" without
        needing per-page custom shadow work. */
@@ -106,6 +115,10 @@
     --load-medium: 38 92% 50%;
     --load-high: 24 95% 53%;
     --load-critical: 0 84% 60%;
+
+    --brand-gradient-start: #8c6eff;
+    --brand-gradient-mid: #5b3df5;
+    --brand-gradient-end: #00bfa0;
 
     /* Dark mode: shadows read as depth via a soft brand glow rather than a
        dark blur (which is nearly invisible against an already-dark page). */
@@ -266,30 +279,23 @@
      confined to the icon - hero panels, progress rings, and CTAs can pick up
      the same identity. */
   .bg-gradient-brand {
-    background-image: linear-gradient(135deg, #8c6eff 0%, #5b3df5 55%, #00bfa0 100%);
+    background-image: linear-gradient(
+      135deg,
+      var(--brand-gradient-start) 0%,
+      var(--brand-gradient-mid) 55%,
+      var(--brand-gradient-end) 100%
+    );
   }
   .text-gradient-brand {
-    background-image: linear-gradient(135deg, #8c6eff 0%, #5b3df5 55%, #00bfa0 100%);
+    background-image: linear-gradient(
+      135deg,
+      var(--brand-gradient-start) 0%,
+      var(--brand-gradient-mid) 55%,
+      var(--brand-gradient-end) 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-  }
-
-  /* Brand-gradient spinner ring: same purple-to-teal stops as
-     .bg-gradient-brand, painted as a conic sweep and masked down to a ring
-     (rather than a filled disc) so it drops into the same
-     `animate-spin`-timed element the flat border-t-primary ring used to
-     occupy. The mask's inner radius matches that ring's old 3px stroke. */
-  .spinner-gradient {
-    background-image: conic-gradient(
-      from 0deg,
-      #8c6eff 0%,
-      #5b3df5 55%,
-      #00bfa0 100%,
-      #8c6eff 100%
-    );
-    -webkit-mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
-    mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
   }
 
   /* Staggered entrance for the syllabus autofill review list: each
@@ -319,10 +325,10 @@
   .spinner-gradient {
     background-image: conic-gradient(
       from 0deg,
-      #8c6eff 0%,
-      #5b3df5 55%,
-      #00bfa0 100%,
-      #8c6eff 100%
+      var(--brand-gradient-start) 0%,
+      var(--brand-gradient-mid) 55%,
+      var(--brand-gradient-end) 100%,
+      var(--brand-gradient-start) 100%
     );
     -webkit-mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
     mask-image: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
