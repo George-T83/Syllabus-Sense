@@ -28,7 +28,7 @@ import {
 import { MOOD_OPTIONS, MOOD_SWATCH_CLASS, getMoodOption } from '@/lib/mood/moodScale';
 import { WORKLOAD_RAW_COLOR } from '@/lib/workload/uiClasses';
 import { computeSemesterHeatmap } from '@/lib/planner/semesterHeatmap';
-import { parseDayKey } from '@/lib/calendar/dates';
+import { parseDayKey, toDayKey, eachDayOfRange } from '@/lib/calendar/dates';
 import { cn } from '@/lib/utils';
 import type { WorkloadLevel } from '@/types/schedule';
 import type { MoodValue } from '@/types/mood';
@@ -95,11 +95,9 @@ export function MoodRecapView() {
       { length: leadingBlanks },
       () => ({ dateKey: '', mood: null }),
     );
-    const cursor = new Date(start);
-    while (cursor.getTime() <= end.getTime()) {
-      const dateKey = cursor.toISOString().slice(0, 10);
+    for (const day of eachDayOfRange(start, end)) {
+      const dateKey = toDayKey(day);
       cells.push({ dateKey, mood: (byDate.get(dateKey) as MoodValue | undefined) ?? null });
-      cursor.setDate(cursor.getDate() + 1);
     }
     return cells;
   }, [trend, termDays]);
