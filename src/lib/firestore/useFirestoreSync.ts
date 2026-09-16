@@ -1,7 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { collection, doc, onSnapshot, type FirestoreError } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  type Firestore,
+  type FirestoreError,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
@@ -15,6 +21,28 @@ import type { Flashcard } from '@/types/flashcard';
 import type { Quiz, QuizAttempt } from '@/types/quiz';
 import type { MoodEntry } from '@/types/mood';
 import { mockCourses, mockScheduleItems } from '@/lib/mock-data';
+
+/**
+ * Subscribes to `users/{userId}/{collectionName}` and hands every snapshot's
+ * docs to `onDocs`, typed as `T[]`. Covers the plain "map docs, dispatch"
+ * shape shared by contacts/sources/flashcards/quizzes/quizAttempts/
+ * moodEntries - courses and scheduleItems need their own listener since they
+ * reconcile against in-flight optimistic state first, and preferences reads
+ * a single doc rather than a collection, so neither goes through this.
+ */
+function subscribeCollection<T>(
+  db: Firestore,
+  userId: string,
+  collectionName: string,
+  onDocs: (docs: T[]) => void,
+  onSyncError: (error: FirestoreError) => void,
+): () => void {
+  return onSnapshot(
+    collection(db, 'users', userId, collectionName),
+    (snapshot) => onDocs(snapshot.docs.map((d) => d.data() as T)),
+    onSyncError,
+  );
+}
 
 /**
  * Keeps AppStateContext live-synced with the signed-in user's Firestore data.
@@ -74,55 +102,46 @@ export function useFirestoreSync() {
       },
       onSyncError('tasks'),
     );
-    const unsubContacts = onSnapshot(
-      collection(db, 'users', user.uid, 'contacts'),
-      (snapshot) => {
-        dispatch({ type: 'SET_CONTACTS', payload: snapshot.docs.map((d) => d.data() as Contact) });
-      },
+    const unsubContacts = subscribeCollection<Contact>(
+      db,
+      user.uid,
+      'contacts',
+      (docs) => dispatch({ type: 'SET_CONTACTS', payload: docs }),
       onSyncError('contacts'),
     );
-    const unsubSources = onSnapshot(
-      collection(db, 'users', user.uid, 'sources'),
-      (snapshot) => {
-        dispatch({ type: 'SET_SOURCES', payload: snapshot.docs.map((d) => d.data() as Source) });
-      },
+    const unsubSources = subscribeCollection<Source>(
+      db,
+      user.uid,
+      'sources',
+      (docs) => dispatch({ type: 'SET_SOURCES', payload: docs }),
       onSyncError('sources'),
     );
-    const unsubFlashcards = onSnapshot(
-      collection(db, 'users', user.uid, 'flashcards'),
-      (snapshot) => {
-        dispatch({
-          type: 'SET_FLASHCARDS',
-          payload: snapshot.docs.map((d) => d.data() as Flashcard),
-        });
-      },
+    const unsubFlashcards = subscribeCollection<Flashcard>(
+      db,
+      user.uid,
+      'flashcards',
+      (docs) => dispatch({ type: 'SET_FLASHCARDS', payload: docs }),
       onSyncError('flashcards'),
     );
-    const unsubQuizzes = onSnapshot(
-      collection(db, 'users', user.uid, 'quizzes'),
-      (snapshot) => {
-        dispatch({ type: 'SET_QUIZZES', payload: snapshot.docs.map((d) => d.data() as Quiz) });
-      },
+    const unsubQuizzes = subscribeCollection<Quiz>(
+      db,
+      user.uid,
+      'quizzes',
+      (docs) => dispatch({ type: 'SET_QUIZZES', payload: docs }),
       onSyncError('quizzes'),
     );
-    const unsubQuizAttempts = onSnapshot(
-      collection(db, 'users', user.uid, 'quizAttempts'),
-      (snapshot) => {
-        dispatch({
-          type: 'SET_QUIZ_ATTEMPTS',
-          payload: snapshot.docs.map((d) => d.data() as QuizAttempt),
-        });
-      },
+    const unsubQuizAttempts = subscribeCollection<QuizAttempt>(
+      db,
+      user.uid,
+      'quizAttempts',
+      (docs) => dispatch({ type: 'SET_QUIZ_ATTEMPTS', payload: docs }),
       onSyncError('quiz attempts'),
     );
-    const unsubMoodEntries = onSnapshot(
-      collection(db, 'users', user.uid, 'moodEntries'),
-      (snapshot) => {
-        dispatch({
-          type: 'SET_MOOD_ENTRIES',
-          payload: snapshot.docs.map((d) => d.data() as MoodEntry),
-        });
-      },
+    const unsubMoodEntries = subscribeCollection<MoodEntry>(
+      db,
+      user.uid,
+      'moodEntries',
+      (docs) => dispatch({ type: 'SET_MOOD_ENTRIES', payload: docs }),
       onSyncError('mood entries'),
     );
     // Same doc ProfileView writes to via updateUserPreferences - kept here
