@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { saveSession } from '@/lib/focus/pomodoroSessions';
+import { BRAND_GRADIENT_STOPS } from '@/lib/theme/brandGradient';
 
 const WORK_DURATION = 25 * 60; // 25 minutes
 const BREAK_DURATION = 5 * 60; //  5 minutes
@@ -231,9 +232,9 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
           <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
             <defs>
               <linearGradient id="pomodoroFocusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#8c6eff" />
-                <stop offset="55%" stopColor="#5b3df5" />
-                <stop offset="100%" stopColor="#00bfa0" />
+                {BRAND_GRADIENT_STOPS.map((stop) => (
+                  <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+                ))}
               </linearGradient>
             </defs>
             <circle
