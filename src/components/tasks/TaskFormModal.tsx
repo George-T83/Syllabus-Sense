@@ -15,6 +15,11 @@ import { cn } from '@/lib/utils';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useDirtyClose } from '@/hooks/useDirtyClose';
 import { DiscardConfirmCard } from '@/components/ui/DiscardConfirmCard';
+import {
+  estimateReadingHours,
+  READING_DENSITY_OPTIONS,
+  type ReadingDensity,
+} from '@/lib/reading/estimateReadingHours';
 
 const TYPE_OPTIONS: { value: AssignmentType; label: string }[] = [
   { value: 'assignment', label: 'Assignment' },
@@ -69,9 +74,13 @@ export function TaskFormModal({
   const [errors, setErrors] = useState<Partial<Record<keyof ScheduleItemFormValues, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [readingPages, setReadingPages] = useState('');
+  const [readingDensity, setReadingDensity] = useState<ReadingDensity>('standard');
 
   useEffect(() => {
     if (!open) return;
+    setReadingPages('');
+    setReadingDensity('standard');
     const initial: ScheduleItemFormValues = initialItem
       ? {
           title: initialItem.title,
@@ -248,6 +257,16 @@ export function TaskFormModal({
                         />
                       </div>
 
+                      {values.type === 'reading' && (
+                        <ReadingLoadEstimator
+                          pages={readingPages}
+                          density={readingDensity}
+                          onPagesChange={setReadingPages}
+                          onDensityChange={setReadingDensity}
+                          onUseEstimate={(hours) => updateField('estimatedHours', hours.toString())}
+                        />
+                      )}
+
                       <div className="space-y-1.5">
                         <span className="text-sm font-medium text-foreground">Priority</span>
                         <div className="flex gap-2">
@@ -370,6 +389,87 @@ interface FieldProps {
   placeholder?: string;
   type?: string;
   onChange: (value: string) => void;
+}
+
+interface ReadingLoadEstimatorProps {
+  pages: string;
+  density: ReadingDensity;
+  onPagesChange: (value: string) => void;
+  onDensityChange: (value: ReadingDensity) => void;
+  onUseEstimate: (hours: number) => void;
+}
+
+/** Part B: lets a student enter a page count instead of guessing at
+ * Est. Hours for a reading assignment - "Use estimate" fills the field but
+ * never overwrites it silently, so a manual estimate is never clobbered. */
+function ReadingLoadEstimator({
+  pages,
+  density,
+  onPagesChange,
+  onDensityChange,
+  onUseEstimate,
+}: ReadingLoadEstimatorProps) {
+  const pageCount = Number(pages);
+  const estimate =
+    pages.trim() !== '' && Number.isFinite(pageCount) && pageCount > 0
+      ? estimateReadingHours(pageCount, density)
+      : null;
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border bg-accent/40 p-3">
+      <span className="text-sm font-medium text-foreground">Reading load estimator</span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label htmlFor="readingPages" className="text-xs font-medium text-muted-foreground">
+            Pages
+          </label>
+          <input
+            id="readingPages"
+            type="number"
+            min={0}
+            value={pages}
+            placeholder="e.g. 40"
+            onChange={(e) => onPagesChange(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="readingDensity" className="text-xs font-medium text-muted-foreground">
+            Density
+          </label>
+          <select
+            id="readingDensity"
+            value={density}
+            onChange={(e) => onDensityChange(e.target.value as ReadingDensity)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            {READING_DENSITY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {READING_DENSITY_OPTIONS.find((opt) => opt.value === density)?.helper}
+      </p>
+      {estimate !== null && (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-sm text-foreground">
+            Estimated: <span className="font-semibold">{estimate}h</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => onUseEstimate(estimate)}
+            className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+          >
+            Use estimate
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Field({ id, label, value, error, placeholder, type = 'text', onChange }: FieldProps) {
