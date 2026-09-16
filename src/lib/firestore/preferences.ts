@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
+import type { MeetingTime } from '@/types/schedule';
 
 export interface UserPreferences {
   dailyDigest: boolean;
@@ -22,6 +23,14 @@ export interface UserPreferences {
    * gradient" (the original always-on look), so existing accounts with no
    * stored value need no migration. */
   avatarColor?: string;
+  /** Recurring weekly commitments outside class - a job shift, practice,
+   * anything on a standing weekly schedule. Reuses the same MeetingTime
+   * shape class meetings already use (both are "recurring weekly busy
+   * time"), so the study-block auto-scheduler (lib/planner/
+   * suggestStudyBlocks.ts) can block them out exactly like a class meeting
+   * without a second, parallel busy-time model. Undefined/absent means no
+   * shifts on record, same as an empty array. */
+  workShifts?: MeetingTime[];
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
