@@ -70,6 +70,24 @@ export function addMonths(date: Date, months: number): Date {
 }
 
 /**
+ * Every local-midnight day from `start` to `end`, inclusive, ascending.
+ * Several features (the semester heatmap, the mood recap calendar) each
+ * hand-rolled their own `while (cursor <= end) { ...; cursor.setDate(...) }`
+ * loop over a date range - this is that loop, written once.
+ */
+export function eachDayOfRange(start: Date, end: Date): Date[] {
+  const days: Date[] = [];
+  for (
+    let cursor = startOfDay(start);
+    cursor.getTime() <= end.getTime();
+    cursor = addDays(cursor, 1)
+  ) {
+    days.push(cursor);
+  }
+  return days;
+}
+
+/**
  * The 6x7 grid of days covering `month`, padded with leading/trailing days from
  * adjacent months so every row is a full week (Sunday-first).
  *

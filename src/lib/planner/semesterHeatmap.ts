@@ -1,4 +1,4 @@
-import { toDayKey, parseDayKey } from '@/lib/calendar/dates';
+import { toDayKey, parseDayKey, eachDayOfRange } from '@/lib/calendar/dates';
 import { getWorkloadLevel } from '@/lib/workload/dailyLoad';
 import type { WorkloadLevel } from '@/types/schedule';
 import type { ScheduleItem } from '@/types/schedule';
@@ -61,13 +61,9 @@ export function computeSemesterHeatmap(scheduleItems: ScheduleItem[]): SemesterH
   const start = parseDayKey(sortedKeys[0]);
   const end = parseDayKey(sortedKeys[sortedKeys.length - 1]);
 
-  const days: SemesterHeatmapDay[] = [];
-  const cursor = new Date(start);
-  while (cursor.getTime() <= end.getTime()) {
-    const dateKey = toDayKey(cursor);
+  return eachDayOfRange(start, end).map((day) => {
+    const dateKey = toDayKey(day);
     const hours = dayTotals.get(dateKey) ?? 0;
-    days.push({ dateKey, hours, level: getWorkloadLevel(hours) });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return days;
+    return { dateKey, hours, level: getWorkloadLevel(hours) };
+  });
 }
