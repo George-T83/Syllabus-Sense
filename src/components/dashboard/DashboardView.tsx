@@ -20,6 +20,7 @@ import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { WeeklyBriefingCard } from '@/components/dashboard/WeeklyBriefingCard';
 import { AdvisorInsightCard } from '@/components/dashboard/AdvisorInsightCard';
+import { BurnoutWarningCard } from '@/components/dashboard/BurnoutWarningCard';
 import { MaterialsBudgetCard } from '@/components/dashboard/MaterialsBudgetCard';
 import { MoodCheckInCard } from '@/components/dashboard/MoodCheckInCard';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
@@ -253,6 +254,7 @@ export function DashboardView() {
           </div>
         </div>
 
+        <BurnoutWarningCard />
         <AdvisorInsightCard />
 
         <WeeklyBriefingCard scheduleItems={state.scheduleItems} />
