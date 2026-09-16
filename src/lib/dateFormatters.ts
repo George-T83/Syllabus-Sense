@@ -17,6 +17,9 @@ export const WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat('en-US', { weekda
 /** "Sep" */
 export const MONTH_SHORT_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'short' });
 
+/** "September" */
+export const MONTH_LONG_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'long' });
+
 /** "September 2026" */
 export const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'long',
