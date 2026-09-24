@@ -264,7 +264,18 @@ function CardRow({
         {onToggleComplete && (
           <label
             className="relative flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              // stopPropagation alone leaves the ancestor <Link> (when this
+              // row has an `href`) free to run its own click handler's
+              // preventDefault - except it never gets the chance, since
+              // stopPropagation already stopped the event from reaching it.
+              // The browser then falls back to the anchor's native default
+              // action and navigates away anyway. preventDefault() on the
+              // shared event object cancels that regardless of where in the
+              // bubble chain it's called, so both are needed here.
+              e.preventDefault();
+              e.stopPropagation();
+            }}
           >
             <input
               type="checkbox"
@@ -371,7 +382,13 @@ function CardRow({
         // overflowing (shrink-0) or fighting the title for the same line.
         <div
           className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            // See the checkbox label's onClick above for why both calls are
+            // needed when this row also has an `href` (e.g. Edit/Delete
+            // buttons, or a Focus action, must not also navigate the row).
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           {trailing}
         </div>
@@ -484,7 +501,10 @@ function TouchRow({
           {onToggleComplete && (
             <label
               className="relative flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
             >
               <input
                 type="checkbox"
@@ -557,7 +577,10 @@ function TouchRow({
         {trailing && (
           <div
             className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
           >
             {trailing}
           </div>
