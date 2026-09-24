@@ -12,7 +12,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { db } from '@/lib/firebase/client';
 import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
+import { generateICS, createICSBlob, buildICSFilename } from '@/lib/export/ics';
+import { generateVCard } from '@/lib/export/vcard';
 import type { SyllabusUpload } from '@/types/syllabus';
+import type { GradeScenario } from '@/types/gradeScenario';
 import type { MeetingTime } from '@/types/schedule';
 import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
@@ -22,6 +25,20 @@ import { type LetterGrade } from '@/lib/gpa/gpaMath';
 import { LONG_DATE_YEAR_FORMATTER as dateFormatter } from '@/lib/dateFormatters';
 
 const DELETE_CONFIRM_PHRASE = 'DELETE';
+
+/** Shared client-side download trigger for the three "Your data" export
+ * buttons - the same create-a-link/click/revoke dance, once, instead of
+ * copy-pasted per format. */
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 /** Sample tasks with no relation to the signed-in student's real courses -
  * used only to render a live Comfortable vs. Touch comparison below, so
@@ -257,13 +274,25 @@ export function ProfileView() {
     if (!firestore) return;
     setDownloadingData(true);
     try {
-      const syllabiByCourse = await Promise.all(
-        state.courses.map((course) =>
-          getDocs(collection(firestore, 'users', user.uid, 'courses', course.id, 'syllabi')),
+      const [syllabiByCourse, scenariosByCourse] = await Promise.all([
+        Promise.all(
+          state.courses.map((course) =>
+            getDocs(collection(firestore, 'users', user.uid, 'courses', course.id, 'syllabi')),
+          ),
         ),
-      );
+        Promise.all(
+          state.courses.map((course) =>
+            getDocs(
+              collection(firestore, 'users', user.uid, 'courses', course.id, 'gradeScenarios'),
+            ),
+          ),
+        ),
+      ]);
       const syllabi: SyllabusUpload[] = syllabiByCourse.flatMap((snapshot) =>
         snapshot.docs.map((doc) => doc.data() as SyllabusUpload),
+      );
+      const gradeScenarios: GradeScenario[] = scenariosByCourse.flatMap((snapshot) =>
+        snapshot.docs.map((doc) => doc.data() as GradeScenario),
       );
 
       const payload = {
@@ -276,23 +305,45 @@ export function ProfileView() {
         courses: state.courses,
         scheduleItems: state.scheduleItems,
         contacts: state.contacts,
+        moodEntries: state.moodEntries,
+        gradeScenarios,
         preferences: state.preferences,
         syllabi,
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `syllabus-sense-data-${user.uid}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadBlob(
+        new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
+        `syllabus-sense-data-${user.uid}.json`,
+      );
     } catch {
       showError("Couldn't put together your data export. Try again in a moment.");
     } finally {
       setDownloadingData(false);
     }
+  };
+
+  /** The JSON takeout above is the complete, machine-readable record - these
+   * two are the same underlying data in a form other apps actually open:
+   * a calendar app for the schedule, a contacts app for the people. Reuse
+   * the same exporters already shipped for per-item export elsewhere in the
+   * app (SyllabusList's .ics button, ContactShareModal's vCard), just run
+   * once over everything instead of one item at a time. */
+  const handleDownloadCalendar = () => {
+    const ics = generateICS(state.scheduleItems, state.courses, new Date());
+    downloadBlob(createICSBlob(ics), buildICSFilename('syllabus-sense-schedule'));
+  };
+
+  const handleDownloadContacts = () => {
+    const coursesById = new Map(state.courses.map((c) => [c.id, c]));
+    const vcf = state.contacts
+      .map((contact) => {
+        const course = coursesById.get(contact.courseId);
+        return generateVCard(contact, course?.code, course?.title);
+      })
+      .join('\r\n');
+    downloadBlob(
+      new Blob([vcf], { type: 'text/vcard;charset=utf-8' }),
+      'syllabus-sense-contacts.vcf',
+    );
   };
 
   const deleteReady =
@@ -833,18 +884,34 @@ export function ProfileView() {
         {/* Data export - client-side only, reads what's already in AppState. */}
         <div className="border-t border-border pt-5" data-testid="data-export-section">
           <h3 className="text-sm font-semibold text-foreground">Your data</h3>
-          <div className="mt-2 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              Download every course, task, contact, syllabus, and preference in your account as a
-              JSON file.
-            </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every course, task, contact, mood check-in, grade scenario, syllabus, and preference in
+            your account - as one machine-readable file, or as files other apps can actually open.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleDownloadData}
               disabled={downloadingData}
-              className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {downloadingData ? 'Preparing...' : 'Download my data'}
+              {downloadingData ? 'Preparing...' : 'Download everything (.json)'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadCalendar}
+              disabled={state.scheduleItems.length === 0}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Download schedule (.ics)
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadContacts}
+              disabled={state.contacts.length === 0}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Download contacts (.vcf)
             </button>
           </div>
         </div>
