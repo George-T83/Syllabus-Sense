@@ -3,6 +3,7 @@ import {
   percentageToLetterGrade,
   letterGradeToGpaPoints,
   calculateCurrentWeightedGrade,
+  calculateGradeFloorCeiling,
   calculateRequiredFinalScore,
   calculateSemesterGpa,
   deriveCategoriesFromScheduleItems,
@@ -159,5 +160,53 @@ describe('Academic Grade Math (Item 36)', () => {
     expect(
       deriveCategoriesFromScheduleItems([item({ id: 'ungraded', gradeCategory: 'Homework' })]),
     ).toEqual([]);
+  });
+});
+
+describe('calculateGradeFloorCeiling', () => {
+  const categories: GradeCategory[] = [
+    { id: 'hw', name: 'Homework', weight: 30, score: 90 },
+    { id: 'mid', name: 'Midterm', weight: 30, score: 80 },
+  ];
+
+  it('computes the floor as a 0% final and the ceiling as a 100% final', () => {
+    // nonFinalPoints = 30*0.9 + 30*0.8 = 27 + 24 = 51, totalWeight = 60 + 40 = 100
+    const result = calculateGradeFloorCeiling(categories, 40);
+    expect(result.floorPercentage).toBe(51);
+    expect(result.ceilingPercentage).toBe(91);
+    expect(result.floorLetterGrade).toBe('F');
+    expect(result.ceilingLetterGrade).toBe('A-');
+    expect(result.isLocked).toBe(false);
+  });
+
+  it('is locked (floor === ceiling) once there is no final weight left', () => {
+    const result = calculateGradeFloorCeiling(categories, 0);
+    expect(result.isLocked).toBe(true);
+    expect(result.floorPercentage).toBe(result.ceilingPercentage);
+  });
+
+  it('returns a zeroed, locked result when there is no weight anywhere', () => {
+    const result = calculateGradeFloorCeiling([], 0);
+    expect(result).toEqual({
+      floorPercentage: 0,
+      floorLetterGrade: 'F',
+      ceilingPercentage: 0,
+      ceilingLetterGrade: 'F',
+      isLocked: true,
+    });
+  });
+
+  it('treats a negative final weight the same as zero, not a subtraction', () => {
+    const zero = calculateGradeFloorCeiling(categories, 0);
+    const negative = calculateGradeFloorCeiling(categories, -10);
+    expect(negative).toEqual(zero);
+  });
+
+  it('lets the ceiling exceed 100% when extra credit pushes a category above its max', () => {
+    const withExtraCredit: GradeCategory[] = [{ id: 'ec', name: 'Bonus', weight: 50, score: 110 }];
+    const result = calculateGradeFloorCeiling(withExtraCredit, 50);
+    // nonFinalPoints = 50 * 1.10 = 55, totalWeight = 100, ceiling = (55+50)/100*100 = 105
+    expect(result.ceilingPercentage).toBe(105);
+    expect(result.ceilingLetterGrade).toBe('A');
   });
 });

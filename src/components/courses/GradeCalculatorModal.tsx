@@ -10,6 +10,7 @@ import { useModalA11y } from '@/hooks/useModalA11y';
 import {
   GradeCategory,
   calculateCurrentWeightedGrade,
+  calculateGradeFloorCeiling,
   calculateRequiredFinalScore,
   calculateSemesterGpa,
   deriveCategoriesFromScheduleItems,
@@ -111,6 +112,10 @@ export function GradeCalculatorModal({
   const finalExamTarget = useMemo(() => {
     return calculateRequiredFinalScore(categories, finalExamWeight, targetPercentage);
   }, [categories, finalExamWeight, targetPercentage]);
+
+  const floorCeiling = useMemo(() => {
+    return calculateGradeFloorCeiling(categories, finalExamWeight);
+  }, [categories, finalExamWeight]);
 
   // Total weight check
   const totalWeight = useMemo(() => {
@@ -468,6 +473,49 @@ export function GradeCalculatorModal({
                   </div>
                 </div>
               </div>
+
+              {/* Grade Floor/Ceiling - the guaranteed range given what's
+                  already locked in, independent of any target grade chosen
+                  below. Hidden once there's no final left to create a range
+                  (isLocked) - a single-point "range" isn't useful to show. */}
+              {!floorCeiling.isLocked && (
+                <div className="rounded-xl border border-border/50 bg-card p-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Guaranteed Grade Range
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      whatever you score on the Final
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className="text-lg font-extrabold text-destructive">
+                        {floorCeiling.floorPercentage}%
+                      </span>
+                      <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                        Floor · {floorCeiling.floorLetterGrade}
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 flex-1 rounded-full bg-gradient-to-r from-destructive/50 via-load-medium/50 to-load-low/50"
+                      aria-hidden="true"
+                    />
+                    <div className="flex flex-col items-center">
+                      <span className="text-lg font-extrabold text-load-low">
+                        {floorCeiling.ceilingPercentage}%
+                      </span>
+                      <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                        Ceiling · {floorCeiling.ceilingLetterGrade}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Based on the categories above as locked in - a 0% on the Final gives you the
+                    floor, a 100% gives you the ceiling.
+                  </p>
+                </div>
+              )}
 
               {/* Target Grade Selector Pills */}
               <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">

@@ -214,6 +214,68 @@ export function calculateRequiredFinalScore(
   };
 }
 
+export interface GradeFloorCeilingResult {
+  floorPercentage: number;
+  floorLetterGrade: string;
+  ceilingPercentage: number;
+  ceilingLetterGrade: string;
+  /** True once the final is the only thing left (floor === ceiling) - there's
+   * no remaining uncertainty to show a range for. */
+  isLocked: boolean;
+}
+
+/**
+ * The mathematically guaranteed minimum and maximum final grade, given the
+ * categories already entered (this app's model treats whatever's in
+ * `categories` as the student's current, locked-in standing - the same
+ * assumption `calculateCurrentWeightedGrade` and `calculateRequiredFinalScore`
+ * already make) and one remaining unknown: the final exam. Floor assumes a 0%
+ * final; ceiling assumes a 100% final. Companion to the "required final
+ * score" solver above - that answers "what do I need," this answers "what's
+ * the actual range no matter what."
+ */
+export function calculateGradeFloorCeiling(
+  categories: GradeCategory[],
+  finalExamWeight: number,
+): GradeFloorCeilingResult {
+  const finalWeight = Math.max(0, finalExamWeight);
+
+  let nonFinalPoints = 0;
+  let nonFinalTotalWeight = 0;
+  for (const cat of categories) {
+    const weight = Math.max(0, cat.weight || 0);
+    const score = Math.max(0, cat.score || 0);
+    const max = cat.maxScore && cat.maxScore > 0 ? cat.maxScore : 100;
+    const normScore = (score / max) * 100;
+
+    nonFinalPoints += (normScore * weight) / 100;
+    nonFinalTotalWeight += weight;
+  }
+
+  const totalCourseWeight = nonFinalTotalWeight + finalWeight;
+  if (totalCourseWeight <= 0) {
+    return {
+      floorPercentage: 0,
+      floorLetterGrade: 'F',
+      ceilingPercentage: 0,
+      ceilingLetterGrade: 'F',
+      isLocked: true,
+    };
+  }
+
+  const floorPercentage = Math.round((nonFinalPoints / totalCourseWeight) * 100 * 100) / 100;
+  const ceilingPercentage =
+    Math.round(((nonFinalPoints + finalWeight) / totalCourseWeight) * 100 * 100) / 100;
+
+  return {
+    floorPercentage,
+    floorLetterGrade: percentageToLetterGrade(floorPercentage),
+    ceilingPercentage,
+    ceilingLetterGrade: percentageToLetterGrade(ceilingPercentage),
+    isLocked: finalWeight === 0,
+  };
+}
+
 export interface SemesterCourseProjection {
   id: string;
   code: string;

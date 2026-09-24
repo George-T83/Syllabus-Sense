@@ -169,6 +169,30 @@ describe('GradeCalculatorModal (Item 36)', () => {
     expect(screen.getByText('No grades yet')).toBeDefined();
   });
 
+  it('shows the guaranteed grade floor/ceiling range for seeded real data', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />, {
+      scheduleItems: gradedItems,
+    });
+
+    // Homework 40%@88 + Exams 30%@92, default Final weight 30%:
+    // floor = (40*.88 + 30*.92) / 100 * 100 = 62.8, ceiling = (62.8+30) = 92.8
+    expect(screen.getByText('Guaranteed Grade Range')).toBeDefined();
+    expect(screen.getByText('62.8%')).toBeDefined();
+    expect(screen.getByText('92.8%')).toBeDefined();
+  });
+
+  it('hides the grade range card once the final exam weight is set to zero', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />, {
+      scheduleItems: gradedItems,
+    });
+
+    fireEvent.change(screen.getByLabelText('Weight:', { selector: '#final-weight' }), {
+      target: { value: '0' },
+    });
+
+    expect(screen.queryByText('Guaranteed Grade Range')).toBeNull();
+  });
+
   it('enables the Save Scenario button only once a scenario name is entered', () => {
     renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
 
