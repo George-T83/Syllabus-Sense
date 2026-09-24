@@ -152,7 +152,7 @@ function NotificationBell({
           <div
             role="menu"
             aria-label="Notifications"
-            className="absolute right-0 top-full z-[61] mt-2 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-glass border border-border/40 bg-card glass shadow-glass"
+            className="absolute right-0 top-full z-[61] mt-2 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-glass border border-border/40 bg-card shadow-glass"
           >
             <div className="max-h-80 overflow-y-auto py-1">
               {!hasAny ? (
