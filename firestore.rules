@@ -57,6 +57,50 @@ service cloud.firestore {
       }
     }
 
+    // Section Sync (Section-Mate Deadline Confirmation) - the one
+    // deliberately cross-user surface in this app, everything else above is
+    // strictly single-owner. Gated entirely by invite code: the document ID
+    // *is* the code, and knowing it is what authorizes the initial read (see
+    // src/types/courseGroup.ts for the full design rationale). Never lists
+    // groups - only `get`/per-document `list` filtering is granted below, so
+    // enumerating every code still falls through to the default-deny
+    // catch-all further down.
+    match /courseGroups/{code} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+
+      // Membership is exactly what gates read access to everything else in
+      // the group - a member can only ever write their own membership doc
+      // (joining/leaving/changing their name preference), never anyone
+      // else's.
+      match /members/{uid} {
+        allow read: if request.auth != null &&
+          exists(/databases/$(database)/documents/courseGroups/$(code)/members/$(request.auth.uid));
+        allow write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      match /checkpoints/{checkpointId} {
+        allow read, create: if request.auth != null &&
+          exists(/databases/$(database)/documents/courseGroups/$(code)/members/$(request.auth.uid));
+        allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+      }
+
+      // Flat sibling of checkpoints (not nested under each one) so the
+      // client can subscribe to every confirmation in the group with a
+      // single listener rather than fanning one out per checkpoint.
+      // Authorization comes from the `uid` field on the document itself,
+      // not from parsing its ID.
+      match /confirmations/{confirmationId} {
+        allow read: if request.auth != null &&
+          exists(/databases/$(database)/documents/courseGroups/$(code)/members/$(request.auth.uid));
+        allow create, update: if request.auth != null &&
+          request.auth.uid == request.resource.data.uid &&
+          exists(/databases/$(database)/documents/courseGroups/$(code)/members/$(request.auth.uid));
+        allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
