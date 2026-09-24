@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { saveSession } from '@/lib/focus/pomodoroSessions';
 import { BRAND_GRADIENT_STOPS } from '@/lib/theme/brandGradient';
+import { useAppState } from '@/context/AppStateContext';
 
 const WORK_DURATION = 25 * 60; // 25 minutes
 const BREAK_DURATION = 5 * 60; //  5 minutes
@@ -57,6 +58,8 @@ export interface PomodoroTimerProps {
  * localStorage for later analysis.
  */
 export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
+  const { state } = useAppState();
+  const focusedTask = taskId ? state.scheduleItems.find((i) => i.id === taskId) : undefined;
   const [visible, setVisible] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [remaining, setRemaining] = useState(WORK_DURATION);
@@ -223,6 +226,16 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
             </svg>
           </button>
         </div>
+
+        {/* Focus Mode Deep Link: only present when this session was opened
+            scoped to a specific task (Calendar's "Focus" action) - a
+            generic Alt+P/CommandPalette open has no taskId and renders
+            nothing extra here, unchanged from before this feature. */}
+        {focusedTask && (
+          <p className="w-full truncate text-center text-xs text-muted-foreground">
+            Focusing on <span className="font-medium text-foreground">{focusedTask.title}</span>
+          </p>
+        )}
 
         {/* Circular progress + time - the focus ring's stroke is always the
             brand gradient (Neon Edge identity, visible even while paused);

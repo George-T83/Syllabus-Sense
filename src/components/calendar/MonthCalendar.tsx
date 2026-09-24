@@ -48,6 +48,7 @@ import {
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { courseChipTint, courseSwatch } from '@/lib/courseColors';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { dispatchFocusTask } from '@/lib/focus/focusTaskEvent';
 import type { AssignmentType, Course, ScheduleItem, WorkloadLevel } from '@/types/schedule';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -1002,6 +1003,31 @@ export function MonthCalendar() {
                           priority={item.priority}
                           assignedTo={item.assignedTo}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+                          trailing={
+                            !item.completed ? (
+                              <button
+                                type="button"
+                                onClick={() => dispatchFocusTask(item.id)}
+                                aria-label={`Start a focus session for ${item.title}`}
+                                title="Focus on this task"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                              </button>
+                            ) : undefined
+                          }
                         />
                       );
                     })}
