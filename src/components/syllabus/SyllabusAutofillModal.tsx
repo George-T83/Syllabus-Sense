@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
@@ -10,6 +10,7 @@ import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { createContacts, updateContact } from '@/lib/firestore/contacts';
 import { courseFormSchema } from '@/lib/validation/course';
 import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
+import { sortByDateConfidence } from '@/lib/syllabus/sortByDateConfidence';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
@@ -374,6 +375,17 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const [course, setCourse] = useState<CourseDraft | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
   const [unresolved, setUnresolved] = useState<string[]>([]);
+
+  /** Backlog item "Extraction Confidence Review Queue": the same
+   * dateConfidence value the per-item badges below already flag, now also
+   * driving the order the list renders in via `sortByDateConfidence` -
+   * lowest-confidence items surface first instead of sitting wherever
+   * Claude happened to return them, so a long extraction doesn't bury the
+   * handful of items that actually need a look behind a wall of
+   * already-exact ones. Rendering reads this instead of `items` directly;
+   * every update still targets `items` by `it.key`, so editing, approving,
+   * or rejecting an item is unaffected by where it currently sorts. */
+  const sortedItems = useMemo(() => sortByDateConfidence(items), [items]);
   /** Claude's suggested syllabus file name, freely editable - not just a
    * caption. Empty string is valid input mid-edit; falls back to the
    * original upload's name at save time if left blank. */
@@ -1174,7 +1186,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     {needsConfirmationCount > 0 && (
                       <span className="rounded-full bg-load-medium/10 px-2.5 py-1 text-load-medium">
                         {needsConfirmationCount} date{needsConfirmationCount === 1 ? '' : 's'}{' '}
-                        {needsConfirmationCount === 1 ? 'needs' : 'need'} confirmation
+                        {needsConfirmationCount === 1 ? 'needs' : 'need'} confirmation - sorted
+                        first below
                       </span>
                     )}
                   </div>
@@ -1853,7 +1866,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {items.map((it, i) => (
+                      {sortedItems.map((it, i) => (
                         <div
                           key={it.key}
                           className={cn(
