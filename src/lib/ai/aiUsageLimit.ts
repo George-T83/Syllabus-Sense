@@ -16,6 +16,14 @@ export const AI_DAILY_CALL_LIMIT = (() => {
   return Number.isFinite(raw) && raw > 0 ? raw : 60;
 })();
 
+/**
+ * Global kill switch for the cap below - turned off deliberately by the
+ * repo owner. See docs/AI_USAGE_CAP.md for why, and for what to check before
+ * flipping this back to `true` (which is the only change re-enabling it
+ * needs - the limit/allowlist logic underneath is untouched).
+ */
+export const AI_USAGE_CAP_ENABLED = false;
+
 export interface AiUsageCaller {
   uid: string;
   email?: string;
@@ -74,13 +82,18 @@ export function decideAiUsage(
 /**
  * Atomically checks and increments today's AI-call count for a user.
  * Returns `allowed: false` (without incrementing) once the daily limit is
- * hit. An exempt caller (see `isExempt`) always passes without touching
- * Firestore. When adminDb isn't configured (local dev without admin
- * credentials), this fails open - the routes it guards already 503 without
- * adminStorage/getAnthropicClient in that case, so this never becomes the
- * only gate.
+ * hit. While `AI_USAGE_CAP_ENABLED` is off (see above), this always passes
+ * without touching Firestore at all - same as an exempt caller (see
+ * `isExempt`), which always passes below that too. When adminDb isn't
+ * configured (local dev without admin credentials), this fails open - the
+ * routes it guards already 503 without adminStorage/getAnthropicClient in
+ * that case, so this never becomes the only gate.
  */
 export async function checkAndIncrementAiUsage(caller: AiUsageCaller): Promise<AiUsageDecision> {
+  if (!AI_USAGE_CAP_ENABLED) {
+    return { allowed: true, remaining: Infinity, limit: Infinity, unlimited: true };
+  }
+
   if (isExempt(caller)) {
     return { allowed: true, remaining: Infinity, limit: Infinity, unlimited: true };
   }
