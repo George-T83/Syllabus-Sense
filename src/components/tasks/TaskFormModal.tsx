@@ -20,6 +20,15 @@ import {
   READING_DENSITY_OPTIONS,
   type ReadingDensity,
 } from '@/lib/reading/estimateReadingHours';
+import {
+  generateRecurringInstances,
+  type RecurrenceFrequency,
+} from '@/lib/planner/recurringTaskTemplate';
+
+const REPEAT_FREQUENCY_OPTIONS: { value: RecurrenceFrequency; label: string }[] = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Biweekly' },
+];
 
 const TYPE_OPTIONS: { value: AssignmentType; label: string }[] = [
   { value: 'assignment', label: 'Assignment' },
@@ -76,11 +85,20 @@ export function TaskFormModal({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [readingPages, setReadingPages] = useState('');
   const [readingDensity, setReadingDensity] = useState<ReadingDensity>('standard');
+  /** Conflict-Aware Recurring Task Templates - only offered when creating a
+   * new task (`!initialItem`); repeating an existing single task by editing
+   * it doesn't make sense the way repeating at creation time does. */
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [repeatFrequency, setRepeatFrequency] = useState<RecurrenceFrequency>('weekly');
+  const [repeatOccurrences, setRepeatOccurrences] = useState(10);
 
   useEffect(() => {
     if (!open) return;
     setReadingPages('');
     setReadingDensity('standard');
+    setRepeatEnabled(false);
+    setRepeatFrequency('weekly');
+    setRepeatOccurrences(10);
     const initial: ScheduleItemFormValues = initialItem
       ? {
           title: initialItem.title,
@@ -111,6 +129,17 @@ export function TaskFormModal({
 
   if (!open) return null;
 
+  const selectedCourse = courses.find((c) => c.id === values.courseId);
+  const recurringPreview =
+    repeatEnabled && !initialItem && values.dueDate
+      ? generateRecurringInstances(
+          values.dueDate,
+          { frequency: repeatFrequency, occurrences: repeatOccurrences },
+          selectedCourse?.skipDates ?? [],
+        )
+      : [];
+  const recurringShiftedCount = recurringPreview.filter((i) => i.shifted).length;
+
   const updateField = <K extends keyof ScheduleItemFormValues>(
     key: K,
     value: ScheduleItemFormValues[K],
@@ -135,7 +164,18 @@ export function TaskFormModal({
     setSubmitError(null);
     setSubmitting(true);
     try {
-      await onSubmit(result.data);
+      if (repeatEnabled && !initialItem) {
+        // Sequential, not Promise.all: each call goes through the same
+        // onSubmit the parent already uses for a single task (optimistic
+        // dispatch + a Firestore write per call) - awaiting one at a time
+        // keeps that write-ordering the same a student would get by
+        // manually adding each instance, just without the manual part.
+        for (const instance of recurringPreview) {
+          await onSubmit({ ...result.data, dueDate: instance.dueDate });
+        }
+      } else {
+        await onSubmit(result.data);
+      }
       onClose();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to save task. Please try again.');
@@ -257,6 +297,82 @@ export function TaskFormModal({
                         />
                       </div>
 
+                      {!initialItem && (
+                        <div className="space-y-2 rounded-lg border border-border p-3">
+                          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            <input
+                              type="checkbox"
+                              checked={repeatEnabled}
+                              onChange={(e) => setRepeatEnabled(e.target.checked)}
+                              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                            />
+                            Repeat this task
+                          </label>
+                          {repeatEnabled && (
+                            <>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <label
+                                    htmlFor="repeatFrequency"
+                                    className="text-sm font-medium text-foreground"
+                                  >
+                                    Frequency
+                                  </label>
+                                  <select
+                                    id="repeatFrequency"
+                                    value={repeatFrequency}
+                                    onChange={(e) =>
+                                      setRepeatFrequency(e.target.value as RecurrenceFrequency)
+                                    }
+                                    className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                  >
+                                    {REPEAT_FREQUENCY_OPTIONS.map((opt) => (
+                                      <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <label
+                                    htmlFor="repeatOccurrences"
+                                    className="text-sm font-medium text-foreground"
+                                  >
+                                    Occurrences
+                                  </label>
+                                  <input
+                                    id="repeatOccurrences"
+                                    type="number"
+                                    min={2}
+                                    max={52}
+                                    value={repeatOccurrences}
+                                    onChange={(e) =>
+                                      setRepeatOccurrences(
+                                        Math.min(52, Math.max(2, Number(e.target.value) || 2)),
+                                      )
+                                    }
+                                    className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                  />
+                                </div>
+                              </div>
+                              {values.dueDate && (
+                                <p className="text-xs text-muted-foreground">
+                                  Creates {recurringPreview.length} tasks, starting {values.dueDate}
+                                  {recurringShiftedCount > 0 && (
+                                    <>
+                                      {' '}
+                                      - {recurringShiftedCount} shifted off a skipped class date for
+                                      this course
+                                    </>
+                                  )}
+                                  .
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+
                       {values.type === 'reading' && (
                         <ReadingLoadEstimator
                           pages={readingPages}
@@ -369,7 +485,13 @@ export function TaskFormModal({
                     disabled={submitting || courses.length === 0}
                     className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
-                    {submitting ? 'Saving...' : initialItem ? 'Save Changes' : 'Add Task'}
+                    {submitting
+                      ? 'Saving...'
+                      : initialItem
+                        ? 'Save Changes'
+                        : repeatEnabled
+                          ? `Add ${recurringPreview.length} Tasks`
+                          : 'Add Task'}
                   </button>
                 </CardFooter>
               </form>
