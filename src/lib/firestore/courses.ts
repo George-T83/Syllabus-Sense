@@ -99,8 +99,19 @@ export function reconcileCourses(remoteCourses: Course[], localCourses: Course[]
     if (pendingCourseDeletions.has(remoteCourse.id)) continue;
 
     if (hasPendingCourseWrites(remoteCourse.id)) {
+      // getLatestPendingCourse comes from the write queue itself, updated
+      // synchronously the moment a write is enqueued - it's always caught up
+      // with the write in flight. localMap comes from stateRef.current,
+      // which only catches up once React has committed the dispatch AND run
+      // the effect that copies state into the ref - a real gap a fast
+      // onSnapshot echo of this very write can land inside. Preferring
+      // localMap here meant that gap could overwrite a just-dispatched
+      // optimistic change with the state from just before it (caught via
+      // Section Sync: creating a group writes `groupCode` onto the course,
+      // and the snapshot this write itself triggers came back before the ref
+      // updated, wiping the field back out until a full page reload).
       const localCourse =
-        localMap.get(remoteCourse.id) ?? getLatestPendingCourse(remoteCourse.id) ?? remoteCourse;
+        getLatestPendingCourse(remoteCourse.id) ?? localMap.get(remoteCourse.id) ?? remoteCourse;
       reconciled.push(localCourse);
     } else {
       reconciled.push(remoteCourse);

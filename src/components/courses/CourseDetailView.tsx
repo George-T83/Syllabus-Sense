@@ -32,6 +32,7 @@ import { CourseAiSummaryCard } from '@/components/courses/CourseAiSummaryCard';
 import { SourcesCard } from '@/components/courses/SourcesCard';
 import { ExamCramPlanCard } from '@/components/courses/ExamCramPlanCard';
 import { AttendanceGauge } from '@/components/courses/AttendanceGauge';
+import { SectionSyncCard } from '@/components/courses/SectionSyncCard';
 import { formatTimeLabel } from '@/lib/calendar/meetings';
 import { buildICSFilename, createICSBlob, generateICS } from '@/lib/export/ics';
 import { generateRateMyProfessorUrl } from '@/lib/export/rateMyProfessor';
@@ -866,6 +867,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
           onAbsenceLogged={handleLogAbsence}
           onAbsenceDeleted={handleDeleteAbsence}
         />
+
+        <SectionSyncCard course={course} />
 
         <Card className="rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
