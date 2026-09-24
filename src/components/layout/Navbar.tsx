@@ -9,17 +9,12 @@ import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/components/ui/Toast';
 import { CountBadge } from '@/components/ui/CountBadge';
 import { usePopoverA11y } from '@/hooks/usePopoverA11y';
+import { groupByUrgency } from '@/lib/notifications/urgencyGrouping';
 import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
 import { CommandPalette } from '@/components/common/CommandPalette';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
-
-/** NV-3: how far ahead of "now" a pending item counts as "due soon" in the
- * notification bell's dropdown (as opposed to "overdue"). Purely a display
- * bucket - doesn't affect the badge count, which mirrors the app's existing
- * overdue definition (see DashboardView's `overdueCount`). */
-const DUE_SOON_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 function SearchIcon() {
   return (
@@ -54,41 +49,74 @@ function PopoverBackdrop({ onClose }: { onClose: () => void }) {
   );
 }
 
-function useOverdueAndDueSoon() {
+type CourseSummary = { code: string };
+
+/** One urgency tier's rows in the notification dropdown - extracted since
+ * the same title+link+course-code markup now repeats across four tiers
+ * instead of the previous two. */
+function NotificationTier({
+  label,
+  labelClassName,
+  entries,
+  onClose,
+}: {
+  label: string;
+  labelClassName: string;
+  entries: { item: ScheduleItem; course: CourseSummary | undefined }[];
+  onClose: () => void;
+}) {
+  if (entries.length === 0) return null;
+  return (
+    <div>
+      <p
+        className={`px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide ${labelClassName}`}
+      >
+        {label}
+      </p>
+      {entries.map(({ item, course }) => (
+        <Link
+          key={item.id}
+          href={`/tasks/${item.id}`}
+          onClick={onClose}
+          role="menuitem"
+          className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <span className="truncate">{item.title}</span>
+          {course && <span className="shrink-0 text-xs text-muted-foreground">{course.code}</span>}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/** NV-3 + urgency-aware notifications: same overdue definition as before
+ * (mirrors DashboardView's `overdueCount`, kept in sync deliberately rather
+ * than imported since this chrome component shouldn't reach into a
+ * page-level file), now split into urgency tiers via `groupByUrgency` -
+ * "due today"/"due this week" replace the old flat 3-day "due soon" window,
+ * plus a "high-stakes ahead" tier that surfaces a heavily-weighted item
+ * further out than an ordinary one would be. */
+function useUrgencyGroups() {
   const { state } = useAppState();
   return useMemo(() => {
     const now = Date.now();
-    const soonThreshold = now + DUE_SOON_WINDOW_MS;
     const courseById = new Map(state.courses.map((c) => [c.id, c]));
-    const byDueDate = (a: ScheduleItem, b: ScheduleItem) =>
-      new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-
-    // Mirrors DashboardView's overdueCount: pending items whose due date has
-    // already passed. Kept in sync deliberately rather than imported, since
-    // this chrome component shouldn't reach into a page-level file.
-    const overdue = state.scheduleItems
-      .filter((item) => !item.completed && new Date(item.dueDate).getTime() < now)
-      .sort(byDueDate);
-    const dueSoon = state.scheduleItems
-      .filter((item) => {
-        if (item.completed) return false;
-        const due = new Date(item.dueDate).getTime();
-        return due >= now && due <= soonThreshold;
-      })
-      .sort(byDueDate);
-
     const withCourse = (item: ScheduleItem) => ({ item, course: courseById.get(item.courseId) });
+    const groups = groupByUrgency(state.scheduleItems, now);
+
     return {
-      overdueCount: overdue.length,
-      overdue: overdue.map(withCourse),
-      dueSoon: dueSoon.map(withCourse),
+      overdueCount: groups.overdue.length,
+      overdue: groups.overdue.map(withCourse),
+      dueToday: groups.dueToday.map(withCourse),
+      dueThisWeek: groups.dueThisWeek.map(withCourse),
+      highStakesAhead: groups.highStakesAhead.map(withCourse),
     };
   }, [state.scheduleItems, state.courses]);
 }
 
 /** NV-3 (2/2): notification bell reusing the app's existing overdue
- * definition (badge count) and additionally surfacing due-soon items in the
- * dropdown, each a real link to that task. */
+ * definition (badge count) and additionally surfacing upcoming items by
+ * urgency tier in the dropdown, each a real link to that task. */
 function NotificationBell({
   open,
   onToggle,
@@ -98,8 +126,12 @@ function NotificationBell({
   onToggle: () => void;
   onClose: () => void;
 }) {
-  const { overdueCount, overdue, dueSoon } = useOverdueAndDueSoon();
-  const hasAny = overdue.length > 0 || dueSoon.length > 0;
+  const { overdueCount, overdue, dueToday, dueThisWeek, highStakesAhead } = useUrgencyGroups();
+  const hasAny =
+    overdue.length > 0 ||
+    dueToday.length > 0 ||
+    dueThisWeek.length > 0 ||
+    highStakesAhead.length > 0;
   usePopoverA11y(open, onClose);
 
   return (
@@ -125,56 +157,34 @@ function NotificationBell({
             <div className="max-h-80 overflow-y-auto py-1">
               {!hasAny ? (
                 <p className="px-4 py-3 text-sm text-muted-foreground">
-                  Nothing overdue or due soon.
+                  Nothing overdue or coming up.
                 </p>
               ) : (
                 <>
-                  {overdue.length > 0 && (
-                    <div>
-                      <p className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-destructive">
-                        Overdue
-                      </p>
-                      {overdue.map(({ item, course }) => (
-                        <Link
-                          key={item.id}
-                          href={`/tasks/${item.id}`}
-                          onClick={onClose}
-                          role="menuitem"
-                          className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                        >
-                          <span className="truncate">{item.title}</span>
-                          {course && (
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              {course.code}
-                            </span>
-                          )}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  {dueSoon.length > 0 && (
-                    <div>
-                      <p className="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Due soon
-                      </p>
-                      {dueSoon.map(({ item, course }) => (
-                        <Link
-                          key={item.id}
-                          href={`/tasks/${item.id}`}
-                          onClick={onClose}
-                          role="menuitem"
-                          className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                        >
-                          <span className="truncate">{item.title}</span>
-                          {course && (
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              {course.code}
-                            </span>
-                          )}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  <NotificationTier
+                    label="Overdue"
+                    labelClassName="text-destructive"
+                    entries={overdue}
+                    onClose={onClose}
+                  />
+                  <NotificationTier
+                    label="Due today"
+                    labelClassName="text-primary"
+                    entries={dueToday}
+                    onClose={onClose}
+                  />
+                  <NotificationTier
+                    label="Due this week"
+                    labelClassName="text-muted-foreground"
+                    entries={dueThisWeek}
+                    onClose={onClose}
+                  />
+                  <NotificationTier
+                    label="High-stakes ahead"
+                    labelClassName="text-amber-600 dark:text-amber-400"
+                    entries={highStakesAhead}
+                    onClose={onClose}
+                  />
                 </>
               )}
             </div>
