@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { AppStateProvider } from '@/context/AppStateContext';
@@ -196,10 +196,14 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
 
     await screen.findByDisplayValue('BIO 201');
 
-    // Reject "Lab Report 1" by clicking the first Reject button in schedule items
-    const rejectButtons = screen.getAllByRole('button', { name: 'Reject' });
-    expect(rejectButtons.length).toBeGreaterThan(0);
-    fireEvent.click(rejectButtons[0]);
+    // Reject "Lab Report 1" specifically - the review queue sorts
+    // lowest-confidence items first (Extraction Confidence Review Queue),
+    // so its row's position isn't fixed and the Reject button must be
+    // found scoped to its own row, not by raw index.
+    const labReportTitleInput = screen.getByDisplayValue('Lab Report 1');
+    const labReportRow = labReportTitleInput.closest('.review-reveal') as HTMLElement;
+    expect(labReportRow).not.toBeNull();
+    fireEvent.click(within(labReportRow).getByRole('button', { name: 'Reject' }));
 
     // Click Add Course button
     const saveButton = screen.getByRole('button', { name: /Add Course & \d+ Task/i });
