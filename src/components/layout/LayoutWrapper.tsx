@@ -14,6 +14,7 @@ import { SyllabusChatDrawer } from '@/components/syllabus/SyllabusChatDrawer';
 import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { PomodoroTimer } from '@/components/focus/PomodoroTimer';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
+import { FOCUS_TASK_EVENT, type FocusTaskEventDetail } from '@/lib/focus/focusTaskEvent';
 
 // The Copilot answers questions about a student's enrolled course syllabi -
 // it needs a course in scope to be coherent, and silently falls back to
@@ -28,12 +29,33 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // the CommandPalette's "Start Pomodoro" action - see PomodoroTimer's
   // `openSignal` prop.
   const [pomodoroOpenSignal, setPomodoroOpenSignal] = useState(0);
+  const [pomodoroTaskId, setPomodoroTaskId] = useState<string | undefined>(undefined);
   const modKey = usePlatformKey();
 
   const handleCommandPaletteAction = (actionId: string) => {
     if (actionId === 'ai-copilot') setIsChatOpen(true);
-    if (actionId === 'pomodoro') setPomodoroOpenSignal((n) => n + 1);
+    if (actionId === 'pomodoro') {
+      // A generic "start a session" request, distinct from a task-scoped
+      // deep link below - clears any task left over from a previous
+      // Calendar-initiated session rather than silently carrying it into
+      // an unrelated one.
+      setPomodoroTaskId(undefined);
+      setPomodoroOpenSignal((n) => n + 1);
+    }
   };
+
+  // Focus Mode Deep Link: any page (currently just Calendar) can ask the
+  // one global PomodoroTimer to open pre-scoped to a specific task by
+  // dispatching this event - see lib/focus/focusTaskEvent.ts.
+  useEffect(() => {
+    const handleFocusTask = (e: Event) => {
+      const { taskId } = (e as CustomEvent<FocusTaskEventDetail>).detail;
+      setPomodoroTaskId(taskId);
+      setPomodoroOpenSignal((n) => n + 1);
+    };
+    window.addEventListener(FOCUS_TASK_EVENT, handleFocusTask);
+    return () => window.removeEventListener(FOCUS_TASK_EVENT, handleFocusTask);
+  }, []);
   const pathname = usePathname();
   const copilotAvailable = !COPILOT_EXCLUDED_ROUTES.some(
     (route) => pathname === route || pathname?.startsWith(`${route}/`),
@@ -110,7 +132,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             )}
 
             <SyllabusChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-            <PomodoroTimer openSignal={pomodoroOpenSignal} />
+            <PomodoroTimer taskId={pomodoroTaskId} openSignal={pomodoroOpenSignal} />
           </div>
         </AppStateProvider>
       </SidebarProvider>
