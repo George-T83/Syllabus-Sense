@@ -43,13 +43,13 @@ describe('reconcileCourses', () => {
 
   it(
     "prefers the write queue's own latest course over a stale local snapshot while a write " +
-      'is in flight - regression for Section Sync creating a group and having groupCode wiped ' +
-      'back out by a same-write onSnapshot echo racing ahead of the stateRef update',
+      'is in flight - a same-write onSnapshot echo can otherwise race ahead of the stateRef ' +
+      'update and silently revert a just-dispatched optimistic edit until a full page reload',
     async () => {
       const { reconcileCourses, updateCourse, hasPendingCourseWrites, getLatestPendingCourse } =
         await import('../courses');
       const dispatch = vi.fn() as unknown as React.Dispatch<AppAction>;
-      const updatedCourse: Course = { ...baseCourse, groupCode: 'AB3DEFGH' };
+      const updatedCourse: Course = { ...baseCourse, notes: 'Room changed to Hall B' };
 
       // Fire the write but don't resolve it yet - the queue entry is
       // populated synchronously, before any network round trip completes.

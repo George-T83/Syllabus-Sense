@@ -92,12 +92,6 @@ export interface Course {
   learningObjectivesApproved?: boolean;
   /** Manually-logged absences for the attendance tracker (AttendanceGauge). */
   absences?: AbsenceRecord[];
-  /** Invite code (the document ID of a `courseGroups/{code}` record) linking
-   * this course to a Section Sync group, if the student has created or
-   * joined one for it. Private to this course record - the other side of
-   * the link (the shared group itself) lives outside the users/{uid} tree
-   * entirely; see src/types/courseGroup.ts. */
-  groupCode?: string;
 }
 
 /** Whether a contact is the instructor of record or a teaching assistant. */
