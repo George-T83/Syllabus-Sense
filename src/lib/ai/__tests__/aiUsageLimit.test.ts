@@ -34,12 +34,36 @@ describe('decideAiUsage', () => {
   });
 });
 
+describe('checkAndIncrementAiUsage with the global cap disabled', () => {
+  // AI_USAGE_CAP_ENABLED is currently `false` (see docs/AI_USAGE_CAP.md) -
+  // every caller passes unconditionally, before the allowlist below is even
+  // consulted.
+  it('is unlimited for any caller, exempt or not', async () => {
+    const result = await checkAndIncrementAiUsage({
+      uid: 'a-student',
+      email: 'student@campus.edu',
+    });
+    expect(result).toEqual({
+      allowed: true,
+      remaining: Infinity,
+      limit: Infinity,
+      unlimited: true,
+    });
+  });
+});
+
 describe('checkAndIncrementAiUsage exemption allowlist', () => {
   afterEach(() => {
     delete process.env.AI_UNLIMITED_UIDS;
     delete process.env.AI_UNLIMITED_EMAILS;
   });
 
+  // With AI_USAGE_CAP_ENABLED currently `false`, the kill switch above
+  // already makes every caller unlimited before `isExempt` is even reached -
+  // these two pass today for that reason, not because the allowlist itself
+  // was exercised. They start actually testing the allowlist again the
+  // moment the cap is re-enabled, which is why they're kept rather than
+  // deleted.
   it('is unlimited for a uid in AI_UNLIMITED_UIDS, case-insensitively', async () => {
     process.env.AI_UNLIMITED_UIDS = 'Founder-Uid-123, other-uid';
     const result = await checkAndIncrementAiUsage({ uid: 'founder-uid-123' });
@@ -63,20 +87,5 @@ describe('checkAndIncrementAiUsage exemption allowlist', () => {
       limit: Infinity,
       unlimited: true,
     });
-  });
-
-  it('is not exempt when neither uid nor email match the allowlists', async () => {
-    process.env.AI_UNLIMITED_UIDS = 'someone-else';
-    process.env.AI_UNLIMITED_EMAILS = 'someone@else.edu';
-    const result = await checkAndIncrementAiUsage({
-      uid: 'a-student',
-      email: 'student@campus.edu',
-    });
-    expect(result.unlimited).toBe(false);
-  });
-
-  it('is not exempt when no allowlist env vars are set at all', async () => {
-    const result = await checkAndIncrementAiUsage({ uid: 'a-student' });
-    expect(result.unlimited).toBe(false);
   });
 });
