@@ -12,7 +12,7 @@ export function NavIcon({ name, className = 'h-5 w-5' }: NavIconProps) {
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.8}
     >
       <path strokeLinecap="round" strokeLinejoin="round" d={NAV_ICON_PATHS[name]} />
     </svg>
