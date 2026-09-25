@@ -113,7 +113,7 @@ export function ProfessorEmailDrafterModal({
         className="w-full max-w-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card accent="none">
+        <Card accent="none" opaque>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>

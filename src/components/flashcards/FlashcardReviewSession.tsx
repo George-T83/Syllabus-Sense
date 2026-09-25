@@ -78,7 +78,7 @@ export function FlashcardReviewSession({ cards, onClose, onRate }: FlashcardRevi
         className="w-full max-w-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card accent="none" className="p-6">
+        <Card accent="none" opaque className="p-6">
           <div className="flex items-center justify-between">
             <h2 id="flashcard-review-title" className="text-sm font-bold text-foreground">
               {done ? 'Session complete' : `Card ${index + 1} of ${cards.length}`}

@@ -92,6 +92,7 @@ export function SyllabusDiffModal({
       <Card
         ref={dialogRef}
         accent="none"
+        opaque
         className="relative w-full max-w-4xl p-5 sm:p-7 space-y-5 max-h-[92vh] flex flex-col"
       >
         {/* Header */}

@@ -994,7 +994,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         className="max-h-full w-full max-w-3xl overflow-y-auto outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card accent="none" className="overflow-hidden rounded-3xl border-none p-0 shadow-modal">
+        <Card
+          accent="none"
+          opaque
+          className="overflow-hidden rounded-3xl border-none p-0 shadow-modal"
+        >
           <div className="bg-gradient-brand px-6 py-6 text-white sm:px-8">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
               Syllabus Autofill

@@ -901,6 +901,7 @@ export function ExtracurricularView({
         >
           <Card
             accent="none"
+            opaque
             className="relative w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between border-b border-border pb-3">
