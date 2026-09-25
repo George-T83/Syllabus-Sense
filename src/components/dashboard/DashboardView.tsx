@@ -534,7 +534,7 @@ export function DashboardView() {
               <SectionIcon icon="planner" />
               <h2 className="text-base font-semibold text-foreground">Planner Preview</h2>
             </div>
-            <QuietLink href="/planner">Open planner</QuietLink>
+            <QuietLink href="/tasks">Open planner</QuietLink>
           </div>
           {dataLoading ? (
             <SkeletonCard />

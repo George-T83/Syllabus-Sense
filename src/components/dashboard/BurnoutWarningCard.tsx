@@ -58,7 +58,7 @@ export function BurnoutWarningCard() {
             )}
           </div>
         </div>
-        <CardActionLink href="/planner" variant="solid" withChevron className="shrink-0">
+        <CardActionLink href="/tasks" variant="solid" withChevron className="shrink-0">
           Review your plan
         </CardActionLink>
       </div>

@@ -89,13 +89,12 @@ export function WorkloadOverviewDashboard({
   );
 
   // The Workload Load card's Neon Edge glow escalates with how heavy the
-  // inspected day actually is - a rollover/overdue task forces it to the
-  // loudest (critical) tier regardless of computed intensity, since an
-  // overdue item is urgent no matter how few hours it's estimated at.
-  const hasRollover = activeDay.items.some((item) => item.isRollover);
-  const glowLevel: WorkloadLevel = hasRollover
-    ? 'critical'
-    : INTENSITY_TO_LEVEL[activeDay.intensity];
+  // inspected day's own intensity actually is (light/moderate/heavy -> the
+  // matching WORKLOAD_GLOW_CLASS tier) - overdue/rollover items get their
+  // own loud treatment on the dedicated Overdue Backlog card instead, so
+  // this glow isn't forced red just because one rollover task is present
+  // on an otherwise light day.
+  const glowLevel: WorkloadLevel = INTENSITY_TO_LEVEL[activeDay.intensity];
 
   const handleToggleTask = async (taskId: string) => {
     if (onToggleComplete) {
