@@ -54,7 +54,7 @@ describe('Sidebar Active Route Highlighting', () => {
     expect(dashboardLink.className).not.toContain('bg-primary');
   });
 
-  it('renders links for Courses, Planner, and Calendar', () => {
+  it('renders links for Courses, Tasks, and Calendar', () => {
     mockUsePathname.mockReturnValue('/dashboard');
 
     render(
@@ -64,7 +64,7 @@ describe('Sidebar Active Route Highlighting', () => {
     );
 
     expect(screen.getByRole('link', { name: /courses/i })).toBeDefined();
-    expect(screen.getByRole('link', { name: /planner/i })).toBeDefined();
+    expect(screen.getByRole('link', { name: /tasks/i })).toBeDefined();
     expect(screen.getByRole('link', { name: /calendar/i })).toBeDefined();
   });
 });
