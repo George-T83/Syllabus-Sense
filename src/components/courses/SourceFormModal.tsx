@@ -151,7 +151,7 @@ export function SourceFormModal({ open, onClose, onSubmit, initialSource }: Sour
         className="relative w-full max-w-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card accent="none">
+        <Card accent="none" opaque>
           {confirmingDiscard ? (
             <DiscardConfirmCard
               title="Discard unsaved changes?"

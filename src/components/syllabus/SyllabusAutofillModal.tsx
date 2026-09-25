@@ -17,6 +17,7 @@ import { useAuth } from '@/context/AuthContext';
 import { COURSE_COLOR_PRESETS, courseSwatch, pickSuggestedCourseColor } from '@/lib/courseColors';
 import { COURSE_ICON_PRESETS, pickSuggestedCourseIcon } from '@/lib/courseIcons';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
+import { SyllabusExtractionReveal } from '@/components/syllabus/SyllabusExtractionReveal';
 import { cn, normalizeContactName, fileToBase64 } from '@/lib/utils';
 import type {
   ExtractedMeetingTime,
@@ -44,7 +45,7 @@ const TYPE_LABELS: Record<AssignmentType, string> = {
   other: 'Other',
 };
 
-type Step = 'upload' | 'extracting' | 'review' | 'saving';
+type Step = 'upload' | 'extracting' | 'materializing' | 'review' | 'saving';
 
 const STEPS: { key: Step; label: string }[] = [
   { key: 'upload', label: 'Upload' },
@@ -195,6 +196,34 @@ function diffFieldsAgainstExisting(
   existing: Contact,
 ): ContactFieldKey[] {
   return fields.filter((f) => (values[f] ?? '').trim() !== (existing[f] ?? '').toString().trim());
+}
+
+/** Short, ordered facts for the post-extraction reveal (see
+ * `SyllabusExtractionReveal`) - one line per thing the AI actually found,
+ * skipping anything it didn't (no instructor extracted means no instructor
+ * line, rather than an empty/placeholder one). */
+export function buildRevealFacts(found: {
+  code: string;
+  title: string;
+  instructor: string;
+  term: string;
+  itemCount: number;
+  contactCount: number;
+}): string[] {
+  const facts: string[] = [];
+  const heading = [found.code, found.title].filter(Boolean).join(' · ');
+  if (heading) facts.push(heading);
+  if (found.instructor) facts.push(found.instructor);
+  if (found.term) facts.push(found.term);
+  if (found.itemCount > 0) {
+    facts.push(
+      `${found.itemCount} assignment${found.itemCount === 1 ? '' : 's'} & deadline${found.itemCount === 1 ? '' : 's'} found`,
+    );
+  }
+  if (found.contactCount > 0) {
+    facts.push(`${found.contactCount} contact${found.contactCount === 1 ? '' : 's'} found`);
+  }
+  return facts;
 }
 
 /** Builds the DraftContact rows for a fresh extraction: matches each
@@ -363,6 +392,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rerunCount, setRerunCount] = useState(0);
+  const [revealFacts, setRevealFacts] = useState<string[]>([]);
   const [showRerunConfirm, setShowRerunConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   /** Snapshot (as a JSON string, for a cheap deep-equality check) of the
@@ -536,9 +566,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     onClose();
   };
 
-  // Escape shouldn't interrupt an in-flight extraction or save.
+  // Escape shouldn't interrupt an in-flight extraction, the brief
+  // post-extraction reveal, or a save.
   const dialogRef = useModalA11y<HTMLDivElement>(
-    open && step !== 'extracting' && step !== 'saving',
+    open && step !== 'extracting' && step !== 'materializing' && step !== 'saving',
     handleClose,
   );
 
@@ -626,7 +657,17 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         learningObjectivesApproved: true,
         contactDrafts: nextContactDrafts.map(omitContactDraftKey),
       });
-      setStep('review');
+      setRevealFacts(
+        buildRevealFacts({
+          code: nextCourse.code,
+          title: nextCourse.title,
+          instructor: nextCourse.instructor,
+          term: nextCourse.term,
+          itemCount: nextItems.length,
+          contactCount: nextContactDrafts.length,
+        }),
+      );
+      setStep('materializing');
     } catch (err) {
       // Never surface the raw fetch/JS error (e.g. "Failed to fetch") to
       // the student - map it to typed, actionable copy instead (SY-1).
@@ -953,7 +994,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         className="max-h-full w-full max-w-3xl overflow-y-auto outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card accent="none" className="overflow-hidden rounded-3xl border-none p-0 shadow-modal">
+        <Card
+          accent="none"
+          opaque
+          className="overflow-hidden rounded-3xl border-none p-0 shadow-modal"
+        >
           <div className="bg-gradient-brand px-6 py-6 text-white sm:px-8">
             <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
               Syllabus Autofill
@@ -967,7 +1012,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
               hits your calendar.
             </p>
             <div className="mt-5">
-              <StepIndicator step={step} />
+              <StepIndicator step={step === 'materializing' ? 'extracting' : step} />
             </div>
           </div>
 
@@ -1164,6 +1209,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   </p>
                 </div>
               </div>
+            )}
+
+            {step === 'materializing' && (
+              <SyllabusExtractionReveal facts={revealFacts} onDone={() => setStep('review')} />
             )}
 
             {(step === 'review' || step === 'saving') && course && (

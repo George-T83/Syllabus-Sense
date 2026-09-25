@@ -198,7 +198,7 @@ export function TaskFormModal({
         className="relative w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card accent="none">
+        <Card accent="none" opaque>
           {confirmingDiscard ? (
             <DiscardConfirmCard
               title="Discard unsaved changes?"

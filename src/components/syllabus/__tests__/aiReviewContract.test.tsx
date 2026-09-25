@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
+import {
+  SyllabusAutofillModal,
+  buildRevealFacts,
+} from '@/components/syllabus/SyllabusAutofillModal';
 import { AppStateProvider } from '@/context/AppStateContext';
 import type { SyllabusExtractionResult } from '@/types/extraction';
 
@@ -158,8 +161,10 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
 
     fireEvent.change(input, { target: { files: [file] } });
 
-    // Wait for parse step to transition to Review
-    expect(await screen.findByDisplayValue('BIO 201')).toBeDefined();
+    // Wait for parse step to transition to Review - a brief "materializing"
+    // reveal (SyllabusExtractionReveal) plays in between on a real timer, so
+    // this needs more than the default 1000ms findBy budget.
+    expect(await screen.findByDisplayValue('BIO 201', {}, { timeout: 3000 })).toBeDefined();
     expect(screen.getByDisplayValue('Cellular Biology')).toBeDefined();
 
     // Verify ZERO calls to Firestore during review step
@@ -175,7 +180,7 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    await screen.findByDisplayValue('BIO 201');
+    await screen.findByDisplayValue('BIO 201', {}, { timeout: 3000 });
 
     // Click Cancel / Close
     const cancelButton = screen.getByRole('button', { name: 'Cancel' });
@@ -194,7 +199,7 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    await screen.findByDisplayValue('BIO 201');
+    await screen.findByDisplayValue('BIO 201', {}, { timeout: 3000 });
 
     // Reject "Lab Report 1" specifically - the review queue sorts
     // lowest-confidence items first (Extraction Confidence Review Queue),
@@ -228,7 +233,7 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    await screen.findByDisplayValue('BIO 201');
+    await screen.findByDisplayValue('BIO 201', {}, { timeout: 3000 });
 
     // Edit course title in review screen
     const titleInput = screen.getByDisplayValue('Cellular Biology');
@@ -256,7 +261,7 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    await screen.findByDisplayValue('BIO 201');
+    await screen.findByDisplayValue('BIO 201', {}, { timeout: 3000 });
 
     // Uncheck the email field for the professor contact
     const emailCheckbox = screen.getByRole('checkbox', {
@@ -276,5 +281,52 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     // email was unchecked, so it should not be populated on the contact
     expect(createdContacts[0].email).toBeUndefined();
     expect(createdContacts[0].fieldApprovals?.email).toBe(false);
+  });
+});
+
+describe('buildRevealFacts', () => {
+  it('includes every fact when all fields were found', () => {
+    expect(
+      buildRevealFacts({
+        code: 'BIO 201',
+        title: 'Cellular Biology',
+        instructor: 'Dr. Rosalind Franklin',
+        term: 'Fall 2026',
+        itemCount: 3,
+        contactCount: 1,
+      }),
+    ).toEqual([
+      'BIO 201 · Cellular Biology',
+      'Dr. Rosalind Franklin',
+      'Fall 2026',
+      '3 assignments & deadlines found',
+      '1 contact found',
+    ]);
+  });
+
+  it('skips fields the AI did not find instead of showing an empty line', () => {
+    expect(
+      buildRevealFacts({
+        code: 'BIO 201',
+        title: 'Cellular Biology',
+        instructor: '',
+        term: '',
+        itemCount: 0,
+        contactCount: 0,
+      }),
+    ).toEqual(['BIO 201 · Cellular Biology']);
+  });
+
+  it('singularizes the assignment and contact counts', () => {
+    expect(
+      buildRevealFacts({
+        code: 'BIO 201',
+        title: 'Cellular Biology',
+        instructor: '',
+        term: '',
+        itemCount: 1,
+        contactCount: 1,
+      }),
+    ).toEqual(['BIO 201 · Cellular Biology', '1 assignment & deadline found', '1 contact found']);
   });
 });

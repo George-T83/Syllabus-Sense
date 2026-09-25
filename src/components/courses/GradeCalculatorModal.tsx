@@ -233,6 +233,7 @@ export function GradeCalculatorModal({
       <Card
         ref={dialogRef}
         accent="none"
+        opaque
         className="relative w-full max-w-2xl overflow-hidden transition-all my-8"
       >
         {/* Header */}
