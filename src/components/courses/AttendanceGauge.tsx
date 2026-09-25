@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
+import { RingGauge, type RingGaugeLevel } from '@/components/ui/RingGauge';
 import type { AbsenceRecord } from '@/types/schedule';
 
 export type { AbsenceRecord };
@@ -57,11 +58,9 @@ export function AttendanceGauge({
     return 'safe';
   }, [unexcusedCount, maxAllowedAbsences, remainingAllowed]);
 
-  // SVG circular gauge math
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius;
   const progressRatio = Math.min(1, unexcusedCount / Math.max(1, maxAllowedAbsences));
-  const strokeDashoffset = circumference - progressRatio * circumference;
+  const gaugeLevel: RingGaugeLevel =
+    status === 'critical' ? 'critical' : status === 'warning' ? 'medium' : 'low';
 
   const handleAddAbsence = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,47 +131,17 @@ export function AttendanceGauge({
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left Side: Circular Gauge (5 cols) */}
         <Card className="md:col-span-5 p-6 flex flex-col items-center justify-center space-y-4">
-          <div className="relative flex items-center justify-center">
-            <svg
-              className="w-44 h-44 transform -rotate-90"
-              viewBox="0 0 140 140"
-              role="progressbar"
-              aria-valuenow={unexcusedCount}
-              aria-valuemin={0}
-              aria-valuemax={maxAllowedAbsences}
-              aria-label={`Unexcused absences: ${unexcusedCount} of ${maxAllowedAbsences}`}
-            >
-              {/* Background Track */}
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                className="stroke-slate-200 dark:stroke-slate-800"
-                strokeWidth="10"
-                fill="transparent"
-              />
-              {/* Active Progress */}
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                className={`transition-all duration-700 ease-out ${
-                  status === 'critical'
-                    ? 'stroke-load-critical'
-                    : status === 'warning'
-                      ? 'stroke-load-medium'
-                      : 'stroke-load-low'
-                }`}
-                strokeWidth="10"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
-                fill="transparent"
-              />
-            </svg>
-
-            {/* Central Badge */}
-            <div className="absolute flex flex-col items-center justify-center text-center">
+          <RingGauge
+            progress={progressRatio}
+            level={gaugeLevel}
+            size={176}
+            radius={54}
+            aria-label={`Unexcused absences: ${unexcusedCount} of ${maxAllowedAbsences}`}
+            aria-valuenow={unexcusedCount}
+            aria-valuemin={0}
+            aria-valuemax={maxAllowedAbsences}
+          >
+            <div className="flex flex-col items-center justify-center text-center">
               <span className="text-3xl font-extrabold text-foreground tracking-tight">
                 {unexcusedCount}
                 <span className="text-base font-medium text-muted-foreground">
@@ -183,7 +152,7 @@ export function AttendanceGauge({
                 Unexcused
               </span>
             </div>
-          </div>
+          </RingGauge>
 
           <div className="text-center space-y-1">
             <span
