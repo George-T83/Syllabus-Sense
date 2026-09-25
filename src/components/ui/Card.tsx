@@ -18,10 +18,19 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
    * WORKLOAD_GLOW_CLASS (lib/workload/uiClasses.ts) on top via `className`.
    */
   accent?: boolean | 'top' | 'left' | 'glow' | 'none';
+  /**
+   * The default `bg-card/90 backdrop-blur-md` reads as a deliberate frosted
+   * pane behind an in-page card, but the same 10% transparency lets a modal
+   * dialog's own backdrop bleed the page through the panel itself - visible
+   * wherever the panel isn't fully covered by dense content. Modal panels
+   * (this Card wrapping a `role="dialog"` element) should pass `opaque` for
+   * a fully solid background; in-page cards keep the frosted default.
+   */
+  opaque?: boolean;
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, children, interactive, hoverable, accent, ...props }, ref) => {
+  ({ className, children, interactive, hoverable, accent, opaque, ...props }, ref) => {
     const isInteractive = interactive || hoverable;
     const accentTop = accent === true || accent === 'top';
     const accentLeft = accent === 'left';
@@ -33,7 +42,9 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
           'relative rounded-glass overflow-hidden',
           accentGlow
             ? 'glow-edge glow-edge-low'
-            : 'border border-border bg-card/90 backdrop-blur-md shadow-card',
+            : opaque
+              ? 'border border-border bg-card shadow-card'
+              : 'border border-border bg-card/90 backdrop-blur-md shadow-card',
           isInteractive &&
             'transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover',
           accentLeft && 'border-l-[3px] border-l-primary',
