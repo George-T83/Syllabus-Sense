@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { PomodoroTimer } from '../PomodoroTimer';
+import { PomodoroTimer, formatTime } from '../PomodoroTimer';
 import { AppStateProvider, AppState } from '@/context/AppStateContext';
 import type { ScheduleItem } from '@/types/schedule';
 
@@ -67,5 +67,20 @@ describe('PomodoroTimer - Focus Mode Deep Link', () => {
     );
 
     expect(screen.queryByText(/Focusing on/)).toBeNull();
+  });
+});
+
+describe('formatTime', () => {
+  it('formats under an hour as MM:SS', () => {
+    expect(formatTime(0)).toBe('00:00');
+    expect(formatTime(59)).toBe('00:59');
+    expect(formatTime(25 * 60)).toBe('25:00');
+    expect(formatTime(59 * 60 + 59)).toBe('59:59');
+  });
+
+  it('switches to H:MM:SS from an hour on', () => {
+    expect(formatTime(60 * 60)).toBe('1:00:00');
+    expect(formatTime(65 * 60)).toBe('1:05:00');
+    expect(formatTime(9 * 3600 + 59 * 60 + 59)).toBe('9:59:59');
   });
 });
