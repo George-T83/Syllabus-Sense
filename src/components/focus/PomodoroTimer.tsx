@@ -32,11 +32,18 @@ function playBeep(): void {
   }
 }
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, '0');
+/** MM:SS under an hour, H:MM:SS from an hour on - the ring is sized to fit
+ * the H:MM:SS case from the start so a longer future duration never needs
+ * another resize. */
+export function formatTime(seconds: number): string {
+  const totalMinutes = Math.floor(seconds / 60);
   const s = (seconds % 60).toString().padStart(2, '0');
+  if (totalMinutes >= 60) {
+    const h = Math.floor(totalMinutes / 60);
+    const m = (totalMinutes % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+  const m = totalMinutes.toString().padStart(2, '0');
   return `${m}:${s}`;
 }
 
@@ -244,8 +251,8 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
           progress={progress}
           variant={isBreak ? 'semantic' : 'brand'}
           level="low"
-          size={104}
-          radius={44}
+          size={140}
+          radius={60}
           strokeWidth={6}
           aria-label={`${formatTime(remaining)} remaining`}
         >
