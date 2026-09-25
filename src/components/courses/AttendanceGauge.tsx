@@ -135,7 +135,7 @@ export function AttendanceGauge({
             progress={progressRatio}
             level={gaugeLevel}
             size={176}
-            radius={54}
+            radius={70}
             aria-label={`Unexcused absences: ${unexcusedCount} of ${maxAllowedAbsences}`}
             aria-valuenow={unexcusedCount}
             aria-valuemin={0}
