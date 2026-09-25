@@ -12,8 +12,6 @@ import { usePopoverA11y } from '@/hooks/usePopoverA11y';
 import { groupByUrgency } from '@/lib/notifications/urgencyGrouping';
 import { loadSessions } from '@/lib/focus/pomodoroSessions';
 import { getSessionDateSet, computeCurrentStreak } from '@/lib/focus/studyStreak';
-import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
-import { getWorkloadLevel, WORKLOAD_HAIRLINE_GRADIENT } from '@/lib/workload';
 import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
@@ -214,18 +212,6 @@ function useStudyStreak(): number {
   return streak;
 }
 
-/** Today's workload level, for the hairline below - same computeSmartPlan
- * engine PlannerView's hero uses, so the navbar never disagrees with the
- * page it's the header for. */
-function useTodayWorkloadLevel() {
-  const { state } = useAppState();
-  return useMemo(() => {
-    const referenceDate = getLocalReferenceDate();
-    const plan = computeSmartPlan(state.scheduleItems, referenceDate);
-    return getWorkloadLevel(plan.weekLoad[0].hours);
-  }, [state.scheduleItems]);
-}
-
 /** NV-3 (2/2): notification bell reusing the app's existing overdue
  * definition (badge count) and additionally surfacing upcoming items by
  * urgency tier in the dropdown, each a real link to that task. */
@@ -323,7 +309,6 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const modKey = usePlatformKey();
   const streak = useStudyStreak();
-  const todayLevel = useTodayWorkloadLevel();
 
   const handleSignOut = async () => {
     const success = await signOut();
@@ -342,111 +327,96 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-20 glass border-b border-border/40 bg-card/80 flex flex-col">
-      <div className="flex-1 flex items-center justify-between px-3 sm:px-6 gap-3">
-        {/* Mark + wordmark */}
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 shrink-0 text-lg font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
-        >
-          <Logo className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
-          <span className="hidden font-display font-semibold sm:inline">Syllabus Sense</span>
-        </Link>
+    <header className="fixed top-0 left-0 right-0 z-50 h-20 glass border-b border-border/40 bg-card/80 flex items-center justify-between px-3 sm:px-6 gap-3">
+      {/* Mark + wordmark */}
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 shrink-0 text-lg font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
+      >
+        <Logo className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
+        <span className="hidden font-display font-semibold sm:inline">Syllabus Sense</span>
+      </Link>
 
-        {/* AI command bar - the centerpiece, not a corner search box */}
-        {mounted && user && (
-          <div className="flex-1 flex justify-center min-w-0">
-            <button
-              onClick={() => setIsCommandPaletteOpen(true)}
-              aria-label={`Open command palette (${modKey}+P)`}
-              className="hidden md:inline-flex w-full max-w-[560px] items-center gap-2.5 rounded-full border border-primary/20 bg-accent/50 px-4 py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:bg-accent transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
-            >
-              <span className="text-primary">
-                <CompassSearchIcon />
-              </span>
-              <span className="truncate flex-1 text-left">
-                Ask anything — grades, deadlines, study plans…
-              </span>
-              <kbd className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[10px] font-mono">
-                {modKey}+P
-              </kbd>
-            </button>
-            <button
-              onClick={() => setIsCommandPaletteOpen(true)}
-              aria-label={`Search courses and tasks (${modKey}+P)`}
-              className="md:hidden inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-            >
+      {/* AI command bar - the centerpiece, not a corner search box */}
+      {mounted && user && (
+        <div className="flex-1 flex justify-center min-w-0">
+          <button
+            onClick={() => setIsCommandPaletteOpen(true)}
+            aria-label={`Open command palette (${modKey}+P)`}
+            className="hidden md:inline-flex w-full max-w-[560px] items-center gap-2.5 rounded-full border border-primary/20 bg-accent/50 px-4 py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:bg-accent transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+          >
+            <span className="text-primary">
               <CompassSearchIcon />
-            </button>
-            <CommandPalette
-              isOpen={isCommandPaletteOpen}
-              onClose={() => setIsCommandPaletteOpen(false)}
-              onOpen={() => setIsCommandPaletteOpen(true)}
-              onAction={onCommandPaletteAction}
-            />
+            </span>
+            <span className="truncate flex-1 text-left">
+              Ask anything — grades, deadlines, study plans…
+            </span>
+            <kbd className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[10px] font-mono">
+              {modKey}+P
+            </kbd>
+          </button>
+          <button
+            onClick={() => setIsCommandPaletteOpen(true)}
+            aria-label={`Search courses and tasks (${modKey}+P)`}
+            className="md:hidden inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+          >
+            <CompassSearchIcon />
+          </button>
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onOpen={() => setIsCommandPaletteOpen(true)}
+            onAction={onCommandPaletteAction}
+          />
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        {mounted && user && <TermSwitcher />}
+
+        {/* Momentum chip - real streak data, replaces static greeting text */}
+        {mounted && user && streak > 0 && (
+          <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-load-medium/10 px-3 py-1.5">
+            <span className="text-load-medium">
+              <StreakFlameIcon />
+            </span>
+            <span className="font-mono text-xs font-bold text-load-medium">{streak}</span>
+            <span className="text-[11px] text-load-medium/80">day streak</span>
           </div>
         )}
 
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {mounted && user && <TermSwitcher />}
+        {mounted && user && (
+          <NotificationBell
+            open={openPanel === 'bell'}
+            onToggle={() => setOpenPanel((p) => (p === 'bell' ? null : 'bell'))}
+            onClose={() => setOpenPanel(null)}
+          />
+        )}
 
-          {/* Momentum chip - real streak data, replaces static greeting text */}
-          {mounted && user && streak > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-load-medium/10 px-3 py-1.5">
-              <span className="text-load-medium">
-                <StreakFlameIcon />
-              </span>
-              <span className="font-mono text-xs font-bold text-load-medium">{streak}</span>
-              <span className="text-[11px] text-load-medium/80">day streak</span>
-            </div>
-          )}
+        {mounted && user && (
+          <Link
+            href="/profile"
+            className="hidden lg:inline-flex min-h-[44px] items-center text-sm font-medium text-foreground hover:text-primary transition-colors px-1"
+          >
+            Hi, {user.displayName || user.email?.split('@')[0] || 'there'}
+          </Link>
+        )}
 
-          {mounted && user && (
-            <NotificationBell
-              open={openPanel === 'bell'}
-              onToggle={() => setOpenPanel((p) => (p === 'bell' ? null : 'bell'))}
-              onClose={() => setOpenPanel(null)}
-            />
-          )}
-
-          {mounted && user && (
-            <Link
-              href="/profile"
-              className="hidden lg:inline-flex min-h-[44px] items-center text-sm font-medium text-foreground hover:text-primary transition-colors px-1"
-            >
-              Hi, {user.displayName || user.email?.split('@')[0] || 'there'}
-            </Link>
-          )}
-
-          {!mounted ? (
-            <div className="h-9 w-9 shrink-0" aria-hidden="true" />
-          ) : (
-            <IconTileButton
-              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-              aria-label={
-                resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
-              }
-            >
-              <ThemeIcon dark={resolvedTheme === 'dark'} />
-            </IconTileButton>
-          )}
-
-          <IconTileButton onClick={handleSignOut} aria-label="Sign out" title="Sign out">
-            <SignOutIcon />
+        {!mounted ? (
+          <div className="h-9 w-9 shrink-0" aria-hidden="true" />
+        ) : (
+          <IconTileButton
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            aria-label={resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            <ThemeIcon dark={resolvedTheme === 'dark'} />
           </IconTileButton>
-        </div>
-      </div>
+        )}
 
-      {/* Workload-reactive hairline - calm brand gradient on a light day,
-          escalating toward the load-critical red on a heavy one. Only
-          rendered once real data exists, so a signed-out visitor never sees
-          a meaningless "low" bar. */}
-      {mounted && user && (
-        <div
-          className="h-[3px] w-full"
-          style={{ background: WORKLOAD_HAIRLINE_GRADIENT[todayLevel] }}
-        />
-      )}
+        <IconTileButton onClick={handleSignOut} aria-label="Sign out" title="Sign out">
+          <SignOutIcon />
+        </IconTileButton>
+      </div>
     </header>
   );
 }
