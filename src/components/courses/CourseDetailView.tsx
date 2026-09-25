@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ProgressRing } from '@/components/ui/ProgressRing';
+import { RingGauge } from '@/components/ui/RingGauge';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
 import { useAppState } from '@/context/AppStateContext';
@@ -701,9 +701,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                       </span>
                     </div>
                   ) : (
-                    <ProgressRing percent={progressPct} size={56} strokeWidth={6}>
+                    <RingGauge
+                      progress={progressPct / 100}
+                      variant="brand"
+                      size={56}
+                      radius={25}
+                      strokeWidth={6}
+                    >
                       <span className="text-xs font-bold text-foreground">{progressPct}%</span>
-                    </ProgressRing>
+                    </RingGauge>
                   )}
                   <span className="max-w-[88px] text-center text-[10px] leading-tight text-muted-foreground">
                     {completedCount} of {items.length} tracked task{items.length === 1 ? '' : 's'}{' '}
