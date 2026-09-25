@@ -24,7 +24,6 @@ const moreItems: TabItem[] = [
   { name: 'Advisor', href: '/advisor', icon: <NavIcon name="advisor" /> },
   { name: 'Flashcards', href: '/flashcards', icon: <NavIcon name="flashcards" /> },
   { name: 'Quizzes', href: '/quizzes', icon: <NavIcon name="quizzes" /> },
-  { name: 'Planner', href: '/planner', icon: <NavIcon name="plannerList" /> },
   { name: 'Degree', href: '/degree-compass', icon: <DegreeNavIcon /> },
   { name: 'Mood', href: '/mood', icon: <NavIcon name="mood" /> },
   { name: 'Profile', href: '/profile', icon: <NavIcon name="profile" /> },
