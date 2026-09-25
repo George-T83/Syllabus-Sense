@@ -10,7 +10,7 @@ import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateScheduleItem, deleteScheduleItem } from '@/lib/firestore/scheduleItems';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
-import { ProgressRing } from '@/components/ui/ProgressRing';
+import { RingGauge } from '@/components/ui/RingGauge';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { clampProgress, TASK_STATUS_LABEL } from '@/lib/taskStatus';
@@ -536,9 +536,15 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <ProgressRing percent={displayProgress} size={52} strokeWidth={6}>
+                    <RingGauge
+                      progress={displayProgress / 100}
+                      variant="brand"
+                      size={52}
+                      radius={23}
+                      strokeWidth={6}
+                    >
                       <span className="text-xs font-bold text-foreground">{displayProgress}%</span>
-                    </ProgressRing>
+                    </RingGauge>
                     {/* Custom visual layer over a real native range input -
                      * see the wrapper below for why the layering order
                      * matters (input must stay topmost, everything else
