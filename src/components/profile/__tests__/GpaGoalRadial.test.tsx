@@ -9,7 +9,7 @@ describe('GpaGoalRadial (Item 47)', () => {
 
     expect(screen.getByText('Semester GPA Goal & Quality Points Tracker')).toBeDefined();
     expect(screen.getByTestId('gpa-status-badge')).toBeDefined();
-    expect(screen.getByRole('img')).toBeDefined();
+    expect(screen.getAllByRole('progressbar')).toHaveLength(2);
     expect(screen.getAllByText(/Term GPA/i).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -39,5 +39,27 @@ describe('GpaGoalRadial (Item 47)', () => {
     fireEvent.change(creditInput, { target: { value: '5' } });
 
     expect(screen.getAllByText(/16 Credits/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('colors the cumulative ring semantically by goal status', () => {
+    // A low target with a strong prior GPA reads as comfortably ahead - the
+    // cumulative ring's arc should be the calm "low" (safe) color, not an
+    // arbitrary brand tint.
+    render(<GpaGoalRadial initialPriorGpa={3.9} initialPriorCredits={90} initialTargetGpa={3.0} />);
+
+    expect(screen.getByText(/Ahead of Goal/i)).toBeDefined();
+    // Second progressbar (cumulative) is the second RingGauge in the DOM;
+    // its progress arc is the second <circle> within it.
+    const cumulativeRing = screen.getAllByRole('progressbar')[1];
+    const arc = cumulativeRing.querySelectorAll('circle')[1];
+    expect(arc.getAttribute('class')).toMatch(/stroke-load-low/);
+  });
+
+  it('renders two independently-labeled rings for term and cumulative GPA', () => {
+    render(<GpaGoalRadial />);
+
+    const rings = screen.getAllByRole('progressbar');
+    expect(rings[0].getAttribute('aria-label')).toMatch(/Current term GPA/i);
+    expect(rings[1].getAttribute('aria-label')).toMatch(/Projected cumulative GPA/i);
   });
 });

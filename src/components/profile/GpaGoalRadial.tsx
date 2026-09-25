@@ -8,6 +8,7 @@ import {
   GRADE_POINT_MAP,
 } from '@/lib/gpa/gpaMath';
 import { Card } from '@/components/ui/Card';
+import { RingGauge, type RingGaugeLevel } from '@/components/ui/RingGauge';
 
 export interface GpaGoalRadialProps {
   initialPriorGpa?: number;
@@ -67,18 +68,26 @@ export function GpaGoalRadial({
     );
   };
 
-  // SVG Radial Ring Math
-  const radiusOuter = 78;
-  const radiusInner = 58;
-  const circumferenceOuter = 2 * Math.PI * radiusOuter;
-  const circumferenceInner = 2 * Math.PI * radiusInner;
-
-  // 4.0 scale offset calculations
+  // 4.0-scale fractions for the dual ring gauge below.
   const termGpaFraction = Math.min(1, Math.max(0, goalResult.currentTermGpa / 4.0));
-  const strokeDashoffsetOuter = circumferenceOuter - termGpaFraction * circumferenceOuter;
-
   const cumGpaFraction = Math.min(1, Math.max(0, goalResult.projectedCumulativeGpa / 4.0));
-  const strokeDashoffsetInner = circumferenceInner - cumGpaFraction * circumferenceInner;
+
+  // The cumulative ring carries the goal-tracking status as its color - the
+  // term ring is just "how full is this term," the cumulative ring is
+  // "are you on track," so it gets the semantic safe/warning/critical
+  // treatment instead of an arbitrary second brand color.
+  const cumulativeLevel: RingGaugeLevel =
+    goalResult.status === 'unreachable'
+      ? 'critical'
+      : goalResult.status === 'at_risk'
+        ? 'medium'
+        : 'low';
+  const cumulativeTextClass =
+    cumulativeLevel === 'critical'
+      ? 'text-load-critical'
+      : cumulativeLevel === 'medium'
+        ? 'text-load-medium'
+        : 'text-load-low';
 
   return (
     <div className="space-y-6 w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -138,84 +147,65 @@ export function GpaGoalRadial({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Side: Dual Radial Progress Rings (5 cols) */}
         <Card className="lg:col-span-5 p-6 flex flex-col items-center justify-center space-y-4">
-          <div className="relative flex items-center justify-center">
-            {/* SVG Dual Concentric Gauge */}
-            <svg
-              className="w-56 h-56 transform -rotate-90"
-              viewBox="0 0 200 200"
-              role="img"
-              aria-label={`Current Term GPA: ${goalResult.currentTermGpa}, Projected Cumulative: ${goalResult.projectedCumulativeGpa}`}
-            >
-              {/* Outer Track (Term GPA) */}
-              <circle
-                cx="100"
-                cy="100"
-                r={radiusOuter}
-                className="stroke-slate-200 dark:stroke-slate-800"
-                strokeWidth="10"
-                fill="transparent"
+          <div className="relative" style={{ width: 224, height: 224 }}>
+            {/* Outer ring: current term GPA, brand gradient - just "how full
+                is this term," no safe/warning framing needed. */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <RingGauge
+                progress={termGpaFraction}
+                variant="brand"
+                size={224}
+                radius={87}
+                strokeWidth={10}
+                aria-label={`Current term GPA: ${goalResult.currentTermGpa.toFixed(2)} of 4.0`}
               />
-              {/* Outer Progress (Term GPA) */}
-              <circle
-                cx="100"
-                cy="100"
-                r={radiusOuter}
-                className="stroke-indigo-500 transition-all duration-700 ease-out"
-                strokeWidth="10"
-                strokeDasharray={circumferenceOuter}
-                strokeDashoffset={strokeDashoffsetOuter}
-                strokeLinecap="round"
-                fill="transparent"
-              />
-
-              {/* Inner Track (Cumulative GPA) */}
-              <circle
-                cx="100"
-                cy="100"
-                r={radiusInner}
-                className="stroke-slate-200 dark:stroke-slate-800"
-                strokeWidth="8"
-                fill="transparent"
-              />
-              {/* Inner Progress (Cumulative GPA) */}
-              <circle
-                cx="100"
-                cy="100"
-                r={radiusInner}
-                className="stroke-cyan-400 dark:stroke-cyan-500 transition-all duration-700 ease-out"
-                strokeWidth="8"
-                strokeDasharray={circumferenceInner}
-                strokeDashoffset={strokeDashoffsetInner}
-                strokeLinecap="round"
-                fill="transparent"
-              />
-            </svg>
-
-            {/* Central GPA Typography */}
-            <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-3xl font-extrabold text-foreground tracking-tight">
-                {goalResult.currentTermGpa.toFixed(2)}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
-                Term GPA
-              </span>
-              <span className="text-xs font-semibold text-muted-foreground mt-1">
-                Cumul:{' '}
-                <strong className="text-cyan-600 dark:text-cyan-400">
-                  {goalResult.projectedCumulativeGpa.toFixed(2)}
-                </strong>
-              </span>
+            </div>
+            {/* Inner ring: projected cumulative GPA, semantic - this is the
+                number the goal-tracking status cares about, so it carries
+                the safe/at-risk/out-of-reach color instead. */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <RingGauge
+                progress={cumGpaFraction}
+                level={cumulativeLevel}
+                size={168}
+                radius={65}
+                strokeWidth={8}
+                aria-label={`Projected cumulative GPA: ${goalResult.projectedCumulativeGpa.toFixed(2)} of 4.0`}
+              >
+                <div className="flex flex-col items-center justify-center text-center">
+                  <span className="text-3xl font-extrabold text-foreground tracking-tight">
+                    {goalResult.currentTermGpa.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gradient-brand">
+                    Term GPA
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground mt-1">
+                    Cumul:{' '}
+                    <strong className={cumulativeTextClass}>
+                      {goalResult.projectedCumulativeGpa.toFixed(2)}
+                    </strong>
+                  </span>
+                </div>
+              </RingGauge>
             </div>
           </div>
 
           {/* Legend */}
           <div className="flex items-center gap-4 text-xs font-medium pt-2">
             <div className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+              <span className="w-2.5 h-2.5 rounded-full bg-gradient-brand" />
               <span>Term GPA ({goalResult.currentTermGpa.toFixed(2)})</span>
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  cumulativeLevel === 'critical'
+                    ? 'bg-load-critical'
+                    : cumulativeLevel === 'medium'
+                      ? 'bg-load-medium'
+                      : 'bg-load-low'
+                }`}
+              />
               <span>Projected Cumul ({goalResult.projectedCumulativeGpa.toFixed(2)})</span>
             </div>
           </div>
