@@ -133,10 +133,13 @@ function renderCenterGraphics(x, y, w, h, bgR, bgG, bgB, scaleFactor) {
     return [255, 255, 255, 255];
   }
 
-  // Compass needle polygons:
-  // Points: (cx + needleLen, cy - needleLen), etc.
-  const needleLen = rOuter * 0.7;
-  const needleWidth = rOuter * 0.25;
+  // Compass needle: a single cardinal (N/S/E/W) diamond, not the old
+  // 45°-rotated two-tone arrow - matches Logo.tsx's mark exactly, just
+  // rendered as solid white (against this icon's colored plate) instead of
+  // Logo.tsx's transparent-background gradient. Sized to ~0.56x the ring
+  // radius so the tips sit well inside the ring instead of crowding it.
+  const needleLen = rOuter * 0.56;
+  const needleWidth = rOuter * 0.235;
 
   // Center circles
   if (dist <= rOuter * 0.18) {
@@ -146,29 +149,8 @@ function renderCenterGraphics(x, y, w, h, bgR, bgG, bgB, scaleFactor) {
     return [255, 255, 255, 255]; // center white circle
   }
 
-  // Check 4-point compass star / diagonal pointer
-  // Simplified diamond needle:
-  // Top-right tip at (cx + needleLen*0.65, cy - needleLen*0.65)
-  // Bottom-left tip at (cx - needleLen*0.65, cy + needleLen*0.65)
-  const tipX1 = cx + needleLen * 0.65;
-  const tipY1 = cy - needleLen * 0.65;
-  const tipX2 = cx - needleLen * 0.65;
-  const tipY2 = cy + needleLen * 0.65;
-
-  // Rotate point to aligned coords
-  const cos45 = 0.7071;
-  const sin45 = 0.7071;
-  const rotX = (dx * cos45 + dy * sin45);
-  const rotY = (-dx * sin45 + dy * cos45);
-
-  if (Math.abs(rotY) <= needleLen && Math.abs(rotX) <= needleWidth * (1 - Math.abs(rotY) / needleLen)) {
-    if (rotY < 0) {
-      // Teal gradient needle half
-      return [0x3d, 0xff, 0xd0, 255];
-    } else {
-      // White needle half
-      return [255, 255, 255, 255];
-    }
+  if (Math.abs(dy) <= needleLen && Math.abs(dx) <= needleWidth * (1 - Math.abs(dy) / needleLen)) {
+    return [255, 255, 255, 255];
   }
 
   return [bgR, bgG, bgB, 255];
