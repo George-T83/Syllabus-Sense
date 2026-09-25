@@ -10,32 +10,101 @@ import { useToast } from '@/components/ui/Toast';
 import { CountBadge } from '@/components/ui/CountBadge';
 import { usePopoverA11y } from '@/hooks/usePopoverA11y';
 import { groupByUrgency } from '@/lib/notifications/urgencyGrouping';
+import { loadSessions } from '@/lib/focus/pomodoroSessions';
+import { getSessionDateSet, computeCurrentStreak } from '@/lib/focus/studyStreak';
+import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
+import { getWorkloadLevel, WORKLOAD_HAIRLINE_GRADIENT } from '@/lib/workload';
 import type { ScheduleItem } from '@/types/schedule';
 import Logo from './Logo';
 import { TermSwitcher } from './TermSwitcher';
 import { CommandPalette } from '@/components/common/CommandPalette';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
 
-function SearchIcon() {
+/** Every icon here shares one language with the compass mark: rounded caps,
+ * a single ~1.8 stroke weight, no filled Heroicons-style glyphs - so the bar
+ * reads as drawn by one hand instead of borrowing a stock icon set. */
+function CompassSearchIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M21 21l-5.2-5.2m1.7-5.3a7 7 0 11-14 0 7 7 0 0114 0z"
-      />
+    <svg
+      className="h-[17px] w-[17px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
+      <circle cx="12" cy="12" r="3.4" />
     </svg>
   );
 }
 
 function BellIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-      />
+    <svg
+      className="h-[17px] w-[17px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 9a6 6 0 0 0-12 0c0 5-2 6-2 6h16s-2-1-2-6" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+function StreakFlameIcon() {
+  return (
+    <svg className="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2c1 3-2 4.5-2 7.5A4 4 0 0 0 14 14c0-1 .3-1.6.8-2.3.9 1.2 1.2 2.6 1.2 3.8 0 3.6-2.7 6.5-6 6.5S4 19.1 4 15.5C4 10.5 9.5 7 12 2Z" />
+    </svg>
+  );
+}
+
+function ThemeIcon({ dark }: { dark: boolean }) {
+  return dark ? (
+    <svg
+      className="h-[16px] w-[16px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+    >
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2.5v2.4M12 19v2.4M4.5 12H2M22 12h-2.4M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M5.6 18.4l1.7-1.7M16.7 7.3l1.7-1.7" />
+    </svg>
+  ) : (
+    <svg
+      className="h-[16px] w-[16px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  );
+}
+
+function SignOutIcon() {
+  return (
+    <svg
+      className="h-[17px] w-[17px]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
   );
 }
@@ -46,6 +115,25 @@ function BellIcon() {
 function PopoverBackdrop({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[60] bg-transparent" onClick={onClose} aria-hidden="true" />
+  );
+}
+
+/** A rounded icon-tile shell shared by the notification/theme/sign-out
+ * buttons, replacing the old bare hover-background circle so the three
+ * utility actions read as one consistent icon language instead of plain
+ * unstyled buttons that happen to sit next to each other. */
+function IconTileButton({
+  children,
+  className = '',
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...props}
+      className={`relative inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl bg-accent/60 text-foreground transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${className}`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -114,6 +202,30 @@ function useUrgencyGroups() {
   }, [state.scheduleItems, state.courses]);
 }
 
+/** Read once on mount, same as StudyStreakCard - Pomodoro sessions are
+ * localStorage-only (lib/focus/pomodoroSessions.ts), so this is a per-device
+ * metric, not an account-wide one, and only meaningfully changes once a
+ * session actually completes. */
+function useStudyStreak(): number {
+  const [streak, setStreak] = useState(0);
+  useEffect(() => {
+    setStreak(computeCurrentStreak(getSessionDateSet(loadSessions())));
+  }, []);
+  return streak;
+}
+
+/** Today's workload level, for the hairline below - same computeSmartPlan
+ * engine PlannerView's hero uses, so the navbar never disagrees with the
+ * page it's the header for. */
+function useTodayWorkloadLevel() {
+  const { state } = useAppState();
+  return useMemo(() => {
+    const referenceDate = getLocalReferenceDate();
+    const plan = computeSmartPlan(state.scheduleItems, referenceDate);
+    return getWorkloadLevel(plan.weekLoad[0].hours);
+  }, [state.scheduleItems]);
+}
+
 /** NV-3 (2/2): notification bell reusing the app's existing overdue
  * definition (badge count) and additionally surfacing upcoming items by
  * urgency tier in the dropdown, each a real link to that task. */
@@ -136,16 +248,15 @@ function NotificationBell({
 
   return (
     <div className="relative">
-      <button
+      <IconTileButton
         onClick={onToggle}
         aria-label={overdueCount > 0 ? `Notifications, ${overdueCount} overdue` : 'Notifications'}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
       >
         <BellIcon />
         {overdueCount > 0 && <CountBadge count={overdueCount} className="absolute top-1 right-1" />}
-      </button>
+      </IconTileButton>
       {open && (
         <>
           <PopoverBackdrop onClose={onClose} />
@@ -211,6 +322,8 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
   const [openPanel, setOpenPanel] = useState<'search' | 'bell' | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const modKey = usePlatformKey();
+  const streak = useStudyStreak();
+  const todayLevel = useTodayWorkloadLevel();
 
   const handleSignOut = async () => {
     const success = await signOut();
@@ -229,32 +342,32 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-20 glass border-b border-border/40 bg-card/80 flex items-center justify-between px-3 sm:px-6">
-      <div className="flex items-center gap-2 sm:gap-4">
-        {/* Logo / App Name */}
+    <header className="fixed top-0 left-0 right-0 z-50 h-20 glass border-b border-border/40 bg-card/80 flex flex-col">
+      <div className="flex-1 flex items-center justify-between px-3 sm:px-6 gap-3">
+        {/* Mark + wordmark */}
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2.5 shrink-0 text-lg font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
         >
-          <Logo className="h-9 w-9 shrink-0 sm:h-14 sm:w-14" />
-          <span className="hidden sm:inline">Syllabus Sense</span>
+          <Logo className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
+          <span className="hidden font-display font-semibold sm:inline">Syllabus Sense</span>
         </Link>
-      </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
-        {mounted && user && <TermSwitcher />}
+        {/* AI command bar - the centerpiece, not a corner search box */}
         {mounted && user && (
-          <>
+          <div className="flex-1 flex justify-center min-w-0">
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
               aria-label={`Open command palette (${modKey}+P)`}
-              className="hidden md:inline-flex items-center gap-2 rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+              className="hidden md:inline-flex w-full max-w-[560px] items-center gap-2.5 rounded-full border border-primary/20 bg-accent/50 px-4 py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:bg-accent transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
             >
-              <SearchIcon />
-              <span className="truncate max-w-[140px] lg:max-w-[200px]">
-                Search courses, tasks...
+              <span className="text-primary">
+                <CompassSearchIcon />
               </span>
-              <kbd className="rounded border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono">
+              <span className="truncate flex-1 text-left">
+                Ask anything — grades, deadlines, study plans…
+              </span>
+              <kbd className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[10px] font-mono">
                 {modKey}+P
               </kbd>
             </button>
@@ -263,7 +376,7 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
               aria-label={`Search courses and tasks (${modKey}+P)`}
               className="md:hidden inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
             >
-              <SearchIcon />
+              <CompassSearchIcon />
             </button>
             <CommandPalette
               isOpen={isCommandPaletteOpen}
@@ -271,89 +384,69 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
               onOpen={() => setIsCommandPaletteOpen(true)}
               onAction={onCommandPaletteAction}
             />
-          </>
+          </div>
         )}
-        {mounted && user && (
-          <NotificationBell
-            open={openPanel === 'bell'}
-            onToggle={() => setOpenPanel((p) => (p === 'bell' ? null : 'bell'))}
-            onClose={() => setOpenPanel(null)}
-          />
-        )}
-        {mounted && user && (
-          <Link
-            href="/profile"
-            className="hidden sm:inline-flex min-h-[44px] items-center text-sm font-medium text-foreground hover:text-primary transition-colors px-1"
-          >
-            Hi, {user.displayName || user.email?.split('@')[0] || 'there'}
-          </Link>
-        )}
-        {!mounted ? (
-          <button
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground opacity-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-            aria-hidden="true"
-            disabled
-          >
-            <div className="h-6 w-6" />
-          </button>
-        ) : (
-          <button
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-            aria-label={resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          >
-            {resolvedTheme === 'dark' ? (
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-              </svg>
-            ) : (
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                />
-              </svg>
-            )}
-          </button>
-        )}
-        <button
-          onClick={handleSignOut}
-          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-          aria-label="Sign out"
-          title="Sign out"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {mounted && user && <TermSwitcher />}
+
+          {/* Momentum chip - real streak data, replaces static greeting text */}
+          {mounted && user && streak > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-load-medium/10 px-3 py-1.5">
+              <span className="text-load-medium">
+                <StreakFlameIcon />
+              </span>
+              <span className="font-mono text-xs font-bold text-load-medium">{streak}</span>
+              <span className="text-[11px] text-load-medium/80">day streak</span>
+            </div>
+          )}
+
+          {mounted && user && (
+            <NotificationBell
+              open={openPanel === 'bell'}
+              onToggle={() => setOpenPanel((p) => (p === 'bell' ? null : 'bell'))}
+              onClose={() => setOpenPanel(null)}
             />
-          </svg>
-        </button>
+          )}
+
+          {mounted && user && (
+            <Link
+              href="/profile"
+              className="hidden lg:inline-flex min-h-[44px] items-center text-sm font-medium text-foreground hover:text-primary transition-colors px-1"
+            >
+              Hi, {user.displayName || user.email?.split('@')[0] || 'there'}
+            </Link>
+          )}
+
+          {!mounted ? (
+            <div className="h-9 w-9 shrink-0" aria-hidden="true" />
+          ) : (
+            <IconTileButton
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              aria-label={
+                resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+              }
+            >
+              <ThemeIcon dark={resolvedTheme === 'dark'} />
+            </IconTileButton>
+          )}
+
+          <IconTileButton onClick={handleSignOut} aria-label="Sign out" title="Sign out">
+            <SignOutIcon />
+          </IconTileButton>
+        </div>
       </div>
+
+      {/* Workload-reactive hairline - calm brand gradient on a light day,
+          escalating toward the load-critical red on a heavy one. Only
+          rendered once real data exists, so a signed-out visitor never sees
+          a meaningless "low" bar. */}
+      {mounted && user && (
+        <div
+          className="h-[3px] w-full"
+          style={{ background: WORKLOAD_HAIRLINE_GRADIENT[todayLevel] }}
+        />
+      )}
     </header>
   );
 }

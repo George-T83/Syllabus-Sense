@@ -100,6 +100,19 @@ export const WORKLOAD_GLOW_CLASS: Record<WorkloadLevel, string> = {
 };
 
 /**
+ * The same escalation as WORKLOAD_GLOW_CLASS's `--glow-border` values
+ * (globals.css `.glow-edge-*`), as inline `background` gradients rather than
+ * a border - for a surface that needs the color logic without the full
+ * bordered-card treatment (Navbar's workload-reactive bottom hairline).
+ */
+export const WORKLOAD_HAIRLINE_GRADIENT: Record<WorkloadLevel, string> = {
+  low: 'linear-gradient(90deg, #8c6eff, #5b3df5 55%, #00bfa0)',
+  medium: 'linear-gradient(90deg, hsl(var(--load-medium)), hsl(var(--load-medium)))',
+  high: 'linear-gradient(90deg, hsl(var(--load-high)), hsl(var(--load-high)))',
+  critical: 'linear-gradient(90deg, hsl(var(--load-critical)), hsl(var(--load-critical)))',
+};
+
+/**
  * Unified badge helper returning consistent tokens across dashboard, planner, calendar, and task views.
  */
 export function getWorkloadBadgeTokens(

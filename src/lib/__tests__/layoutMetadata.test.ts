@@ -6,6 +6,12 @@ vi.mock('next/font/local', () => ({
   }),
 }));
 
+vi.mock('next/font/google', () => ({
+  Fraunces: () => ({
+    variable: '--mock-font-fraunces',
+  }),
+}));
+
 import { metadata, viewport } from '@/app/layout';
 
 describe('Root Layout PWA Viewport & Metadata (Item 27)', () => {
@@ -21,12 +27,8 @@ describe('Root Layout PWA Viewport & Metadata (Item 27)', () => {
       media?: string;
       color: string;
     }>;
-    const lightTheme = themeColors.find((t) =>
-      t.media?.includes('prefers-color-scheme: light')
-    );
-    const darkTheme = themeColors.find((t) =>
-      t.media?.includes('prefers-color-scheme: dark')
-    );
+    const lightTheme = themeColors.find((t) => t.media?.includes('prefers-color-scheme: light'));
+    const darkTheme = themeColors.find((t) => t.media?.includes('prefers-color-scheme: dark'));
 
     expect(lightTheme).toBeDefined();
     expect(lightTheme?.color).toBe('#FFFFFF');
@@ -56,9 +58,7 @@ describe('Root Layout PWA Viewport & Metadata (Item 27)', () => {
     expect(icons.icon).toBeDefined();
     expect(icons.apple).toBeDefined();
 
-    const appleIcon = icons.apple?.find((a) =>
-      a.url.includes('apple-touch-icon')
-    );
+    const appleIcon = icons.apple?.find((a) => a.url.includes('apple-touch-icon'));
     expect(appleIcon).toBeDefined();
     expect(appleIcon?.sizes).toBe('180x180');
   });
