@@ -24,7 +24,6 @@ export default function Sidebar() {
     { name: 'Tasks', href: '/tasks', icon: <NavIcon name="tasks" /> },
     { name: 'Flashcards', href: '/flashcards', icon: <NavIcon name="flashcards" /> },
     { name: 'Quizzes', href: '/quizzes', icon: <NavIcon name="quizzes" /> },
-    { name: 'Planner', href: '/planner', icon: <NavIcon name="plannerList" /> },
     { name: 'Calendar', href: '/calendar', icon: <NavIcon name="calendar" /> },
     { name: 'Mood', href: '/mood', icon: <NavIcon name="mood" /> },
     { name: 'Profile', href: '/profile', icon: <NavIcon name="profile" /> },
