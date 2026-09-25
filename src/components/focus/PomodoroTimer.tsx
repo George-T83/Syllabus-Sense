@@ -244,8 +244,8 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
           progress={progress}
           variant={isBreak ? 'semantic' : 'brand'}
           level="low"
-          size={96}
-          radius={40}
+          size={104}
+          radius={44}
           strokeWidth={6}
           aria-label={`${formatTime(remaining)} remaining`}
         >
