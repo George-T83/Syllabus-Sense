@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { saveSession } from '@/lib/focus/pomodoroSessions';
-import { BRAND_GRADIENT_STOPS } from '@/lib/theme/brandGradient';
+import { RingGauge } from '@/components/ui/RingGauge';
 import { useAppState } from '@/context/AppStateContext';
 
 const WORK_DURATION = 25 * 60; // 25 minutes
@@ -159,8 +159,6 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
     ? (BREAK_DURATION - remaining) / BREAK_DURATION
     : (WORK_DURATION - remaining) / WORK_DURATION;
 
-  const circumference = 2 * Math.PI * 40;
-
   if (!visible) {
     return (
       <FloatingActionPill
@@ -237,41 +235,20 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
           </p>
         )}
 
-        {/* Circular progress + time - the focus ring's stroke is always the
-            brand gradient (Neon Edge identity, visible even while paused);
-            a break keeps its own distinct emerald so "resting" never reads
-            as "focusing." */}
-        <div className="relative flex h-24 w-24 items-center justify-center">
-          <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
-            <defs>
-              <linearGradient id="pomodoroFocusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                {BRAND_GRADIENT_STOPS.map((stop) => (
-                  <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
-                ))}
-              </linearGradient>
-            </defs>
-            <circle
-              cx="48"
-              cy="48"
-              r="40"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="6"
-              className="text-border"
-            />
-            <circle
-              cx="48"
-              cy="48"
-              r="40"
-              fill="none"
-              stroke={isBreak ? undefined : 'url(#pomodoroFocusGradient)'}
-              strokeWidth="6"
-              strokeDasharray={circumference}
-              strokeDashoffset={circumference * (1 - progress)}
-              strokeLinecap="round"
-              className={cn('transition-all duration-1000', isBreak && 'text-emerald-500')}
-            />
-          </svg>
+        {/* Ring + needle - the focus ring's arc is always the brand gradient
+            (Neon Edge identity, visible even while paused) and the needle
+            sweeps like a clock hand toward time's up; a break switches to
+            the semantic "low" (calm green) arc so "resting" never reads as
+            "focusing." */}
+        <RingGauge
+          progress={progress}
+          variant={isBreak ? 'semantic' : 'brand'}
+          level="low"
+          size={96}
+          radius={40}
+          strokeWidth={6}
+          aria-label={`${formatTime(remaining)} remaining`}
+        >
           <span
             aria-live="polite"
             aria-label={`${formatTime(remaining)} remaining`}
@@ -279,7 +256,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
           >
             {formatTime(remaining)}
           </span>
-        </div>
+        </RingGauge>
 
         {/* Controls */}
         <div className="flex items-center gap-1.5">
