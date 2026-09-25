@@ -16,6 +16,12 @@ export interface RingGaugeProps {
   /** 0-1 fraction of the ring to fill. */
   progress: number;
   level: RingGaugeLevel;
+  /** Draws the compass-style gradient needle pointing at the current value.
+   * Off by default - most gauges already show the value as text in the
+   * center, and a needle pointing at roughly the same number is redundant
+   * clutter next to it. Reserve this for a gauge with no text readout of
+   * its own. */
+  needle?: boolean;
   size?: number;
   radius?: number;
   strokeWidth?: number;
@@ -28,16 +34,17 @@ export interface RingGaugeProps {
 }
 
 /**
- * Ring + needle gauge primitive - the same ring-and-pointer language as the
- * compass mark (Logo.tsx), reused for any 0-1 progress value instead of a
- * bare circular progress bar. The needle rotates to the current value's
- * position on the ring, echoing the logo's cardinal needle; the ring itself
- * stays semantic (load-low/medium/high/critical) so at-a-glance severity
- * reads the same as everywhere else in the app.
+ * Ring gauge primitive - a circular progress ring, semantically colored
+ * (load-low/medium/high/critical) so at-a-glance severity reads the same as
+ * everywhere else in the app. Can optionally draw a compass-style gradient
+ * needle pointing at the current value (see `needle`), echoing the logo's
+ * cardinal needle - but only where there's no text readout already doing
+ * that job.
  */
 export function RingGauge({
   progress,
   level,
+  needle = false,
   size = 140,
   radius,
   strokeWidth = 10,
@@ -98,7 +105,7 @@ export function RingGauge({
           className={cn('transition-all duration-700 ease-out', LEVEL_STROKE[level])}
         />
       </svg>
-      {clamped > 0 && (
+      {needle && clamped > 0 && (
         <svg
           width={size}
           height={size}

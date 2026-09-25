@@ -25,19 +25,24 @@ describe('RingGauge', () => {
     expect(screen.getByText('2/4')).toBeDefined();
   });
 
-  it('omits the needle when progress is zero', () => {
-    const { container } = render(<RingGauge progress={0} level="low" />);
+  it('renders no needle by default, even with progress above zero', () => {
+    const { container } = render(<RingGauge progress={0.75} level="critical" />);
     expect(container.querySelectorAll('polygon').length).toBe(0);
   });
 
-  it('renders a needle polygon once progress is above zero', () => {
-    const { container } = render(<RingGauge progress={0.75} level="critical" />);
+  it('omits the needle at zero progress even when explicitly requested', () => {
+    const { container } = render(<RingGauge progress={0} level="low" needle />);
+    expect(container.querySelectorAll('polygon').length).toBe(0);
+  });
+
+  it('renders a needle polygon when explicitly requested and progress is above zero', () => {
+    const { container } = render(<RingGauge progress={0.75} level="critical" needle />);
     expect(container.querySelectorAll('polygon').length).toBe(1);
   });
 
   it('clamps out-of-range progress values into 0-1', () => {
-    const { container: over } = render(<RingGauge progress={1.5} level="high" />);
-    const { container: under } = render(<RingGauge progress={-0.5} level="low" />);
+    const { container: over } = render(<RingGauge progress={1.5} level="high" needle />);
+    const { container: under } = render(<RingGauge progress={-0.5} level="low" needle />);
     expect(over.querySelectorAll('polygon').length).toBe(1);
     expect(under.querySelectorAll('polygon').length).toBe(0);
   });
