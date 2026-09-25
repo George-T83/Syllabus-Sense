@@ -73,7 +73,7 @@ export function QuizSession({ quiz, onClose, onComplete }: QuizSessionProps) {
         className="w-full max-w-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card accent="none" className="p-6">
+        <Card accent="none" opaque className="p-6">
           <div className="flex items-center justify-between">
             <h2 id="quiz-session-title" className="text-sm font-bold text-foreground">
               {done ? 'Quiz complete' : `Question ${index + 1} of ${quiz.questions.length}`}

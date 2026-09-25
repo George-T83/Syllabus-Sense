@@ -50,6 +50,19 @@ describe('Card Component Suite', () => {
     expect(withoutAccent.querySelector('.bg-gradient-brand')).toBeNull();
   });
 
+  it('uses a fully opaque background only when opaque is set, for modal panels that would otherwise let the page behind bleed through', () => {
+    const { container: frosted } = render(<Card>Plain</Card>);
+    const frostedDiv = frosted.firstChild as HTMLElement;
+    expect(frostedDiv.className).toContain('bg-card/90');
+    expect(frostedDiv.className).toContain('backdrop-blur-md');
+
+    const { container: solid } = render(<Card opaque>Modal panel</Card>);
+    const solidDiv = solid.firstChild as HTMLElement;
+    expect(solidDiv.className).toContain('bg-card');
+    expect(solidDiv.className).not.toContain('bg-card/90');
+    expect(solidDiv.className).not.toContain('backdrop-blur-md');
+  });
+
   it('renders sub-components and merges their custom classNames', () => {
     render(
       <Card>
