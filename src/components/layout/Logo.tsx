@@ -13,12 +13,11 @@ export default function Logo({ className }: { className?: string }) {
   const uid = useId();
   const markGradId = `logo-mark-grad-${uid}`;
 
-  // A compass mark, not a plated app icon - a bare ring + a single-gradient
-  // needle diamond, exactly the mark approved in the design concept
-  // (claude.ai/artifact/4AvwgJrMEGmGDRMmVAEAPn). One gradient across the
-  // whole needle, not the old logo's two-tone split - a two-color needle
-  // sitting inside a one-color ring read as two unrelated marks stitched
-  // together rather than one coherent glyph.
+  // The same plated compass mark as the favicon/app icons (src/app/icon.svg,
+  // scripts/generate-pwa-icons.mjs) - one consistent glyph everywhere the
+  // logo appears, rather than a bare navbar-only version and a differently-
+  // plated icon version. Gradient plate, white ring + needle, colored center
+  // dot; identical geometry to icon.svg so this and the favicon never drift.
   return (
     <svg viewBox="0 0 200 200" className={className} role="img" aria-label="Syllabus Sense logo">
       <defs>
@@ -28,17 +27,11 @@ export default function Logo({ className }: { className?: string }) {
           <stop offset="100%" stopColor="#00BFA0" />
         </linearGradient>
       </defs>
-      <circle
-        cx="100"
-        cy="100"
-        r="82"
-        fill="none"
-        stroke={`url(#${markGradId})`}
-        strokeWidth="11"
-      />
-      <polygon points="100,54 119,100 100,146 81,100" fill={`url(#${markGradId})`} />
-      <circle cx="100" cy="100" r="14" fill="#FFFFFF" />
-      <circle cx="100" cy="100" r="7" fill="#5B3DF5" />
+      <rect x="12" y="12" width="176" height="176" rx="44" fill={`url(#${markGradId})`} />
+      <circle cx="100" cy="100" r="72" fill="none" stroke="#FFFFFF" strokeWidth="11" />
+      <polygon points="100,60 117,100 100,140 83,100" fill="#FFFFFF" />
+      <circle cx="100" cy="100" r="13" fill="#FFFFFF" />
+      <circle cx="100" cy="100" r="6.5" fill="#5B3DF5" />
     </svg>
   );
 }
