@@ -692,7 +692,7 @@ export function PlannerView() {
             <div className="flex items-end gap-2">
               <span className="text-display text-foreground sm:text-5xl">
                 {todayLoad.hours.toFixed(1)}
-                <span className="text-h3 text-muted-foreground sm:text-xl">h</span>
+                <span className="ml-1 text-h3 text-muted-foreground sm:text-xl">h</span>
               </span>
               <span className="pb-1.5 text-body-sm text-muted-foreground">due today</span>
             </div>
@@ -700,7 +700,7 @@ export function PlannerView() {
               <div className="flex items-end gap-2">
                 <span className="text-h1 text-destructive sm:text-3xl">
                   {plan.overdueHours.toFixed(1)}
-                  <span className="text-body-sm font-semibold text-destructive/70 sm:text-base">
+                  <span className="ml-1 text-body-sm font-semibold text-destructive/70 sm:text-base">
                     h
                   </span>
                 </span>
