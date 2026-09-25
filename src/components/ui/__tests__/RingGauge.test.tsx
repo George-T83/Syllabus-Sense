@@ -41,4 +41,18 @@ describe('RingGauge', () => {
     expect(over.querySelectorAll('polygon').length).toBe(1);
     expect(under.querySelectorAll('polygon').length).toBe(0);
   });
+
+  it('colors the arc with the brand gradient in "brand" variant instead of a semantic class', () => {
+    const { container } = render(<RingGauge progress={0.5} variant="brand" />);
+    const arc = container.querySelectorAll('circle')[1];
+    expect(arc.getAttribute('stroke')).toMatch(/^url\(#ring-gauge-grad-/);
+    expect(arc.getAttribute('class')).not.toMatch(/stroke-load-/);
+  });
+
+  it('defaults to the semantic level class when no variant is given', () => {
+    const { container } = render(<RingGauge progress={0.5} level="critical" />);
+    const arc = container.querySelectorAll('circle')[1];
+    expect(arc.getAttribute('class')).toMatch(/stroke-load-critical/);
+    expect(arc.getAttribute('stroke')).toBeNull();
+  });
 });
