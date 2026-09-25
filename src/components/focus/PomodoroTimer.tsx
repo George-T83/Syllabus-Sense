@@ -235,11 +235,11 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
           </p>
         )}
 
-        {/* Ring + needle - the focus ring's arc is always the brand gradient
-            (Neon Edge identity, visible even while paused) and the needle
-            sweeps like a clock hand toward time's up; a break switches to
-            the semantic "low" (calm green) arc so "resting" never reads as
-            "focusing." */}
+        {/* Focus ring - the arc is always the brand gradient (Neon Edge
+            identity, visible even while paused); a break switches to the
+            semantic "low" (calm green) arc so "resting" never reads as
+            "focusing." No needle: the countdown text already shows the
+            value, so a needle pointing at the same thing is just noise. */}
         <RingGauge
           progress={progress}
           variant={isBreak ? 'semantic' : 'brand'}

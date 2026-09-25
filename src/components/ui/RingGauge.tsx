@@ -21,6 +21,12 @@ export interface RingGaugeProps {
    * the same gradient as the needle - for gauges with no safe/warning/
    * critical meaning (a focus timer, a plain completion ring). */
   variant?: 'semantic' | 'brand';
+  /** Draws the compass-style gradient needle pointing at the current value.
+   * Off by default - most gauges already show the value as text in the
+   * center, and a needle pointing at roughly the same number is redundant
+   * clutter next to it. Reserve this for a gauge with no text readout of
+   * its own. */
+  needle?: boolean;
   size?: number;
   radius?: number;
   strokeWidth?: number;
@@ -33,19 +39,20 @@ export interface RingGaugeProps {
 }
 
 /**
- * Ring + needle gauge primitive - the same ring-and-pointer language as the
- * compass mark (Logo.tsx), reused for any 0-1 progress value instead of a
- * bare circular progress bar. The needle rotates to the current value's
- * position on the ring, echoing the logo's cardinal needle; in the default
- * "semantic" variant the ring itself stays on load-low/medium/high/critical
- * so severity reads the same as everywhere else in the app, while "brand"
- * gives the arc the same gradient as the needle for gauges with no
- * safe/warning/critical meaning.
+ * Ring gauge primitive - a circular progress ring. In the default
+ * "semantic" variant the arc is colored by `level`
+ * (load-low/medium/high/critical) so severity reads the same as everywhere
+ * else in the app; "brand" gives the arc the same gradient as the needle
+ * for gauges with no safe/warning/critical meaning (a focus timer, a plain
+ * completion ring). Can optionally draw a compass-style gradient needle
+ * pointing at the current value (see `needle`), echoing the logo's cardinal
+ * needle - but only where there's no text readout already doing that job.
  */
 export function RingGauge({
   progress,
   level = 'low',
   variant = 'semantic',
+  needle = false,
   size = 140,
   radius,
   strokeWidth = 10,
@@ -117,7 +124,7 @@ export function RingGauge({
           )}
         />
       </svg>
-      {clamped > 0 && (
+      {needle && clamped > 0 && (
         <svg
           width={size}
           height={size}
