@@ -15,7 +15,12 @@ const LEVEL_STROKE: Record<RingGaugeLevel, string> = {
 export interface RingGaugeProps {
   /** 0-1 fraction of the ring to fill. */
   progress: number;
-  level: RingGaugeLevel;
+  /** Semantic arc color (ignored when `variant="brand"`). */
+  level?: RingGaugeLevel;
+  /** 'semantic' (default) colors the arc by `level`; 'brand' colors it with
+   * the same gradient as the needle - for gauges with no safe/warning/
+   * critical meaning (a focus timer, a plain completion ring). */
+  variant?: 'semantic' | 'brand';
   /** Draws the compass-style gradient needle pointing at the current value.
    * Off by default - most gauges already show the value as text in the
    * center, and a needle pointing at roughly the same number is redundant
@@ -34,16 +39,19 @@ export interface RingGaugeProps {
 }
 
 /**
- * Ring gauge primitive - a circular progress ring, semantically colored
- * (load-low/medium/high/critical) so at-a-glance severity reads the same as
- * everywhere else in the app. Can optionally draw a compass-style gradient
- * needle pointing at the current value (see `needle`), echoing the logo's
- * cardinal needle - but only where there's no text readout already doing
- * that job.
+ * Ring gauge primitive - a circular progress ring. In the default
+ * "semantic" variant the arc is colored by `level`
+ * (load-low/medium/high/critical) so severity reads the same as everywhere
+ * else in the app; "brand" gives the arc the same gradient as the needle
+ * for gauges with no safe/warning/critical meaning (a focus timer, a plain
+ * completion ring). Can optionally draw a compass-style gradient needle
+ * pointing at the current value (see `needle`), echoing the logo's cardinal
+ * needle - but only where there's no text readout already doing that job.
  */
 export function RingGauge({
   progress,
-  level,
+  level = 'low',
+  variant = 'semantic',
   needle = false,
   size = 140,
   radius,
@@ -85,6 +93,13 @@ export function RingGauge({
       aria-valuemax={ariaValueMax}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#8C6EFF" />
+            <stop offset="55%" stopColor="#5B3DF5" />
+            <stop offset="100%" stopColor="#00BFA0" />
+          </linearGradient>
+        </defs>
         <circle
           cx={center}
           cy={center}
@@ -102,7 +117,11 @@ export function RingGauge({
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           fill="transparent"
-          className={cn('transition-all duration-700 ease-out', LEVEL_STROKE[level])}
+          stroke={variant === 'brand' ? `url(#${gradId})` : undefined}
+          className={cn(
+            'transition-all duration-700 ease-out',
+            variant === 'semantic' && LEVEL_STROKE[level],
+          )}
         />
       </svg>
       {needle && clamped > 0 && (
@@ -112,13 +131,6 @@ export function RingGauge({
           viewBox={`0 0 ${size} ${size}`}
           className="absolute inset-0"
         >
-          <defs>
-            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#8C6EFF" />
-              <stop offset="55%" stopColor="#5B3DF5" />
-              <stop offset="100%" stopColor="#00BFA0" />
-            </linearGradient>
-          </defs>
           <polygon
             points={`${tipX},${tipY} ${b1x},${b1y} ${b2x},${b2y}`}
             fill={`url(#${gradId})`}
