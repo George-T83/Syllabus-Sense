@@ -9,7 +9,7 @@ export interface ProgressBarProps {
   color?: string;
 }
 
-/** Thin linear progress indicator for list rows, where a ProgressRing would
+/** Thin linear progress indicator for list rows, where a RingGauge would
  * be too heavy. Track uses the same muted surface as the rest of the row
  * chrome; fill defaults to primary but accepts a course color so it can
  * double as a quiet course cue in dense lists. */

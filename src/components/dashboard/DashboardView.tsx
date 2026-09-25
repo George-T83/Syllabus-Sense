@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ProgressRing } from '@/components/ui/ProgressRing';
+import { RingGauge } from '@/components/ui/RingGauge';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { NavIcon } from '@/components/layout/NavIcon';
 import { SkeletonCard } from '@/components/ui/Skeleton';
@@ -456,11 +456,17 @@ export function DashboardView() {
                 </div>
               ) : (
                 <div className="flex items-center gap-4">
-                  <ProgressRing percent={termProgressPct} size={80} strokeWidth={7}>
+                  <RingGauge
+                    progress={termProgressPct / 100}
+                    variant="brand"
+                    size={80}
+                    radius={36.5}
+                    strokeWidth={7}
+                  >
                     <div className="text-center">
                       <div className="text-lg font-bold text-foreground">{termProgressPct}%</div>
                     </div>
-                  </ProgressRing>
+                  </RingGauge>
                   <div className="grid flex-1 grid-cols-3 gap-2 text-center">
                     <div>
                       <div className="text-base font-bold text-primary">
