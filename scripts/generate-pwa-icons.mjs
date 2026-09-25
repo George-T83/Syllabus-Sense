@@ -74,7 +74,33 @@ function crc32(buf) {
   return crc ^ -1;
 }
 
-// Brand renderer: rounded rectangle gradient #8C6EFF to #5B3DF5, with white ring and compass star
+// Brand renderer: rounded rectangle gradient #8C6EFF -> #5B3DF5 -> #00BFA0
+// (the same 3-stop diagonal gradient as Logo.tsx and icon.svg's mainGrad),
+// with white ring and compass needle.
+function lerpChannel(a, b, t) {
+  return Math.round(a * (1 - t) + b * t);
+}
+
+/** 3-stop diagonal gradient matching mainGrad's 0%/55%/100% stops - a plain
+ * 2-stop lerp between the first and last color (the previous bug here) never
+ * reaches the teal endpoint at all. */
+function gradientColor(t) {
+  const stops = [
+    [0, 0x8c, 0x6e, 0xff],
+    [0.55, 0x5b, 0x3d, 0xf5],
+    [1, 0x00, 0xbf, 0xa0],
+  ];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [t0, r0, g0, b0] = stops[i];
+    const [t1, r1, g1, b1] = stops[i + 1];
+    if (t <= t1) {
+      const localT = (t - t0) / (t1 - t0);
+      return [lerpChannel(r0, r1, localT), lerpChannel(g0, g1, localT), lerpChannel(b0, b1, localT)];
+    }
+  }
+  return stops[stops.length - 1].slice(1);
+}
+
 function renderBrandIcon(x, y, w, h, isMaskable = false) {
   const u = x / w;
   const v = y / h;
@@ -84,13 +110,8 @@ function renderBrandIcon(x, y, w, h, isMaskable = false) {
   const dy = y - cy;
   const dist = Math.sqrt(dx * dx + dy * dy);
 
-  // Background
-  let bgR = 0x5b, bgG = 0x3d, bgF = 0xf5; // #5B3DF5
   const t = (u + v) / 2;
-  // Blend #8C6EFF (140, 110, 255) to #5B3DF5 (91, 61, 245)
-  const rGrad = Math.round(140 * (1 - t) + 91 * t);
-  const gGrad = Math.round(110 * (1 - t) + 61 * t);
-  const bGrad = Math.round(255 * (1 - t) + 245 * t);
+  const [rGrad, gGrad, bGrad] = gradientColor(t);
 
   if (isMaskable) {
     // Full bleed background for maskable
@@ -133,10 +154,13 @@ function renderCenterGraphics(x, y, w, h, bgR, bgG, bgB, scaleFactor) {
     return [255, 255, 255, 255];
   }
 
-  // Compass needle polygons:
-  // Points: (cx + needleLen, cy - needleLen), etc.
-  const needleLen = rOuter * 0.7;
-  const needleWidth = rOuter * 0.25;
+  // Compass needle: a single cardinal (N/S/E/W) diamond, not the old
+  // 45°-rotated two-tone arrow - matches Logo.tsx's mark exactly, just
+  // rendered as solid white (against this icon's colored plate) instead of
+  // Logo.tsx's transparent-background gradient. Sized to ~0.56x the ring
+  // radius so the tips sit well inside the ring instead of crowding it.
+  const needleLen = rOuter * 0.56;
+  const needleWidth = rOuter * 0.235;
 
   // Center circles
   if (dist <= rOuter * 0.18) {
@@ -146,29 +170,8 @@ function renderCenterGraphics(x, y, w, h, bgR, bgG, bgB, scaleFactor) {
     return [255, 255, 255, 255]; // center white circle
   }
 
-  // Check 4-point compass star / diagonal pointer
-  // Simplified diamond needle:
-  // Top-right tip at (cx + needleLen*0.65, cy - needleLen*0.65)
-  // Bottom-left tip at (cx - needleLen*0.65, cy + needleLen*0.65)
-  const tipX1 = cx + needleLen * 0.65;
-  const tipY1 = cy - needleLen * 0.65;
-  const tipX2 = cx - needleLen * 0.65;
-  const tipY2 = cy + needleLen * 0.65;
-
-  // Rotate point to aligned coords
-  const cos45 = 0.7071;
-  const sin45 = 0.7071;
-  const rotX = (dx * cos45 + dy * sin45);
-  const rotY = (-dx * sin45 + dy * cos45);
-
-  if (Math.abs(rotY) <= needleLen && Math.abs(rotX) <= needleWidth * (1 - Math.abs(rotY) / needleLen)) {
-    if (rotY < 0) {
-      // Teal gradient needle half
-      return [0x3d, 0xff, 0xd0, 255];
-    } else {
-      // White needle half
-      return [255, 255, 255, 255];
-    }
+  if (Math.abs(dy) <= needleLen && Math.abs(dx) <= needleWidth * (1 - Math.abs(dy) / needleLen)) {
+    return [255, 255, 255, 255];
   }
 
   return [bgR, bgG, bgB, 255];

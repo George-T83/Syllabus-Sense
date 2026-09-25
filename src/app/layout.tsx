@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
+import { Fraunces } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/context/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
@@ -14,6 +15,15 @@ const geistMono = localFont({
   src: './fonts/GeistMonoVF.woff',
   variable: '--font-geist-mono',
   weight: '100 900',
+});
+// Display accent only (wordmark, hero numbers) - Geist Sans/Mono above stay
+// the body/UI workhorse everywhere else. next/font/google self-hosts this
+// at build time, so it carries no runtime dependency on Google's CDN.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-fraunces',
+  display: 'swap',
 });
 
 export const viewport: Viewport = {
@@ -88,7 +98,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased`}
+      >
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>
