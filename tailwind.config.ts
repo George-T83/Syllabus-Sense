@@ -23,6 +23,8 @@ const config: Config = {
         // weight text), which is exactly the mismatch this fixes.
         sans: ['var(--font-geist-sans)', ...defaultTheme.fontFamily.sans],
         mono: ['var(--font-geist-mono)', ...defaultTheme.fontFamily.mono],
+        // Display accent only (wordmark, hero numbers) - see layout.tsx.
+        display: ['var(--font-fraunces)', ...defaultTheme.fontFamily.serif],
       },
       colors: {
         background: 'hsl(var(--background) / <alpha-value>)',
