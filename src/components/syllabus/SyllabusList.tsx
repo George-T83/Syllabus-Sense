@@ -11,6 +11,7 @@ import { DocumentViewerModal } from '@/components/syllabus/DocumentViewerModal';
 import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { useToast } from '@/components/ui/Toast';
 import type { SyllabusUpload } from '@/types/syllabus';
+import { RowActionButton } from '@/components/ui/RowActionButton';
 
 export interface SyllabusListProps {
   userId: string | undefined;
@@ -112,20 +113,20 @@ export function SyllabusList({ userId, courseId }: SyllabusListProps) {
           ) : (
             <div className="flex items-center gap-1.5 shrink-0">
               {syllabus.id !== primaryId && (
-                <button
+                <RowActionButton
                   onClick={() => handleSetPrimary(syllabus)}
                   disabled={settingPrimaryId === syllabus.id}
-                  className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="disabled:cursor-not-allowed"
                 >
                   {settingPrimaryId === syllabus.id ? 'Setting…' : 'Set as primary'}
-                </button>
+                </RowActionButton>
               )}
-              <button
+              <RowActionButton
+                tone="destructive"
                 onClick={() => setConfirmingDeleteId(syllabus.id)}
-                className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
               >
                 Delete
-              </button>
+              </RowActionButton>
             </div>
           )}
         </div>
