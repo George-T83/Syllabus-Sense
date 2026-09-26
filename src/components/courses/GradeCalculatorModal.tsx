@@ -14,8 +14,11 @@ import {
   calculateRequiredFinalScore,
   calculateSemesterGpa,
   deriveCategoriesFromScheduleItems,
+  projectCourseGrade,
+  remainingWorkFromScheduleItems,
   STANDARD_GRADE_SCALE,
 } from '@/lib/academic/gradeMath';
+import { GradeOutcomeDial, RemainingScoreSlider } from '@/components/courses/GradeOutcome';
 import { useGradeScenarios } from '@/lib/firestore/useGradeScenarios';
 import { saveGradeScenario, deleteGradeScenario } from '@/lib/firestore/gradeScenarios';
 import type { ScheduleItem } from '@/types/schedule';
@@ -57,6 +60,8 @@ export function GradeCalculatorModal({
   const [categories, setCategories] = useState<GradeCategory[]>([]);
   const [finalExamWeight, setFinalExamWeight] = useState<number>(30);
   const [targetPercentage, setTargetPercentage] = useState<number>(93.0); // Target 'A'
+  /** The what-if: the average score on everything still ahead. */
+  const [remainingScore, setRemainingScore] = useState<number>(85);
   const [activeTab, setActiveTab] = useState<'course' | 'semester'>('course');
   const [savingScenario, setSavingScenario] = useState(false);
   const [scenarioNameDraft, setScenarioNameDraft] = useState('');
@@ -86,6 +91,17 @@ export function GradeCalculatorModal({
       state.scheduleItems.filter((i: ScheduleItem) => i.courseId === courseId),
     );
 
+  const itemsFor = (courseId: string): ScheduleItem[] =>
+    state.scheduleItems.filter((i: ScheduleItem) => i.courseId === courseId);
+
+  /** What's still ahead for the selected course - its ungraded weighted
+   * items - so the final's weight comes from the syllabus, not a guess. */
+  const remainingWork = useMemo(
+    () => remainingWorkFromScheduleItems(itemsFor(selectedCourseId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedCourseId, state.scheduleItems],
+  );
+
   const hasRealDataForSelectedCourse = useMemo(
     () => realCategoriesFor(selectedCourseId).length > 0,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,10 +113,22 @@ export function GradeCalculatorModal({
   // than carrying over whatever was being simulated for the last one.
   useEffect(() => {
     if (!selectedCourseId) return;
-    const real = realCategoriesFor(selectedCourseId);
-    setCategories(real.length > 0 ? real : STARTER_CATEGORIES);
+    seedFromCourse(selectedCourseId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCourseId]);
+
+  /** Real standing, the syllabus weight still ahead, and a slider that
+   * starts at "keep doing what you're doing" (your current average). */
+  function seedFromCourse(courseId: string) {
+    const real = realCategoriesFor(courseId);
+    const seeded = real.length > 0 ? real : STARTER_CATEGORIES;
+    setCategories(seeded);
+    const remaining = remainingWorkFromScheduleItems(itemsFor(courseId));
+    setFinalExamWeight(real.length > 0 ? remaining.weight : 30);
+    setRemainingScore(
+      Math.round(Math.min(100, calculateCurrentWeightedGrade(seeded).currentPercentage)),
+    );
+  }
 
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
@@ -117,6 +145,23 @@ export function GradeCalculatorModal({
     return calculateGradeFloorCeiling(categories, finalExamWeight);
   }, [categories, finalExamWeight]);
 
+  const projectedGrade = useMemo(
+    () => projectCourseGrade(categories, finalExamWeight, remainingScore),
+    [categories, finalExamWeight, remainingScore],
+  );
+  const currentPace = Math.round(Math.min(100, currentGrade.currentPercentage));
+  const goalScore =
+    finalExamTarget.requiredFinalScore >= 0 && finalExamTarget.requiredFinalScore <= 100
+      ? Math.ceil(finalExamTarget.requiredFinalScore)
+      : null;
+  const remainingLabel = hasRealDataForSelectedCourse
+    ? remainingWork.titles.length === 1
+      ? `the ${remainingWork.titles[0]}`
+      : remainingWork.titles.length > 1
+        ? `the remaining ${remainingWork.titles.length} graded items`
+        : "what's left"
+    : 'the Final Exam';
+
   // Total weight check
   const totalWeight = useMemo(() => {
     return categories.reduce((sum, c) => sum + (c.weight || 0), 0) + finalExamWeight;
@@ -130,7 +175,7 @@ export function GradeCalculatorModal({
     const coursesList = state.courses.map((course) => {
       const cr = (course as { credits?: number }).credits ?? 3;
       if (course.id === selectedCourseId) {
-        return { credits: cr, percentage: currentGrade.currentPercentage };
+        return { credits: cr, percentage: projectedGrade };
       }
       const real = realCategoriesFor(course.id);
       if (real.length === 0) return { credits: cr, percentage: undefined };
@@ -138,7 +183,7 @@ export function GradeCalculatorModal({
     });
     return calculateSemesterGpa(coursesList.filter((c) => c.percentage !== undefined));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.courses, state.scheduleItems, selectedCourseId, currentGrade.currentPercentage]);
+  }, [state.courses, state.scheduleItems, selectedCourseId, projectedGrade]);
 
   // Category handlers
   const handleUpdateCategory = (
@@ -173,10 +218,19 @@ export function GradeCalculatorModal({
   };
 
   const handleReset = () => {
-    const real = realCategoriesFor(selectedCourseId);
-    setCategories(real.length > 0 ? real : STARTER_CATEGORIES);
-    setFinalExamWeight(30);
+    seedFromCourse(selectedCourseId);
     setTargetPercentage(93.0);
+  };
+
+  /** Picking a goal swings the needle to the score that goal needs. */
+  const handlePickTarget = (percentage: number) => {
+    setTargetPercentage(percentage);
+    const needed = calculateRequiredFinalScore(
+      categories,
+      finalExamWeight,
+      percentage,
+    ).requiredFinalScore;
+    setRemainingScore(Math.max(0, Math.min(100, Math.ceil(needed))));
   };
 
   const handleSaveScenario = async () => {
@@ -188,6 +242,7 @@ export function GradeCalculatorModal({
         categories,
         finalExamWeight,
         targetPercentage,
+        remainingScore,
       });
       showSuccess('Scenario saved', `"${scenarioNameDraft.trim()}" is ready to reload anytime.`);
       setScenarioNameDraft('');
@@ -204,6 +259,7 @@ export function GradeCalculatorModal({
     setCategories(scenario.categories);
     setFinalExamWeight(scenario.finalExamWeight);
     setTargetPercentage(scenario.targetPercentage);
+    if (typeof scenario.remainingScore === 'number') setRemainingScore(scenario.remainingScore);
   };
 
   const handleDeleteScenario = async (scenarioId: string) => {
@@ -412,111 +468,106 @@ export function GradeCalculatorModal({
                 </div>
               </div>
 
-              {/* Current Standing & Target Result Overview */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Current Standing Card */}
-                <div className="rounded-xl border border-border/50 bg-card p-4 shadow-sm flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Current Standing
-                    </span>
-                    <span className="rounded-md bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">
-                      {currentGrade.letterGrade} ({currentGrade.gpaPoints} GPA)
-                    </span>
+              {/* The outcome: a dial whose needle follows the what-if slider,
+                  over the span still reachable (floor to ceiling). */}
+              <div className="relative overflow-hidden rounded-2xl border border-border surface-luminous p-5 shadow-card">
+                <GradeOutcomeDial
+                  floor={floorCeiling.floorPercentage}
+                  ceiling={floorCeiling.ceilingPercentage}
+                  projected={
+                    floorCeiling.isLocked ? currentGrade.currentPercentage : projectedGrade
+                  }
+                  target={targetPercentage}
+                  locked={floorCeiling.isLocked}
+                />
+                {!floorCeiling.isLocked && (
+                  <div className="mt-4 space-y-3">
+                    <RemainingScoreSlider
+                      categories={categories}
+                      remainingWeight={finalExamWeight}
+                      value={remainingScore}
+                      onChange={setRemainingScore}
+                      goalScore={goalScore}
+                      goalLetter={finalExamTarget.targetGrade}
+                      remainingLabel={remainingLabel}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRemainingScore(currentPace)}
+                        className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
+                      >
+                        Keep my current pace · {currentPace}%
+                      </button>
+                      {goalScore !== null && (
+                        <button
+                          type="button"
+                          onClick={() => setRemainingScore(goalScore)}
+                          className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                        >
+                          What {finalExamTarget.targetGrade} needs · {goalScore}%
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold tracking-tight text-foreground">
-                      {currentGrade.currentPercentage}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      ({currentGrade.totalCompletedWeight}% weight evaluated)
-                    </span>
+                )}
+                <dl className="mt-5 grid grid-cols-1 gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
+                  <div>
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Current standing
+                    </dt>
+                    <dd className="mt-0.5 text-sm text-foreground">
+                      <span className="font-semibold tabular-nums">
+                        {currentGrade.currentPercentage}%
+                      </span>{' '}
+                      · {currentGrade.letterGrade}
+                      <span className="block text-[11px] text-muted-foreground">
+                        {currentGrade.totalCompletedWeight}% of the grade in
+                      </span>
+                    </dd>
                   </div>
-                </div>
-
-                {/* Final Exam Target Required Card */}
-                <div
-                  className={`rounded-xl border p-4 shadow-sm flex flex-col justify-between ${
-                    finalExamTarget.status === 'already_achieved'
-                      ? 'border-load-low/40 bg-load-low/10'
-                      : finalExamTarget.status === 'impossible'
-                        ? 'border-destructive/40 bg-destructive/10'
-                        : finalExamTarget.status === 'challenging'
-                          ? 'border-load-medium/40 bg-load-medium/10'
-                          : 'border-primary/40 bg-primary/10'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Final Exam Target Score
-                    </span>
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-xs font-bold uppercase ${
-                        finalExamTarget.status === 'already_achieved'
-                          ? 'bg-load-low/20 text-load-low'
-                          : finalExamTarget.status === 'impossible'
-                            ? 'bg-destructive/20 text-destructive'
-                            : finalExamTarget.status === 'challenging'
-                              ? 'bg-load-medium/20 text-load-medium'
-                              : 'bg-primary/20 text-primary'
+                  {!floorCeiling.isLocked && (
+                    <div>
+                      <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                        Guaranteed range
+                      </dt>
+                      <dd className="mt-0.5 text-sm text-foreground">
+                        <span className="font-semibold tabular-nums">
+                          {floorCeiling.floorPercentage}%
+                        </span>{' '}
+                        –{' '}
+                        <span className="font-semibold tabular-nums">
+                          {floorCeiling.ceilingPercentage}%
+                        </span>
+                        <span className="block text-[11px] text-muted-foreground">
+                          {floorCeiling.floorLetterGrade} if you score 0%,{' '}
+                          {floorCeiling.ceilingLetterGrade} if you score 100%
+                        </span>
+                      </dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Needed for {finalExamTarget.targetGrade}
+                    </dt>
+                    <dd
+                      className={`mt-0.5 text-sm font-semibold tabular-nums ${
+                        finalExamTarget.status === 'impossible'
+                          ? 'text-destructive'
+                          : finalExamTarget.status === 'already_achieved'
+                            ? 'text-load-low'
+                            : 'text-foreground'
                       }`}
                     >
-                      {finalExamTarget.status.replace('_', ' ')}
-                    </span>
+                      {finalExamTarget.status === 'already_achieved'
+                        ? 'Locked in'
+                        : finalExamTarget.status === 'impossible'
+                          ? `Out of reach (${finalExamTarget.requiredFinalScore}%)`
+                          : `${finalExamTarget.requiredFinalScore}% on what's left`}
+                    </dd>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold tracking-tight text-foreground">
-                      {finalExamTarget.requiredFinalScore}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      needed on Final ({finalExamWeight}% weight)
-                    </span>
-                  </div>
-                </div>
+                </dl>
               </div>
-
-              {/* Grade Floor/Ceiling - the guaranteed range given what's
-                  already locked in, independent of any target grade chosen
-                  below. Hidden once there's no final left to create a range
-                  (isLocked) - a single-point "range" isn't useful to show. */}
-              {!floorCeiling.isLocked && (
-                <div className="rounded-xl border border-border/50 bg-card p-4 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Guaranteed Grade Range
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      whatever you score on the Final
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="flex flex-col items-center">
-                      <span className="text-lg font-extrabold text-destructive">
-                        {floorCeiling.floorPercentage}%
-                      </span>
-                      <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                        Floor · {floorCeiling.floorLetterGrade}
-                      </span>
-                    </div>
-                    <div
-                      className="h-1.5 flex-1 rounded-full bg-gradient-to-r from-destructive/50 via-load-medium/50 to-load-low/50"
-                      aria-hidden="true"
-                    />
-                    <div className="flex flex-col items-center">
-                      <span className="text-lg font-extrabold text-load-low">
-                        {floorCeiling.ceilingPercentage}%
-                      </span>
-                      <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                        Ceiling · {floorCeiling.ceilingLetterGrade}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Based on the categories above as locked in - a 0% on the Final gives you the
-                    floor, a 100% gives you the ceiling.
-                  </p>
-                </div>
-              )}
 
               {/* Target Grade Selector Pills */}
               <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">
@@ -527,8 +578,8 @@ export function GradeCalculatorModal({
                   {STANDARD_GRADE_SCALE.slice(0, 8).map((grade) => (
                     <button
                       key={grade.letter}
-                      onClick={() => setTargetPercentage(grade.minPercentage)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                      onClick={() => handlePickTarget(grade.minPercentage)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
                         targetPercentage === grade.minPercentage
                           ? 'bg-primary text-primary-foreground shadow-md scale-105'
                           : 'bg-card border border-border text-muted-foreground hover:border-primary hover:text-foreground'
@@ -608,79 +659,98 @@ export function GradeCalculatorModal({
                   {categories.map((cat, idx) => (
                     <div
                       key={cat.id || idx}
-                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-xl border border-border/50 bg-card p-3 shadow-sm"
+                      className="space-y-2.5 rounded-xl border border-border/50 bg-card p-3 shadow-sm"
                     >
-                      <input
-                        type="text"
-                        value={cat.name}
-                        aria-label={`Category ${idx + 1} Name`}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCategories((prev) => {
-                            const next = [...prev];
-                            next[idx] = { ...next[idx], name: val };
-                            return next;
-                          });
-                        }}
-                        className="flex-1 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-auto"
-                      />
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <input
+                          type="text"
+                          value={cat.name}
+                          aria-label={`Category ${idx + 1} Name`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCategories((prev) => {
+                              const next = [...prev];
+                              next[idx] = { ...next[idx], name: val };
+                              return next;
+                            });
+                          }}
+                          className="flex-1 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full sm:w-auto"
+                        />
 
-                      <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <div className="flex items-center gap-1.5">
-                          <label
-                            htmlFor={`weight-${idx}`}
-                            className="text-xs text-muted-foreground"
-                          >
-                            Weight:
-                          </label>
-                          <input
-                            id={`weight-${idx}`}
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={cat.weight}
-                            onChange={(e) => handleUpdateCategory(idx, 'weight', e.target.value)}
-                            className="w-14 rounded-lg border border-border/60 bg-background px-2 py-1 text-xs text-center font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                          <span className="text-xs text-muted-foreground">%</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <label htmlFor={`score-${idx}`} className="text-xs text-muted-foreground">
-                            Score:
-                          </label>
-                          <input
-                            id={`score-${idx}`}
-                            type="number"
-                            min="0"
-                            max="150"
-                            value={cat.score}
-                            onChange={(e) => handleUpdateCategory(idx, 'score', e.target.value)}
-                            className="w-14 rounded-lg border border-border/60 bg-background px-2 py-1 text-xs text-center font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                          <span className="text-xs text-muted-foreground">%</span>
-                        </div>
-
-                        <button
-                          onClick={() => handleDeleteCategory(idx)}
-                          aria-label={`Delete ${cat.name}`}
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors ml-auto"
-                        >
-                          <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        <div className="flex items-center gap-4 w-full sm:w-auto">
+                          <div className="flex items-center gap-1.5">
+                            <label
+                              htmlFor={`weight-${idx}`}
+                              className="text-xs text-muted-foreground"
+                            >
+                              Weight:
+                            </label>
+                            <input
+                              id={`weight-${idx}`}
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={cat.weight}
+                              onChange={(e) => handleUpdateCategory(idx, 'weight', e.target.value)}
+                              className="w-16 rounded-lg border border-border/60 bg-background px-2 py-1 text-xs text-center font-bold tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
-                          </svg>
-                        </button>
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <label
+                              htmlFor={`score-${idx}`}
+                              className="text-xs text-muted-foreground"
+                            >
+                              Score:
+                            </label>
+                            <input
+                              id={`score-${idx}`}
+                              type="number"
+                              min="0"
+                              max="150"
+                              value={cat.score}
+                              onChange={(e) => handleUpdateCategory(idx, 'score', e.target.value)}
+                              className="w-16 rounded-lg border border-border/60 bg-background px-2 py-1 text-xs text-center font-bold tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteCategory(idx)}
+                            aria-label={`Delete ${cat.name}`}
+                            className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors ml-auto"
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={Math.min(100, Math.max(0, cat.score || 0))}
+                        onChange={(e) => handleUpdateCategory(idx, 'score', Number(e.target.value))}
+                        aria-label={`${cat.name} score`}
+                        aria-valuetext={`${cat.name}: ${cat.score}%`}
+                        className="grade-slider grade-slider-thin w-full"
+                        style={{
+                          background: `linear-gradient(90deg, hsl(var(--primary)) ${Math.min(100, cat.score || 0)}%, hsl(var(--muted)) ${Math.min(100, cat.score || 0)}%)`,
+                        }}
+                      />
                     </div>
                   ))}
 
@@ -691,7 +761,9 @@ export function GradeCalculatorModal({
                         FINAL
                       </span>
                       <span className="text-xs font-bold text-foreground">
-                        Final Exam / Capstone
+                        {hasRealDataForSelectedCourse && remainingWork.titles.length > 0
+                          ? remainingWork.titles.join(', ')
+                          : 'Final Exam / Capstone'}
                       </span>
                     </div>
 

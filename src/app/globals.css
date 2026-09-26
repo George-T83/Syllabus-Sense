@@ -285,6 +285,51 @@
     color: hsl(var(--primary-text));
   }
 
+  /* The what-if grade slider: the track is painted inline with the letter
+     grade each score earns, so only its shape and the thumb live here. */
+  .grade-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    border-radius: 9999px;
+    cursor: pointer;
+  }
+  .grade-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+    background: hsl(var(--card));
+    border: 3px solid hsl(var(--foreground));
+    box-shadow: 0 4px 14px -4px rgba(20, 10, 60, 0.5);
+  }
+  .grade-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+    background: hsl(var(--card));
+    border: 3px solid hsl(var(--foreground));
+    box-shadow: 0 4px 14px -4px rgba(20, 10, 60, 0.5);
+  }
+  .grade-slider:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 6px;
+  }
+  .grade-slider.grade-slider-thin {
+    height: 6px;
+  }
+  .grade-slider.grade-slider-thin::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+  .grade-slider.grade-slider-thin::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+
   /* Chrome/Safari paint autofilled fields with their own opaque white (light
      scheme) fill, ignoring the page's background/color entirely - the huge
      "inset shadow" is the standard trick to override it, since autofill

@@ -7,6 +7,9 @@ import {
   calculateRequiredFinalScore,
   calculateSemesterGpa,
   deriveCategoriesFromScheduleItems,
+  projectCourseGrade,
+  remainingScoreThresholds,
+  remainingWorkFromScheduleItems,
   GradeCategory,
 } from '../gradeMath';
 import type { ScheduleItem } from '@/types/schedule';
@@ -208,5 +211,78 @@ describe('calculateGradeFloorCeiling', () => {
     // nonFinalPoints = 50 * 1.10 = 55, totalWeight = 100, ceiling = (55+50)/100*100 = 105
     expect(result.ceilingPercentage).toBe(105);
     expect(result.ceilingLetterGrade).toBe('A');
+  });
+});
+
+describe('what-if projection', () => {
+  // The CSCI 213 example: 60% of the grade is in, 40% (the final) is left.
+  const graded: GradeCategory[] = [
+    { name: 'Homework', weight: 20, score: 88.5 },
+    { name: 'Exams', weight: 25, score: 78 },
+    { name: 'Projects', weight: 15, score: 94 },
+  ];
+
+  it('projects the course grade from an average on the remaining work', () => {
+    // locked-in points = 17.7 + 19.5 + 14.1 = 51.3 of 60
+    expect(projectCourseGrade(graded, 40, 0)).toBeCloseTo(51.3, 2);
+    expect(projectCourseGrade(graded, 40, 75)).toBeCloseTo(81.3, 2);
+    expect(projectCourseGrade(graded, 40, 100)).toBeCloseTo(91.3, 2);
+  });
+
+  it('matches the current standing when nothing is left, and the score when nothing is in', () => {
+    expect(projectCourseGrade(graded, 0, 40)).toBeCloseTo(85.5, 2);
+    expect(projectCourseGrade([], 100, 72)).toBe(72);
+    expect(projectCourseGrade([], 0, 50)).toBe(0);
+  });
+
+  it('gives the score needed on what is left for every passing letter', () => {
+    const thresholds = remainingScoreThresholds(graded, 40);
+    const need = (letter: string) => thresholds.find((t) => t.letter === letter)!.scoreNeeded;
+    expect(thresholds.map((t) => t.letter)).toEqual([
+      'A',
+      'A-',
+      'B+',
+      'B',
+      'B-',
+      'C+',
+      'C',
+      'C-',
+      'D+',
+      'D',
+    ]);
+    expect(need('A')).toBeCloseTo(104.25, 0); // out of reach
+    expect(need('A-')).toBeCloseTo(96.75, 0);
+    expect(need('B')).toBeCloseTo(79.25, 0);
+    expect(need('D')).toBeCloseTo(21.75, 0);
+    // Each threshold, fed back into the projection, lands on its letter.
+    expect(projectCourseGrade(graded, 40, 80)).toBeGreaterThanOrEqual(83);
+  });
+
+  it('has no thresholds when nothing is left to score', () => {
+    expect(remainingScoreThresholds(graded, 0)).toEqual([]);
+  });
+});
+
+describe('remainingWorkFromScheduleItems', () => {
+  it('sums the weight of ungraded items, soonest first', () => {
+    const result = remainingWorkFromScheduleItems([
+      item({ id: 'h', gradeWeight: 30, earnedScore: 90 }),
+      item({ id: 'f', title: 'Final Exam', gradeWeight: 40, dueDate: '2026-12-10' }),
+      item({ id: 'p', title: 'Project 2', gradeWeight: 15, dueDate: '2026-11-01' }),
+      item({ id: 'n', title: 'Ungraded reading' }),
+    ]);
+    expect(result).toEqual({ weight: 55, titles: ['Project 2', 'Final Exam'] });
+  });
+
+  it('falls back to what the graded weight leaves of 100 when nothing ungraded is on record', () => {
+    expect(
+      remainingWorkFromScheduleItems([
+        item({ id: 'a', gradeWeight: 40, earnedScore: 88 }),
+        item({ id: 'b', gradeWeight: 30, earnedScore: 92 }),
+      ]),
+    ).toEqual({ weight: 30, titles: [] });
+    expect(
+      remainingWorkFromScheduleItems([item({ id: 'a', gradeWeight: 100, earnedScore: 80 })]),
+    ).toEqual({ weight: 0, titles: [] });
   });
 });
