@@ -161,7 +161,7 @@ export function generateOfflineSyllabusAnswer(body: ChatRequestBody): {
   }
   if (quoted.length) {
     parts.push(
-      `**What your ${code} syllabus says about ${about}:**\n\n${quoted.map((l) => `> ${l}`).join('\n>\n')}`,
+      `**What your ${code} syllabus says about ${about}:**\n\n${quoted.map((l) => `- “${l}”`).join('\n')}`,
     );
   }
 

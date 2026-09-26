@@ -67,7 +67,7 @@ describe('AI Syllabus Chat Route (Item 35)', () => {
       courseCode: 'CS 301',
       syllabusText: SYLLABUS,
     });
-    expect(result.reply).toContain('> Late work: 10% off per day, up to 3 days.');
+    expect(result.reply).toContain('- “Late work: 10% off per day, up to 3 days.');
     expect(result.reply).not.toContain('Grading:');
     expect(result.citations).toEqual(['[CS 301 Syllabus]']);
     expect(result.suggestions.length).toBeGreaterThan(0);
@@ -120,7 +120,7 @@ describe('AI Syllabus Chat Route (Item 35)', () => {
     });
     expect(result.reply).toContain('**Instructor:** Dr. Chen');
     expect(result.reply).toContain('**Class location:** Gates 104');
-    expect(result.reply).toContain('> Office hours: Mondays 1-3pm in Gates 204');
+    expect(result.reply).toContain('- “Office hours: Mondays 1-3pm in Gates 204');
     expect(result.reply).not.toContain('Tuesdays & Thursdays');
   });
 
