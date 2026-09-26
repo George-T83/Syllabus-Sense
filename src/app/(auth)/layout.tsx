@@ -22,7 +22,11 @@ const PILLARS: { icon: IconKey; title: string; description: string }[] = [
 
 export default function AuthGroupLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
+    // `auth-shell` scopes the Study Space nebula (globals.css) to sign-in,
+    // sign-up and account actions - a first impression with no cards
+    // competing against it. The authenticated app shell has no such class,
+    // so it sits on the plain solid background instead (CO-9).
+    <div className="auth-shell flex min-h-screen">
       {/* Brand panel: the primary logo/identity moment on this page, so the
           form-side card keeps its own logo small and mobile-only (see
           login/signup pages) rather than duplicating it next to this.
