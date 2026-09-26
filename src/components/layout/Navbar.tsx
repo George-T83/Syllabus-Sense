@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '@/context/ThemeProvider';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/components/ui/Toast';
@@ -59,34 +59,6 @@ function StreakFlameIcon() {
   return (
     <svg className="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 2c1 3-2 4.5-2 7.5A4 4 0 0 0 14 14c0-1 .3-1.6.8-2.3.9 1.2 1.2 2.6 1.2 3.8 0 3.6-2.7 6.5-6 6.5S4 19.1 4 15.5C4 10.5 9.5 7 12 2Z" />
-    </svg>
-  );
-}
-
-function ThemeIcon({ dark }: { dark: boolean }) {
-  return dark ? (
-    <svg
-      className="h-[16px] w-[16px]"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-    >
-      <circle cx="12" cy="12" r="4.2" />
-      <path d="M12 2.5v2.4M12 19v2.4M4.5 12H2M22 12h-2.4M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M5.6 18.4l1.7-1.7M16.7 7.3l1.7-1.7" />
-    </svg>
-  ) : (
-    <svg
-      className="h-[16px] w-[16px]"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
     </svg>
   );
 }
@@ -300,7 +272,6 @@ export interface NavbarProps {
 }
 
 export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
-  const { resolvedTheme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const router = useRouter();
   const { showError } = useToast();
@@ -402,16 +373,7 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
           </Link>
         )}
 
-        {!mounted ? (
-          <div className="h-9 w-9 shrink-0" aria-hidden="true" />
-        ) : (
-          <IconTileButton
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            aria-label={resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          >
-            <ThemeIcon dark={resolvedTheme === 'dark'} />
-          </IconTileButton>
-        )}
+        <ThemeToggle />
 
         <IconTileButton onClick={handleSignOut} aria-label="Sign out" title="Sign out">
           <SignOutIcon />
