@@ -696,6 +696,47 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     await runExtraction(selected);
   };
 
+  /** "I don't have a syllabus": skips extraction entirely and drops the
+   * student straight into the review step with an empty draft. The chat
+   * panel below detects the missing Code/Title and proactively asks for
+   * them instead of only reacting to corrections (see refineDraft.ts's
+   * `needsIntake`) - everything else about the review step (fields,
+   * validation, autosave/resume) is identical to a course that arrived via
+   * extraction. */
+  const handleStartFromScratch = () => {
+    setError(null);
+    const nextCourse = {
+      code: '',
+      title: '',
+      instructor: '',
+      term: '',
+      color: pickSuggestedCourseColor(state.courses, undefined, undefined),
+      icon: pickSuggestedCourseIcon(state.courses, undefined, undefined),
+      modality: undefined,
+      meetingTimes: [],
+      materials: [],
+      skipDates: [],
+      notes: '',
+      credits: '',
+    };
+    setCourse(nextCourse);
+    setItems([]);
+    setUnresolved([]);
+    setLearningObjectivesText('');
+    setLearningObjectivesApproved(true);
+    setContactDrafts([]);
+    setFileName('');
+    initialDraftRef.current = JSON.stringify({
+      course: nextCourse,
+      items: [],
+      unresolved: [],
+      learningObjectivesText: '',
+      learningObjectivesApproved: true,
+      contactDrafts: [],
+    });
+    setStep('review');
+  };
+
   /** True once the live draft has diverged from the extraction it started
    * from - a hand-edited title/date/approval, a rejected item, an added
    * material, etc. Deliberately a simple stringified-snapshot comparison
@@ -1247,6 +1288,19 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   />
                 </div>
               )
+            )}
+
+            {step === 'upload' && !file && (
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Don&apos;t have a syllabus?{' '}
+                <button
+                  type="button"
+                  onClick={handleStartFromScratch}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Build the course with the assistant instead
+                </button>
+              </p>
             )}
 
             {step === 'extracting' && (

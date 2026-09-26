@@ -5,20 +5,24 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import {
   describePatch,
+  needsIntake,
   type DraftPatch,
   type RefineChatMessage,
   type RefineDraftFields,
 } from '@/lib/syllabus/refineDraft';
 
 /**
- * Lets a student finalize the extracted course by talking to the assistant
- * instead of only editing the fields above by hand - "this is actually a
- * 4-credit course" is faster to type than hunting down the right box. Any
- * field it changes is applied through the same `onApplyPatch` callback the
- * review form itself uses, so nothing here bypasses the course-level state
- * the rest of the review step already manages. Bubble/input treatment
- * mirrors `SyllabusChatDrawer` so this doesn't read as a second, unrelated
- * chat surface a few fields below the first one.
+ * Lets a student finalize a course by talking to the assistant instead of
+ * only editing the fields above by hand - "this is actually a 4-credit
+ * course" is faster to type than hunting down the right box. The same panel
+ * also handles a course with no syllabus at all: when Code and Title are
+ * still blank it opens with a greeting and the assistant proactively asks
+ * for what's missing, rather than waiting for a correction to react to.
+ * Any field it changes is applied through the same `onApplyPatch` callback
+ * the review form itself uses, so nothing here bypasses the course-level
+ * state the rest of the review step already manages. Bubble/input
+ * treatment mirrors `SyllabusChatDrawer` so this doesn't read as a second,
+ * unrelated chat surface a few fields below the first one.
  */
 export interface DraftRefineChatProps {
   draft: RefineDraftFields;
@@ -32,12 +36,24 @@ interface LogEntry {
   text: string;
 }
 
+const INTAKE_GREETING =
+  "Let's set up this course. What's the course code and title? Instructor, term, and credit hours help too, if you know them.";
+
 export function DraftRefineChat({ draft, onApplyPatch, disabled }: DraftRefineChatProps) {
   const { user } = useAuth();
-  const [log, setLog] = useState<LogEntry[]>([]);
+  // Only checked once, at mount: a draft that starts with no Code or Title
+  // gets a proactive greeting; one that arrives already filled in (from an
+  // extracted syllabus) doesn't. Whether the *live* prompt should keep
+  // asking is a separate, per-message decision the API route makes from
+  // the current draft, not from this frozen flag.
+  const [startedEmpty] = useState(() => needsIntake(draft));
+  const [log, setLog] = useState<LogEntry[]>(() =>
+    startedEmpty ? [{ id: 'greeting', role: 'assistant', text: INTAKE_GREETING }] : [],
+  );
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const historyRef = useRef<RefineChatMessage[]>([]);
+  const intakeMode = needsIntake(draft);
 
   const send = async () => {
     const message = input.trim();
@@ -110,14 +126,18 @@ export function DraftRefineChat({ draft, onApplyPatch, disabled }: DraftRefineCh
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-bold tracking-tight text-foreground">
-              Tell the assistant what to fix
+              {intakeMode
+                ? 'Set up this course with the assistant'
+                : 'Tell the assistant what to fix'}
             </span>
             <span className="rounded-full bg-primary/20 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
               Beta
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            e.g. &ldquo;this is actually a 4-credit course&rdquo;
+            {intakeMode
+              ? 'e.g. “CSCI 213, Computer Science I, Dr. Alvarez”'
+              : 'e.g. “this is actually a 4-credit course”'}
           </p>
         </div>
       </div>
@@ -165,9 +185,17 @@ export function DraftRefineChat({ draft, onApplyPatch, disabled }: DraftRefineCh
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. this is actually a 4-credit course"
+          placeholder={
+            intakeMode
+              ? 'e.g. CSCI 213, Computer Science I'
+              : 'e.g. this is actually a 4-credit course'
+          }
           disabled={disabled || sending}
-          aria-label="Tell the assistant what to fix about this course"
+          aria-label={
+            intakeMode
+              ? 'Tell the assistant about this course'
+              : 'Tell the assistant what to fix about this course'
+          }
           className="flex-1 rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
         />
         <button
