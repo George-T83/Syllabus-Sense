@@ -9,12 +9,29 @@ import { cn } from '@/lib/utils';
  * read as default browser hyperlinks rather than part of the design system.
  * `variant="solid"` is for the primary action in a header (usually a "+ Add"
  * button); `variant="ghost"` is for secondary navigation ("View all →").
+ * `variant="primary"` is the one filled call to action in a guide or
+ * empty page ("Upload a syllabus") - a fixed brand violet so white text
+ * stays above 4.5:1 in both themes.
  */
+/** Document icon for "Upload a syllabus" actions. */
+export function SyllabusIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    </svg>
+  );
+}
+
 const baseClass =
   'inline-flex shrink-0 items-center justify-center gap-1 rounded-full text-xs font-semibold transition-colors active:scale-[0.97] min-h-[44px]';
 
 const variantClass = {
   solid: 'bg-primary/10 text-primary px-3.5 py-2 hover:bg-primary/20',
+  primary: 'bg-[#5b3df5] text-white px-4 py-2 shadow-sm hover:bg-[#4c2fe0]',
   ghost:
     'border border-border text-muted-foreground px-3.5 py-2 hover:border-primary/30 hover:bg-primary/5 hover:text-primary',
 } as const;
