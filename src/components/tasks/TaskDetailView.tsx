@@ -22,6 +22,7 @@ import {
   SHORT_DATE_FORMATTER as shortDueDateFormatter,
   WEEKDAY_LONG_DATE_YEAR_FORMATTER as dueDateFormatter,
 } from '@/lib/dateFormatters';
+import { dueInstant, isOverdue, parseDayKey } from '@/lib/calendar/dates';
 
 /** Plain-English sentence comparing `item`'s grade weight to the rest of
  * its course, so "worth 25%" comes with a sense of scale instead of a bare
@@ -76,7 +77,7 @@ function GradeImpactPanel({
   // required grade-impact comparison is in place.
   const relatedUpcoming = others
     .filter((i) => !i.completed)
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .sort((a, b) => dueInstant(a.dueDate).getTime() - dueInstant(b.dueDate).getTime())
     .slice(0, 3);
 
   return (
@@ -139,7 +140,7 @@ function GradeImpactPanel({
                   {related.title}
                 </Link>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {shortDueDateFormatter.format(new Date(related.dueDate))}
+                  {shortDueDateFormatter.format(parseDayKey(related.dueDate))}
                   {related.gradeWeight != null ? ` · ${related.gradeWeight}%` : ''}
                 </span>
               </li>
@@ -231,7 +232,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
     );
   }
 
-  const overdue = !item.completed && new Date(item.dueDate) < new Date();
+  const overdue = isOverdue(item);
   const courseItems = state.scheduleItems.filter((i) => i.courseId === item.courseId);
 
   const handleToggleComplete = async () => {
@@ -643,7 +644,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
             <div>
               <dt className="text-xs text-muted-foreground">Due</dt>
               <dd className="mt-0.5 font-medium text-foreground">
-                {dueDateFormatter.format(new Date(item.dueDate))}
+                {dueDateFormatter.format(parseDayKey(item.dueDate))}
               </dd>
             </div>
             <div>

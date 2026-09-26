@@ -1,4 +1,5 @@
 import { GRADE_WEIGHT_BADGE_THRESHOLD } from '@/components/ui/TaskRow';
+import { dueInstant } from '@/lib/calendar/dates';
 import type { ScheduleItem } from '@/types/schedule';
 
 /** How far ahead of "now" an item counts as due today vs. this week vs. the
@@ -33,7 +34,7 @@ export function groupByUrgency(items: ScheduleItem[], now: number): UrgencyGroup
 
   for (const item of items) {
     if (item.completed) continue;
-    const due = new Date(item.dueDate).getTime();
+    const due = dueInstant(item.dueDate).getTime();
 
     if (due < now) {
       overdue.push(item);
@@ -50,7 +51,7 @@ export function groupByUrgency(items: ScheduleItem[], now: number): UrgencyGroup
   }
 
   const byDueDate = (a: ScheduleItem, b: ScheduleItem) =>
-    new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    dueInstant(a.dueDate).getTime() - dueInstant(b.dueDate).getTime();
 
   return {
     overdue: overdue.sort(byDueDate),
