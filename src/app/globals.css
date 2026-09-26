@@ -35,7 +35,7 @@
 
     /* Deep enough to hold 4.5:1 both as text on light surfaces and under
        white button text. */
-    --destructive: 0 72% 46%;
+    --destructive: 0 72% 43%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 252 45% 87%;
@@ -51,7 +51,7 @@
     --load-low: 142 76% 24%;
     --load-medium: 30 95% 30%;
     --load-high: 20 90% 35%;
-    --load-critical: 0 74% 44%;
+    --load-critical: 0 74% 42%;
 
     /* Logo mark's gradient stops (Logo.tsx) - the single source every other
        brand gradient (.bg-gradient-brand, .text-gradient-brand,
