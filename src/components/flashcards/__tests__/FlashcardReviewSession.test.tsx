@@ -135,6 +135,15 @@ describe('FlashcardReviewSession', () => {
     expect(await screen.findByText('Honest call — that’s how it sticks')).toBeDefined();
   });
 
+  it('starts focus on the card, so Space flips it instead of pressing Close', () => {
+    const onClose = vi.fn();
+    renderSession({ onClose });
+    expect(document.activeElement).toBe(question());
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: ' ' });
+    expect(screen.getByText('Again')).toBeDefined();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('flips with Space and rates Good with the right arrow', async () => {
     const onRate = vi.fn().mockResolvedValue(undefined);
     renderSession({ onRate });
