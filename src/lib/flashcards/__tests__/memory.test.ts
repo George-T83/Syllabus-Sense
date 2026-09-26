@@ -86,7 +86,8 @@ describe('memory model', () => {
       memoryTier(card({ lastReviewedAt: '2026-09-18T12:00:00', dueDate: '2026-09-19' }), TODAY),
     ).toBe('fading');
     expect(memoryTier(card(), TODAY)).toBe('learning');
-    expect(memoryTier(card({ interval: 15, repetitions: 3 }), TODAY)).toBe('strong');
+    expect(memoryTier(card({ interval: 6, repetitions: 2 }), TODAY)).toBe('learning');
+    expect(memoryTier(card({ interval: 30, repetitions: 4 }), TODAY)).toBe('strong');
   });
 
   it("finds a course's next exam, ignoring past, completed, and other courses' items", () => {
