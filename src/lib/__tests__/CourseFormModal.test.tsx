@@ -77,6 +77,7 @@ describe('CourseFormModal', () => {
       code: 'MATH 301',
       title: 'Linear Algebra',
       color: 'bg-green-500',
+      credits: 4,
     };
     renderModal(
       <CourseFormModal open onClose={vi.fn()} onSubmit={vi.fn()} initialCourse={course} />,
@@ -86,6 +87,33 @@ describe('CourseFormModal', () => {
     expect((screen.getByLabelText('Course Title') as HTMLInputElement).value).toBe(
       'Linear Algebra',
     );
+    expect((screen.getByLabelText('Credit Hours') as HTMLInputElement).value).toBe('4');
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDefined();
+  });
+
+  it('rejects an out-of-range credit count', async () => {
+    const onSubmit = vi.fn();
+    renderModal(<CourseFormModal open onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Course Code'), { target: { value: 'CSCI 213' } });
+    fireEvent.change(screen.getByLabelText('Course Title'), { target: { value: 'Intro' } });
+    fireEvent.change(screen.getByLabelText('Credit Hours'), { target: { value: '15' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Course' }));
+
+    expect(await screen.findByText('Enter 1-12')).toBeDefined();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('submits a set credit count as a number', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    renderModal(<CourseFormModal open onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Course Code'), { target: { value: 'CSCI 213' } });
+    fireEvent.change(screen.getByLabelText('Course Title'), { target: { value: 'Intro' } });
+    fireEvent.change(screen.getByLabelText('Credit Hours'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Course' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ credits: '4' });
   });
 });

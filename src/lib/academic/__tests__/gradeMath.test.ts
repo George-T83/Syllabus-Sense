@@ -11,6 +11,7 @@ import {
   projectCourseGrade,
   remainingScoreThresholds,
   remainingWorkFromScheduleItems,
+  summarizeSemesterGpa,
   GradeCategory,
 } from '../gradeMath';
 import type { ScheduleItem } from '@/types/schedule';
@@ -312,5 +313,59 @@ describe('courseStanding', () => {
     ]);
     // (10*92 + 25*78) / 35 = 82
     expect(s).toEqual({ percentage: 82, letter: 'B-', decidedWeight: 35, gradedCount: 2 });
+  });
+});
+
+describe('summarizeSemesterGpa', () => {
+  const item = (o: Partial<ScheduleItem> & { id: string; courseId: string }): ScheduleItem => ({
+    title: o.id,
+    type: 'assignment',
+    dueDate: '2026-09-01',
+    completed: true,
+    ...o,
+  });
+
+  it('is null until at least one course has a graded item, never an optimistic 4.0', () => {
+    expect(summarizeSemesterGpa([{ id: 'a' }], new Map())).toBeNull();
+    expect(
+      summarizeSemesterGpa(
+        [{ id: 'a' }],
+        new Map([['a', [item({ id: 'x', courseId: 'a', gradeWeight: 20 })]]]),
+      ),
+    ).toBeNull();
+  });
+
+  it('weights by real credits and counts only graded courses', () => {
+    const itemsByCourseId = new Map<string, ScheduleItem[]>([
+      // 90% -> A-, 3.7
+      ['a', [item({ id: 'a1', courseId: 'a', gradeWeight: 100, earnedScore: 90 })]],
+      // 70% -> C-, 1.7
+      ['b', [item({ id: 'b1', courseId: 'b', gradeWeight: 100, earnedScore: 70 })]],
+      // ungraded - left out of both the GPA and its coverage count
+      ['c', [item({ id: 'c1', courseId: 'c' })]],
+    ]);
+    const result = summarizeSemesterGpa(
+      [
+        { id: 'a', credits: 4 },
+        { id: 'b', credits: 3 },
+        { id: 'c', credits: 3 },
+      ],
+      itemsByCourseId,
+    );
+    // (4*3.7 + 3*1.7) / 7 = 2.84
+    expect(result).toEqual({
+      gpa: 2.84,
+      gradedCourseCount: 2,
+      totalCourseCount: 3,
+      totalCredits: 7,
+    });
+  });
+
+  it('defaults a course with no credits set to 3', () => {
+    const itemsByCourseId = new Map<string, ScheduleItem[]>([
+      ['a', [item({ id: 'a1', courseId: 'a', gradeWeight: 100, earnedScore: 90 })]],
+    ]);
+    const result = summarizeSemesterGpa([{ id: 'a' }], itemsByCourseId);
+    expect(result?.totalCredits).toBe(3);
   });
 });

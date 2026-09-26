@@ -19,6 +19,8 @@ import { useEffect } from 'react';
 import { GradeCalculatorModal } from '@/components/courses/GradeCalculatorModal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { isOverdue } from '@/lib/calendar/dates';
+import { summarizeSemesterGpa } from '@/lib/academic/gradeMath';
+import type { ScheduleItem } from '@/types/schedule';
 
 type SortMode = 'code' | 'title' | 'term';
 
@@ -77,6 +79,27 @@ export function CoursesListView() {
       ? courses.filter((c) => c.term !== effectiveTermFilter).length
       : 0;
 
+  // Scoped to the term filter (not the free-text search, which shouldn't
+  // make the headline GPA jump around as someone types) so "This term's
+  // GPA" means what it says once a term is selected.
+  const termCourses = useMemo(
+    () =>
+      effectiveTermFilter === 'all'
+        ? courses
+        : courses.filter((c) => c.term === effectiveTermFilter),
+    [courses, effectiveTermFilter],
+  );
+
+  const gpaSummary = useMemo(() => {
+    const itemsByCourseId = new Map<string, ScheduleItem[]>();
+    for (const item of scheduleItems) {
+      const existing = itemsByCourseId.get(item.courseId);
+      if (existing) existing.push(item);
+      else itemsByCourseId.set(item.courseId, [item]);
+    }
+    return summarizeSemesterGpa(termCourses, itemsByCourseId);
+  }, [termCourses, scheduleItems]);
+
   const filteredCourses = useMemo(() => {
     let result = courses.slice();
 
@@ -114,6 +137,7 @@ export function CoursesListView() {
         icon: values.icon,
         ...(values.instructor ? { instructor: values.instructor } : {}),
         ...(values.term ? { term: values.term } : {}),
+        ...(values.credits ? { credits: Number(values.credits) } : {}),
         ...(values.modality ? { modality: values.modality } : {}),
         ...(values.meetingTimes?.length ? { meetingTimes: values.meetingTimes } : {}),
         ...(values.skipDates?.length ? { skipDates: values.skipDates } : {}),
@@ -172,6 +196,24 @@ export function CoursesListView() {
             </>
           }
         />
+
+        {/* Only appears once at least one course has a graded item - never
+            an optimistic 4.0 for a term with nothing graded yet - and says
+            plainly how many courses it's actually built from. */}
+        {gpaSummary && (
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-primary/5 px-3 py-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+              {effectiveTermFilter === 'all' ? 'GPA' : `${effectiveTermFilter} GPA`}
+            </span>
+            <span className="font-display text-lg font-medium tabular-nums text-foreground">
+              {gpaSummary.gpa.toFixed(2)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              From {gpaSummary.gradedCourseCount} of {gpaSummary.totalCourseCount}{' '}
+              {gpaSummary.totalCourseCount === 1 ? 'course' : 'courses'} with grades entered.
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <input
