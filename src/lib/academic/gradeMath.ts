@@ -325,3 +325,94 @@ export function calculateSemesterGpa(
     qualityPoints: Math.round(totalQualityPoints * 100) / 100,
   };
 }
+
+function lockedInTotals(categories: GradeCategory[]): { points: number; weight: number } {
+  let points = 0;
+  let weight = 0;
+  for (const cat of categories) {
+    const w = Math.max(0, cat.weight || 0);
+    const score = Math.max(0, cat.score || 0);
+    const max = cat.maxScore && cat.maxScore > 0 ? cat.maxScore : 100;
+    points += ((score / max) * 100 * w) / 100;
+    weight += w;
+  }
+  return { points, weight };
+}
+
+export interface RemainingWork {
+  /** Share of the course grade still ahead, in percent. */
+  weight: number;
+  /** Titles of the ungraded items that make it up, soonest first - empty
+   * when the weight is inferred from what the graded work leaves of 100. */
+  titles: string[];
+}
+
+/**
+ * How much of the grade is still ahead, from the course's own schedule:
+ * every item with a grade weight but no score yet. When nothing ungraded is
+ * on record, it falls back to whatever the graded weight leaves of 100% -
+ * the old hard-coded 30% silently disagreed with any syllabus whose final
+ * wasn't worth exactly 30.
+ */
+export function remainingWorkFromScheduleItems(items: ScheduleItem[]): RemainingWork {
+  const ungraded = items
+    .filter(
+      (i) =>
+        typeof i.gradeWeight === 'number' && i.gradeWeight > 0 && typeof i.earnedScore !== 'number',
+    )
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const ungradedWeight = ungraded.reduce((sum, i) => sum + (i.gradeWeight ?? 0), 0);
+  if (ungradedWeight > 0) {
+    return { weight: Math.round(ungradedWeight * 100) / 100, titles: ungraded.map((i) => i.title) };
+  }
+  const gradedWeight = items
+    .filter((i) => typeof i.gradeWeight === 'number' && typeof i.earnedScore === 'number')
+    .reduce((sum, i) => sum + (i.gradeWeight ?? 0), 0);
+  return { weight: Math.max(0, Math.round((100 - gradedWeight) * 100) / 100), titles: [] };
+}
+
+/**
+ * The course grade you finish with if you average `remainingScore` percent
+ * on everything still ahead (`remainingWeight` percent of the grade) - the
+ * number the what-if slider moves.
+ */
+export function projectCourseGrade(
+  categories: GradeCategory[],
+  remainingWeight: number,
+  remainingScore: number,
+): number {
+  const { points, weight } = lockedInTotals(categories);
+  const rw = Math.max(0, remainingWeight);
+  const total = weight + rw;
+  if (total <= 0) return 0;
+  const score = Math.max(0, remainingScore);
+  return Math.round(((points + (rw * score) / 100) / total) * 100 * 100) / 100;
+}
+
+export interface LetterScoreThreshold {
+  letter: string;
+  minPercentage: number;
+  /** Average needed on the remaining work to finish at or above this
+   * letter. Can be below 0 (already locked in) or above 100 (out of reach). */
+  scoreNeeded: number;
+}
+
+/**
+ * For every passing letter, the score needed on what's left to reach it -
+ * the breakpoints the slider's track is colored by. Empty when nothing is
+ * left to score.
+ */
+export function remainingScoreThresholds(
+  categories: GradeCategory[],
+  remainingWeight: number,
+): LetterScoreThreshold[] {
+  const rw = Math.max(0, remainingWeight);
+  if (rw <= 0) return [];
+  const { points, weight } = lockedInTotals(categories);
+  const total = weight + rw;
+  return STANDARD_GRADE_SCALE.filter((t) => t.minPercentage > 0).map((t) => ({
+    letter: t.letter,
+    minPercentage: t.minPercentage,
+    scoreNeeded: Math.round((((t.minPercentage * total) / 100 - points) / (rw / 100)) * 10) / 10,
+  }));
+}

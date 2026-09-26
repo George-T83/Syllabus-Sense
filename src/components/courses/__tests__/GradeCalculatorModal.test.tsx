@@ -101,8 +101,10 @@ describe('GradeCalculatorModal (Item 36)', () => {
     expect(screen.getByRole('dialog')).toBeDefined();
     expect(screen.getByText(/What-If Grade Simulator & GPA Solver/i)).toBeDefined();
     expect(screen.getByLabelText(/Select course/i)).toBeDefined();
-    expect(screen.getByText(/Current Standing/i)).toBeDefined();
-    expect(screen.getByText(/Final Exam Target Score/i)).toBeDefined();
+    expect(screen.getByText(/Current standing/i)).toBeDefined();
+    expect(screen.getByText(/Needed for A$/)).toBeDefined();
+    expect(screen.getByRole('img', { name: /Projected course grade/ })).toBeDefined();
+    expect(screen.getByLabelText(/If you average/)).toBeDefined();
   });
 
   it('switches between Course Target Solver and Semester GPA Impact tabs', () => {
@@ -115,14 +117,54 @@ describe('GradeCalculatorModal (Item 36)', () => {
     expect(screen.getByText(/Enrolled Course Projections/i)).toBeDefined();
   });
 
-  it('updates required final exam score when target grade pill is clicked', () => {
+  it('picking a goal swings the what-if slider to the score that goal needs', () => {
     renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
 
-    // Click target 'B (83%)'
-    const bGradePill = screen.getByText(/B \(83%\)/i);
-    fireEvent.click(bGradePill);
+    fireEvent.click(screen.getByText(/B \(83%\)/i));
 
-    expect(screen.getByText(/Final Exam Target Score/i)).toBeDefined();
+    // Starter template: 70% of the grade in at 90% (63 points), 30% left.
+    // B needs (83 - 63) / 0.3 = 66.7 -> 67 on what's left.
+    expect(screen.getByText(/Needed for B$/)).toBeDefined();
+    expect((screen.getByLabelText(/If you average/) as HTMLInputElement).value).toBe('67');
+  });
+
+  it('moves the projected grade live as the slider moves', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />, {
+      scheduleItems: gradedItems,
+    });
+
+    const slider = screen.getByLabelText(/If you average/) as HTMLInputElement;
+    fireEvent.change(slider, { target: { value: '100' } });
+    // 62.8 locked in + 30 x 100% = 92.8 -> A-
+    expect(slider.getAttribute('aria-valuetext')).toBe(
+      "100% on what's left: course grade 92.8%, A-",
+    );
+    fireEvent.change(slider, { target: { value: '0' } });
+    expect(slider.getAttribute('aria-valuetext')).toBe("0% on what's left: course grade 62.8%, D");
+  });
+
+  it("takes the remaining weight from the course's ungraded items, not a fixed 30%", () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />, {
+      scheduleItems: [
+        { ...gradedItems[0], gradeWeight: 40 },
+        { ...gradedItems[1], gradeWeight: 20 },
+        {
+          id: 'final',
+          courseId: 'course-1',
+          title: 'Final Exam',
+          type: 'exam',
+          dueDate: '2026-12-10',
+          completed: false,
+          gradeWeight: 40,
+        },
+      ],
+    });
+
+    expect(
+      (screen.getByLabelText('Weight:', { selector: '#final-weight' }) as HTMLInputElement).value,
+    ).toBe('40');
+    expect(screen.getAllByText('Final Exam').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/If you average .* on the Final Exam/)).toBeDefined();
   });
 
   it('allows adding and updating categories dynamically', () => {
@@ -176,7 +218,7 @@ describe('GradeCalculatorModal (Item 36)', () => {
 
     // Homework 40%@88 + Exams 30%@92, default Final weight 30%:
     // floor = (40*.88 + 30*.92) / 100 * 100 = 62.8, ceiling = (62.8+30) = 92.8
-    expect(screen.getByText('Guaranteed Grade Range')).toBeDefined();
+    expect(screen.getByText('Guaranteed range')).toBeDefined();
     expect(screen.getByText('62.8%')).toBeDefined();
     expect(screen.getByText('92.8%')).toBeDefined();
   });
@@ -190,7 +232,8 @@ describe('GradeCalculatorModal (Item 36)', () => {
       target: { value: '0' },
     });
 
-    expect(screen.queryByText('Guaranteed Grade Range')).toBeNull();
+    expect(screen.queryByText('Guaranteed range')).toBeNull();
+    expect(screen.queryByLabelText(/If you average/)).toBeNull();
   });
 
   it('enables the Save Scenario button only once a scenario name is entered', () => {
