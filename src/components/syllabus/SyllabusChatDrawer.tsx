@@ -14,6 +14,8 @@ import { appendAdvisorMessage, useAdvisorMessages } from '@/lib/firestore/adviso
 import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from '@/components/advisor/AdvisorWarningCard';
 import { cn } from '@/lib/utils';
+import { useSyllabi } from '@/lib/firestore/useSyllabi';
+import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
 
 function formatTimestamp(): string {
   return TIME_FORMATTER.format(new Date());
@@ -136,6 +138,10 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   const selectedCourse: Course | undefined = state.courses.find((c) => c.id === selectedCourseId);
+  // The course's current syllabus text, so answers come from what it
+  // actually says - without it the chat only ever saw the course notes.
+  const syllabi = useSyllabi(user?.uid, selectedCourseId);
+  const syllabusText = getPrimarySyllabus(syllabi)?.rawText;
 
   const sendMessage = useCallback(
     async (queryText: string) => {
@@ -172,6 +178,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             instructor: selectedCourse?.instructor,
             location: selectedCourse?.meetingTimes?.[0]?.location,
             notes: selectedCourse?.notes,
+            syllabusText: syllabusText || undefined,
             materials: normalizeMaterials(selectedCourse?.materials).map((m) =>
               m.cost !== undefined ? `${m.name} ($${m.cost.toFixed(2)})` : m.name,
             ),
@@ -203,8 +210,9 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
           {
             id: `ai-err-${Date.now()}`,
             sender: 'assistant',
-            text: `I had trouble connecting to the server, but according to **${selectedCourse?.code || 'your course'}** standards: deadlines are strict, office hours are weekly, and attendance is recommended. Please check the course page for full details.`,
-            citations: [`[${selectedCourse?.code || 'Course'} Overview]`],
+            // Say only what's true: the answer didn't arrive. This used to
+            // invent "course standards" and cite them as a course overview.
+            text: `I couldn't reach the server, so I don't have an answer${selectedCourse?.code ? ` about ${selectedCourse.code}` : ''} right now. Try again in a moment, or check the syllabus on the course page.`,
             timestamp: formatTimestamp(),
           },
         ]);
@@ -212,7 +220,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
         setIsLoading(false);
       }
     },
-    [isLoading, user, selectedCourse, uploadedFile],
+    [isLoading, user, selectedCourse, uploadedFile, syllabusText],
   );
 
   const sendAdvisorMessage = useCallback(

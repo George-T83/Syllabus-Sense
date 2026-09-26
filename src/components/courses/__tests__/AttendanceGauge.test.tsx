@@ -84,4 +84,56 @@ describe('AttendanceGauge (Item 48)', () => {
     expect(onDeleted).toHaveBeenCalledWith('1');
     expect(screen.queryByText('Missed train')).toBeNull();
   });
+
+  it('never assumes a limit when no policy is on file', () => {
+    render(<AttendanceGauge courseCode="CS 301" initialAbsences={SAMPLE_ABSENCES} />);
+    expect(screen.getByTestId('absence-status-badge').textContent).toBe('No limit on file');
+    expect(screen.getByText(/No attendance policy on file/)).toBeDefined();
+    // No invented quote, limit or "you can miss N more" advice.
+    expect(screen.queryByText(/Allowed Unexcused/)).toBeNull();
+    expect(screen.queryByText(/can miss/)).toBeNull();
+    expect(screen.queryByText(/incurs a 3% deduction/)).toBeNull();
+    expect(screen.getByRole('progressbar').getAttribute('aria-label')).toBe(
+      'Unexcused absences: 1, no limit on file',
+    );
+  });
+
+  it('saves the policy the student enters from their syllabus', () => {
+    const onPolicyChange = vi.fn();
+    render(<AttendanceGauge courseCode="CS 301" onPolicyChange={onPolicyChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /Add policy/ }));
+    fireEvent.change(screen.getByLabelText(/Unexcused absences allowed/), {
+      target: { value: '2' },
+    });
+    fireEvent.change(screen.getByLabelText(/What happens after that/), {
+      target: { value: 'Final grade drops a third of a letter per absence.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save policy' }));
+    expect(onPolicyChange).toHaveBeenCalledWith({
+      allowedUnexcused: 2,
+      penalty: 'Final grade drops a third of a letter per absence.',
+    });
+  });
+
+  it("shows the entered policy in the student's words, with advice measured against it", () => {
+    render(
+      <AttendanceGauge
+        courseCode="CS 301"
+        maxAllowedAbsences={4}
+        penaltyDescription="Final grade drops a third of a letter per absence."
+        initialAbsences={SAMPLE_ABSENCES}
+      />,
+    );
+    expect(screen.getByText('Final grade drops a third of a letter per absence.')).toBeDefined();
+    expect(screen.getByText(/From your syllabus, as you entered it/)).toBeDefined();
+    expect(screen.getByText(/you can miss 3 more classes before it applies/)).toBeDefined();
+  });
+
+  it('defaults a new absence to today, not a fixed date', () => {
+    render(<AttendanceGauge courseCode="CS 301" />);
+    fireEvent.click(screen.getByTestId('log-absence-open-btn'));
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    expect((screen.getByLabelText(/Date/i) as HTMLInputElement).value).toBe(today);
+  });
 });
