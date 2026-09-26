@@ -82,7 +82,8 @@ describe('generateRecurringInstances', () => {
     const result = generateRecurringInstances(
       '2026-09-07',
       { frequency: 'weekly', occurrences: 1 },
-      ['2026-09-07T23:59:00.000Z'],
+      // 23:59 local on Sep 7, the way the task forms save a due date.
+      [new Date(2026, 8, 7, 23, 59).toISOString()],
     );
     expect(result[0].shifted).toBe(true);
   });

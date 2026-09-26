@@ -2,8 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { getSessionDateSet, computeCurrentStreak, computeHeatmapDays } from '../studyStreak';
 import type { PomodoroSession } from '../pomodoroSessions';
 
+/** A session at 2:30pm local time on `dateKey` - local, so the day it lands
+ * on doesn't depend on the machine's time zone. */
 function session(dateKey: string): PomodoroSession {
-  return { startedAt: `${dateKey}T14:30:00.000Z`, duration: 1500 };
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return { startedAt: new Date(y, m - 1, d, 14, 30).toISOString(), duration: 1500 };
 }
 
 describe('getSessionDateSet', () => {

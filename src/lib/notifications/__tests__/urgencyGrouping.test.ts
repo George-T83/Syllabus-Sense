@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterAll, beforeAll, describe, it, expect } from 'vitest';
 import {
   groupByUrgency,
   DUE_TODAY_WINDOW_MS,
@@ -113,5 +113,24 @@ describe('groupByUrgency', () => {
     });
     const result = groupByUrgency([item], NOW);
     expect(result.highStakesAhead).toEqual([]);
+  });
+});
+
+describe('groupByUrgency with bare YYYY-MM-DD due dates', () => {
+  const originalTZ = process.env.TZ;
+  beforeAll(() => {
+    process.env.TZ = 'America/New_York';
+  });
+  afterAll(() => {
+    process.env.TZ = originalTZ;
+  });
+
+  it('puts work due today under "due today", not "overdue"', () => {
+    const now = new Date(2026, 8, 26, 9, 0).getTime();
+    const today = makeItem({ id: 'today', dueDate: '2026-09-26' });
+    const yesterday = makeItem({ id: 'yesterday', dueDate: '2026-09-25' });
+    const result = groupByUrgency([today, yesterday], now);
+    expect(result.dueToday.map((i) => i.id)).toEqual(['today']);
+    expect(result.overdue.map((i) => i.id)).toEqual(['yesterday']);
   });
 });
