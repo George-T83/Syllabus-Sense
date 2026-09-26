@@ -23,6 +23,13 @@ export const courseFormSchema = z.object({
     .max(150, 'Keep it under 150 characters'),
   instructor: z.string().trim().max(100, 'Keep it under 100 characters').optional(),
   term: z.string().trim().max(50, 'Keep it under 50 characters').optional(),
+  credits: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || (!Number.isNaN(Number(v)) && Number(v) > 0 && Number(v) <= 12),
+      'Enter 1-12',
+    ),
   color: z.string().min(1),
   icon: z.string().min(1),
   modality: z.union([z.literal('in-person'), z.literal('online'), z.literal('hybrid')]).optional(),

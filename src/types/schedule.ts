@@ -68,6 +68,11 @@ export interface Course {
   icon?: string;
   /** The academic term, e.g., 'Fall 2026' */
   term?: string;
+  /** Credit hours, for weighting this course into a semester GPA. Every
+   * GPA calculation on the app treats a missing value as 3 - the common
+   * case - rather than skipping the course, so this only needs setting
+   * for the courses that differ (a 4-credit lab, a 1-credit seminar). */
+  credits?: number;
   /** Free-text notes about the course */
   notes?: string;
   /** Whether this course was entered manually or created from AI syllabus extraction. Defaults to 'manual' when absent. */
