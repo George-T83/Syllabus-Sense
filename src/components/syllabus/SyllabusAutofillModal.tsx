@@ -18,6 +18,8 @@ import { COURSE_COLOR_PRESETS, courseSwatch, pickSuggestedCourseColor } from '@/
 import { COURSE_ICON_PRESETS, pickSuggestedCourseIcon } from '@/lib/courseIcons';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 import { SyllabusExtractionReveal } from '@/components/syllabus/SyllabusExtractionReveal';
+import { DraftRefineChat } from '@/components/syllabus/DraftRefineChat';
+import type { DraftPatch } from '@/lib/syllabus/refineDraft';
 import { cn, normalizeContactName, fileToBase64 } from '@/lib/utils';
 import type {
   ExtractedMeetingTime,
@@ -66,6 +68,11 @@ interface CourseDraft {
   materials: string[];
   skipDates: string[];
   notes: string;
+  /** Kept as a string, like every other text field on this draft - the
+   * extractor doesn't attempt to read credit hours off a syllabus, so this
+   * starts blank and is normally filled in by hand or via the "tell the
+   * assistant what to fix" chat below. */
+  credits: string;
 }
 
 /** The review-screen state worth protecting against a closed tab or an
@@ -512,7 +519,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
 
   const resumeDraft = () => {
     if (!pendingDraft) return;
-    setCourse(pendingDraft.course);
+    // A draft saved before the Credit Hours field existed won't have
+    // `credits` in localStorage despite the type now requiring it.
+    setCourse({ ...pendingDraft.course, credits: pendingDraft.course.credits ?? '' });
     setItems(pendingDraft.items);
     setUnresolved(pendingDraft.unresolved);
     setFileName(pendingDraft.fileName);
@@ -621,6 +630,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         materials: result.course.materials,
         skipDates: result.course.skipDates,
         notes: result.course.notes ?? '',
+        credits: '',
       };
       const nextItems: DraftItem[] = result.scheduleItems.map((item, i) => ({
         ...item,
@@ -851,6 +861,50 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const highStakesCount = items.filter((i) => i.highStakes).length;
   const needsConfirmationCount = items.filter((i) => i.dateConfidence !== 'exact').length;
 
+  // Applies a patch from the "tell the assistant what to fix" chat the same
+  // way a direct edit to the Instructor field does - including keeping a
+  // still-matching professor Contact in sync, so a fix made through chat
+  // isn't a second-class path that leaves the Contact card stale.
+  const handleApplyRefinePatch = (patch: DraftPatch) => {
+    setCourse((c) => {
+      if (!c) return c;
+      const next = { ...c };
+      for (const [field, value] of Object.entries(patch)) {
+        if (field === 'modality') {
+          next.modality = (value as CourseModality | null) ?? undefined;
+        } else if (
+          field === 'credits' ||
+          field === 'code' ||
+          field === 'title' ||
+          field === 'instructor' ||
+          field === 'term' ||
+          field === 'notes'
+        ) {
+          next[field] = value ?? '';
+        }
+      }
+      return next;
+    });
+
+    if (patch.instructor !== undefined) {
+      const previousInstructor = course?.instructor;
+      const nextInstructor = patch.instructor ?? '';
+      const professorDrafts = contactDrafts.filter((cd) => cd.role === 'professor');
+      if (
+        professorDrafts.length === 1 &&
+        (professorDrafts[0].values.fullName ?? '') === previousInstructor
+      ) {
+        setContactDrafts((drafts) =>
+          drafts.map((cd) =>
+            cd === professorDrafts[0]
+              ? { ...cd, values: { ...cd.values, fullName: nextInstructor } }
+              : cd,
+          ),
+        );
+      }
+    }
+  };
+
   const handleConfirm = async () => {
     if (!course || !user) return;
 
@@ -893,6 +947,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         source: 'ai',
         ...(course.instructor ? { instructor: course.instructor } : {}),
         ...(course.term ? { term: course.term } : {}),
+        ...(course.credits ? { credits: Number(course.credits) } : {}),
         ...(course.modality ? { modality: course.modality } : {}),
         ...(course.meetingTimes.length ? { meetingTimes: course.meetingTimes } : {}),
         ...(course.materials.length
@@ -1279,36 +1334,60 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     </div>
                   </div>
 
-                  <TextField
-                    id="autofill-course-instructor"
-                    label="Instructor"
-                    value={course.instructor}
-                    onChange={(v) => {
-                      const previousInstructor = course.instructor;
-                      setCourse((c) => c && { ...c, instructor: v });
-                      // Course.instructor and the matching professor Contact
-                      // are two independent drafts at this point - keep them
-                      // in sync while there's exactly one professor entry
-                      // that still matches the old name, so editing here
-                      // doesn't silently leave the Contact card showing a
-                      // stale name. Skipped when there are multiple
-                      // professors (ambiguous which one to update) or the
-                      // student has already hand-edited that entry away
-                      // from the extracted instructor name.
-                      const professorDrafts = contactDrafts.filter((cd) => cd.role === 'professor');
-                      if (
-                        professorDrafts.length === 1 &&
-                        (professorDrafts[0].values.fullName ?? '') === previousInstructor
-                      ) {
-                        setContactDrafts((drafts) =>
-                          drafts.map((cd) =>
-                            cd === professorDrafts[0]
-                              ? { ...cd, values: { ...cd.values, fullName: v } }
-                              : cd,
-                          ),
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <TextField
+                      id="autofill-course-instructor"
+                      label="Instructor"
+                      value={course.instructor}
+                      onChange={(v) => {
+                        const previousInstructor = course.instructor;
+                        setCourse((c) => c && { ...c, instructor: v });
+                        // Course.instructor and the matching professor Contact
+                        // are two independent drafts at this point - keep them
+                        // in sync while there's exactly one professor entry
+                        // that still matches the old name, so editing here
+                        // doesn't silently leave the Contact card showing a
+                        // stale name. Skipped when there are multiple
+                        // professors (ambiguous which one to update) or the
+                        // student has already hand-edited that entry away
+                        // from the extracted instructor name.
+                        const professorDrafts = contactDrafts.filter(
+                          (cd) => cd.role === 'professor',
                         );
-                      }
+                        if (
+                          professorDrafts.length === 1 &&
+                          (professorDrafts[0].values.fullName ?? '') === previousInstructor
+                        ) {
+                          setContactDrafts((drafts) =>
+                            drafts.map((cd) =>
+                              cd === professorDrafts[0]
+                                ? { ...cd, values: { ...cd.values, fullName: v } }
+                                : cd,
+                            ),
+                          );
+                        }
+                      }}
+                    />
+                    <TextField
+                      id="autofill-course-credits"
+                      label="Credit Hours"
+                      value={course.credits}
+                      onChange={(v) => setCourse((c) => c && { ...c, credits: v })}
+                    />
+                  </div>
+
+                  <DraftRefineChat
+                    draft={{
+                      code: course.code,
+                      title: course.title,
+                      instructor: course.instructor,
+                      term: course.term,
+                      modality: course.modality ?? null,
+                      credits: course.credits,
+                      notes: course.notes,
                     }}
+                    onApplyPatch={handleApplyRefinePatch}
+                    disabled={step === 'saving'}
                   />
 
                   <div className="space-y-1.5">
