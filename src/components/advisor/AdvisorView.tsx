@@ -12,6 +12,7 @@ import { summarizeAdvisorContext } from '@/lib/advisor/buildContext';
 import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from './AdvisorWarningCard';
 import { cn } from '@/lib/utils';
+import { isOverdue } from '@/lib/calendar/dates';
 
 const WELCOME_MESSAGE =
   "Hi — I'm your AI Advisor. I can reason over your Degree Compass plan, your courses, and your tasks - not just one syllabus. Ask me what to take next, whether you're on track, or what a change would mean for your plan.";
@@ -90,9 +91,7 @@ export function AdvisorView() {
 
     const now = Date.now();
     const pendingTaskCount = state.scheduleItems.filter((i) => !i.completed).length;
-    const overdueTaskCount = state.scheduleItems.filter(
-      (i) => !i.completed && new Date(i.dueDate).getTime() < now,
-    ).length;
+    const overdueTaskCount = state.scheduleItems.filter((i) => isOverdue(i, now)).length;
 
     try {
       await appendAdvisorMessage(user.uid, userMessage);

@@ -51,6 +51,40 @@ export function parseDayKey(dayKey: string): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+/**
+ * The moment an item is actually due. Due dates come in two shapes: an ISO
+ * instant (the task forms save local 23:59) and a bare `YYYY-MM-DD`
+ * (syllabus chat, older records). `new Date("YYYY-MM-DD")` is midnight UTC -
+ * the evening before, west of UTC - which made work due today read as
+ * overdue all day. A bare date means "by the end of that day", local time.
+ */
+export function dueInstant(dueDate: string): Date {
+  const trimmed = dueDate.trim();
+  if (DATE_ONLY_PATTERN.test(trimmed)) {
+    const end = parseDayKey(trimmed);
+    end.setHours(23, 59, 59, 999);
+    return end;
+  }
+  return new Date(trimmed);
+}
+
+/** Unfinished and past the moment it was due - never on the due day for a
+ * bare date, whatever the time zone. */
+export function isOverdue(
+  item: Pick<ScheduleItem, 'completed' | 'dueDate'>,
+  now: Date | number = new Date(),
+): boolean {
+  return !item.completed && dueInstant(item.dueDate).getTime() < new Date(now).getTime();
+}
+
+/** Whole days from `now`'s local day to the due day: 0 today, 1 tomorrow,
+ * negative once the day has passed. */
+export function daysUntilDue(dueDate: string, now: Date | number = new Date()): number {
+  const due = parseDayKey(dueDate);
+  const today = startOfDay(new Date(now));
+  return Math.round((due.getTime() - today.getTime()) / 86_400_000);
+}
+
 export function isSameDay(a: Date | string, b: Date | string): boolean {
   return toDayKey(a) === toDayKey(b);
 }
@@ -127,11 +161,11 @@ export function sortItemsByUrgency(items: ScheduleItem[], referenceDate: Date): 
     const rankB = PRIORITY_RANK[b.priority ?? 'medium'];
     if (rankA !== rankB) return rankA - rankB;
 
-    const overdueA = !a.completed && new Date(a.dueDate) < referenceDate;
-    const overdueB = !b.completed && new Date(b.dueDate) < referenceDate;
+    const overdueA = isOverdue(a, referenceDate);
+    const overdueB = isOverdue(b, referenceDate);
     if (overdueA !== overdueB) return overdueA ? -1 : 1;
 
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    return dueInstant(a.dueDate).getTime() - dueInstant(b.dueDate).getTime();
   });
 }
 

@@ -49,6 +49,7 @@ import type {
   AttendancePolicy,
 } from '@/types/schedule';
 import { SHORT_DATE_FORMATTER as dueDateFormatter } from '@/lib/dateFormatters';
+import { dueInstant, isOverdue, parseDayKey } from '@/lib/calendar/dates';
 import { RowActionButton } from '@/components/ui/RowActionButton';
 import { CourseStandingStrip } from '@/components/courses/CourseStanding';
 
@@ -260,7 +261,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const course = state.courses.find((c) => c.id === courseId);
   const items = state.scheduleItems
     .filter((item) => item.courseId === courseId)
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    .sort((a, b) => dueInstant(a.dueDate).getTime() - dueInstant(b.dueDate).getTime());
   const courseContacts = state.contacts.filter((c) => c.courseId === courseId);
 
   const completedCount = useMemo(() => items.filter((i) => i.completed).length, [items]);
@@ -1478,7 +1479,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
           ) : (
             <div className="flex flex-col gap-2">
               {items.map((item) => {
-                const overdue = !item.completed && new Date(item.dueDate) < new Date();
+                const overdue = isOverdue(item);
                 return (
                   <TaskRow
                     key={item.id}
@@ -1513,7 +1514,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground">
-                          Due {dueDateFormatter.format(new Date(item.dueDate))}
+                          Due {dueDateFormatter.format(parseDayKey(item.dueDate))}
                         </span>
                         <RowActionButton onClick={() => setEditingItem(item)}>Edit</RowActionButton>
                         {confirmingDeleteItemId === item.id ? (
