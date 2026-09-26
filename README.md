@@ -1,189 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Syllabus Sense
 
-## Getting Started
+Upload a syllabus PDF and Claude turns it into a working semester: courses, every assignment on the calendar, grading weights, and a live grade projection — reviewed and editable before anything is trusted.
 
-First, run the development server:
+**Live demo:** [syllabus-sense.vercel.app](https://syllabus-sense.vercel.app)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+<p>
+  <img src="docs/screenshots/readme-dashboard-dark.png" width="100%" alt="Dashboard, dark theme" />
+</p>
+<p>
+  <img src="docs/screenshots/readme-degree-compass-light.png" width="49%" alt="Degree Compass, light theme" />
+  <img src="docs/screenshots/readme-course-detail-dark.png" width="49%" alt="Course detail with live grade tracking" />
+</p>
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## What it does
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Syllabus AI, not a form.** Drop in a PDF or Word syllabus and Claude extracts the course, every assignment with its due date and grade weight, the grading scale, attendance policy, and materials list — surfaced for review with per-field confidence flags before anything is saved. A follow-up chat lets you correct or refine the draft in plain English instead of hunting through form fields.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Grades that move as you work.** Every course tracks a live weighted grade from the tasks you've completed, shows exactly what's needed on what's left ("What do I need?"), and a what-if grade simulator lets you test hypothetical scores before an exam.
 
-## Learn More
+**Degree Compass.** A whole-degree view — one route from your first completed course to graduation, requirement categories tracked against credits earned/in-progress/planned, editable as your program changes.
 
-To learn more about Next.js, take a look at the following resources:
+**Study tools generated from what you already uploaded.** Flashcards with spaced repetition, practice quizzes, and day-by-day cram plans, all built from the actual syllabus content instead of generic material.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**An AI Advisor that only knows your real policies.** Chat about deadlines, workload, or "can I still get an A" grounded in your actual syllabi and grades — it won't invent a late policy that isn't written down.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**The rest of the semester, tracked.** Tasks and a calendar with recurring-item awareness, a workload/burnout radar from your own pace, mood check-ins, a Focus/Pomodoro timer with streaks, contacts for professors and TAs (with office hours and a vCard export), and one-click data export.
 
-## Deploy on Vercel
+## Stack
 
-This project is set up to deploy automatically via the [Vercel Platform](https://vercel.com).
+- **Next.js 14** (App Router) + **TypeScript**, **Tailwind CSS**
+- **Firebase** — Auth, Firestore, Storage, with the Local Emulator Suite for offline development
+- **Claude** (Anthropic API) — syllabus extraction, chat, summarization, flashcards/quizzes/cram plans, all through a single structured tool-use pipeline with a shared per-user daily usage cap
+- **Recharts**, **Zod**, **Vitest** + **Testing Library** (900+ unit tests), **Playwright** (e2e)
+- Deployed on **Vercel**, with GitHub Actions running lint/build/test on every PR and auto-deploying Firestore rules on merge to `main`
 
-### Deployment Pipeline Setup
-
-To set up the deployment pipeline:
-
-1. **Link the Repository**: A human must manually link the GitHub repository within the Vercel dashboard.
-2. **Environment Variables**: Configure the environment variables on Vercel's project settings dashboard under the Environment Variables section. Use the variables listed in [`.env.example`](./.env.example) as a reference:
-   - `NEXT_PUBLIC_APP_ENV`
-   - `NEXT_PUBLIC_FIREBASE_API_KEY`
-   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-   - `NEXT_PUBLIC_FIREBASE_APP_ID`
-   - `FIREBASE_ADMIN_PROJECT_ID`
-   - `FIREBASE_ADMIN_CLIENT_EMAIL`
-   - `FIREBASE_ADMIN_PRIVATE_KEY`
-3. **CI/CD Workflow**:
-   - **Preview Deployments**: Pull requests (PRs) targeting the main branch automatically trigger preview deployments once the project is linked.
-   - **Production Deployments**: Pushes or merges to the `main` branch automatically deploy to production once linked.
-
-## Local Development Setup
-
-To set up the project on a new development machine, follow these steps in order:
-
-### 1. Prerequisites
-
-Ensure you have the following installed:
-
-- **Node.js**: Version `20.x`
-- **npm**: Comes with Node.js
-- **Git**
-- **GitHub CLI (`gh`)**
-- **Firebase CLI (`firebase-tools`)**: Installed globally via `npm install -g firebase-tools`
-- **Vercel CLI (`vercel`)**: Installed globally via `npm install -g vercel`
-
-### 2. Clone the Repository
-
-Clone the project repository to your local machine:
+## Quickstart
 
 ```bash
 git clone https://github.com/George-T83/Syllabus-Sense.git
 cd Syllabus-Sense
-```
-
-### 3. Install Dependencies
-
-Run the installation command. This will also automatically initialize Git hooks via Husky:
-
-```bash
 npm install
+cp .env.example .env.local   # fill in your own Firebase + Anthropic keys
+npm run dev
 ```
 
-### 4. Authenticate CLIs and Link Vercel Project
+Open [http://localhost:3000](http://localhost:3000).
 
-To pull environment variables and work with external services, authenticate your command-line tools:
-
-1. **GitHub CLI**:
-
-   ```bash
-   gh auth login
-   ```
-
-   Follow the prompts to log in to your GitHub account.
-
-2. **Vercel CLI**:
-
-   ```bash
-   vercel login
-   ```
-
-   Log in using your Vercel credentials (or OAuth via GitHub).
-
-3. **Link to the Vercel Project**:
-   ```bash
-   vercel link
-   ```
-   During execution, select the existing project scope and when prompted, link to the existing project: `george-dev1/syllabus-sense`.
-
-### 5. Pull Environment Variables
-
-Once linked, retrieve all Client and Admin environment secrets directly from Vercel without sharing raw env files by hand:
+To run entirely offline against the Firebase Local Emulator Suite instead of a real project:
 
 ```bash
-vercel env pull .env.local
+npm run emulators                            # in one terminal
+NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true npm run dev   # in another
 ```
 
-This fetches the secrets stored in the cloud and writes them to a local `.env.local` file.
-
-### 6. Firebase Authentication (if needed)
-
-Authenticate the Firebase CLI:
+### Checks
 
 ```bash
-firebase login
+npm run lint    # ESLint
+npm run test    # Vitest unit tests
+npm run build   # production build
+npm run test:e2e   # Playwright, against a running dev server
 ```
 
-### 7. Run and Verify the App
+## Environment strategy
 
-Verify that everything is set up correctly by running the application and checks locally:
+One Firebase project serves every environment, isolated via Firestore's multi-database feature rather than separate projects:
 
-- **Start Development Server**:
+| Environment         | Firestore database                     |
+| ------------------- | -------------------------------------- |
+| Production (`main`) | `(default)`                            |
+| Preview / staging   | `staging`                              |
+| Local dev           | `staging`, or the Local Emulator Suite |
 
-  ```bash
-  npm run dev
-  ```
+Firestore security rules deploy automatically on every merge to `main` that touches `firestore.rules` or `firestore.indexes.json` — see `.github/workflows/deploy-firestore-rules.yml`.
 
-  Open [http://localhost:3000](http://localhost:3000) to confirm the app boots successfully.
-
-- **Run Checks**:
-  Verify code quality, build success, and tests match CI environment requirements:
-  ```bash
-  npm run lint    # Verifies there are no lint issues
-  npm run test    # Runs the unit tests with Vitest
-  npm run build   # Verifies production build succeeds locally
-  ```
-
-## Environment Strategy
-
-This project uses a single Firebase project (`syllabus-sense`) across all environments, with data isolation achieved using Firebase's multi-database Firestore features and the Local Emulator Suite.
-
-### 1. Multi-Database Setup & Data Isolation
-
-- **Production Environment**: Connects to the `(default)` Firestore database.
-- **Staging / Preview Environments**: Connects to a named `staging` Firestore database.
-- **Local Development**: Connects to the named `staging` Firestore database by default, or optionally, to the Firebase Local Emulator Suite.
-
-### 2. Firebase Auth Sharing
-
-- Firebase Auth configuration and users are shared globally across all cloud environments. This is a known Firebase multi-database limitation and is accepted as a tradeoff for this free-tier project.
-
-### 3. Local Emulator Suite
-
-For risk-free local testing without affecting cloud database data, you can run the Firebase Local Emulator Suite:
-
-1. Start the emulators:
-   ```bash
-   npm run emulators
-   ```
-2. Enable emulators in your local environment by setting the following variable in `.env.local`:
-   ```env
-   NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true
-   ```
-3. When running, the client-side code will route to local ports:
-   - Firebase Auth: port `9099`
-   - Firestore: port `8080`
-   - Firebase Storage: port `9199`
-   - Emulator UI: port `4000`
-
-### 4. Vercel Environment Mapping
-
-When deploying on Vercel, the environment variable configuration maps as follows:
-
-- **Production Vercel Environment**: `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` should be unset or set to `(default)`.
-- **Preview / Development Vercel Environments**: `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` should be set to `staging`.
+See [`.env.example`](./.env.example) for the full list of required environment variables.
