@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAppState } from '@/context/AppStateContext';
@@ -12,12 +11,17 @@ import { FlashcardDeckCard } from '@/components/flashcards/FlashcardDeckCard';
 import { FlashcardReviewSession } from '@/components/flashcards/FlashcardReviewSession';
 import type { Flashcard } from '@/types/flashcard';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyPageGuide } from '@/components/ui/EmptyPageGuide';
+import { CardActionButton, CardActionLink, SyllabusIcon } from '@/components/ui/CardAction';
+import { SectionIcon } from '@/components/ui/SectionIcon';
+import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 
 export function FlashcardsView() {
   const { user } = useAuth();
   const { state, dispatch } = useAppState();
   const { showError } = useToast();
   const [reviewQueue, setReviewQueue] = useState<Flashcard[] | null>(null);
+  const [autofillOpen, setAutofillOpen] = useState(false);
 
   const dueCards = state.flashcards.filter((c) => isCardDue(c));
 
@@ -76,27 +80,40 @@ export function FlashcardsView() {
         )}
 
         {state.courses.length === 0 ? (
-          <Card className="rounded-2xl p-6">
-            <EmptyState
-              icon={
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-              }
-              title="No courses yet"
-              description="Add a course and upload its syllabus to generate flashcards."
-            />
-          </Card>
+          <EmptyPageGuide
+            title="Flashcards come from your syllabus"
+            lead="Upload a syllabus and we'll turn it into a deck for the course, then bring each card back just before you'd forget it."
+            actions={
+              <>
+                <CardActionButton variant="primary" onClick={() => setAutofillOpen(true)}>
+                  <SyllabusIcon />
+                  Upload a syllabus
+                </CardActionButton>
+                <CardActionLink href="/courses" withChevron>
+                  Add a course
+                </CardActionLink>
+              </>
+            }
+            previews={[
+              {
+                icon: <SectionIcon icon="syllabus" />,
+                title: 'A deck per course',
+                detail:
+                  'Key terms and ideas pulled from the syllabus, one card each, ready to review.',
+              },
+              {
+                icon: <SectionIcon icon="clock" />,
+                title: 'Review at the right time',
+                detail:
+                  'Cards you miss come back sooner and cards you know drift further out, so each session stays short.',
+              },
+              {
+                icon: <SectionIcon icon="star" />,
+                title: 'Ready for exam day',
+                detail: "Each deck shows how ready you are for that course's next exam.",
+              },
+            ]}
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {state.courses.map((course) => (
@@ -114,6 +131,7 @@ export function FlashcardsView() {
         onClose={() => setReviewQueue(null)}
         onRate={handleRate}
       />
+      <SyllabusAutofillModal open={autofillOpen} onClose={() => setAutofillOpen(false)} />
     </>
   );
 }
