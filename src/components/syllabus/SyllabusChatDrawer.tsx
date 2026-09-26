@@ -5,6 +5,8 @@ import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import type { Course, AssignmentType } from '@/types/schedule';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
+import { useSyllabi } from '@/lib/firestore/useSyllabi';
+import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
 import { normalizeMaterials } from '@/lib/courses/materials';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useToast } from '@/components/ui/Toast';
@@ -14,8 +16,6 @@ import { appendAdvisorMessage, useAdvisorMessages } from '@/lib/firestore/adviso
 import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from '@/components/advisor/AdvisorWarningCard';
 import { cn } from '@/lib/utils';
-import { useSyllabi } from '@/lib/firestore/useSyllabi';
-import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
 
 function formatTimestamp(): string {
   return TIME_FORMATTER.format(new Date());
