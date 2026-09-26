@@ -144,16 +144,26 @@ export const PHASE_TEMPLATES: Record<ChunkableType, string[]> = {
   ],
 };
 
+/**
+ * A bare `YYYY-MM-DD` is read as that local day (not midnight UTC). Anything
+ * with a time is a real instant and is kept as one: slicing its first ten
+ * characters would take the UTC date, which for a task due 23:59 local west
+ * of UTC is already the next day.
+ */
 export function parseDateString(input: Date | string): Date {
   if (input instanceof Date) return input;
   if (!input) return new Date();
-  if (typeof input === 'string' && input.length >= 10 && input.includes('-')) {
-    const parts = input.slice(0, 10).split('-').map(Number);
-    if (parts.length === 3 && !parts.some(isNaN)) {
-      return new Date(parts[0], parts[1] - 1, parts[2]);
-    }
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.trim());
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
   }
-  return new Date(input);
+  const parsed = new Date(input);
+  if (!isNaN(parsed.getTime())) return parsed;
+  const parts = input.slice(0, 10).split('-').map(Number);
+  if (parts.length === 3 && !parts.some(isNaN)) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  return parsed;
 }
 
 export function toLocalDateStr(d: Date | string): string {

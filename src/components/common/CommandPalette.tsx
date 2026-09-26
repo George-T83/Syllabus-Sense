@@ -6,6 +6,7 @@ import { useAppState } from '@/context/AppStateContext';
 import { useTheme } from '@/context/ThemeProvider';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
 import { isCardDue } from '@/lib/flashcards/sm2';
+import { parseDayKey } from '@/lib/calendar/dates';
 
 export interface CommandPaletteProps {
   isOpen?: boolean;
@@ -325,7 +326,7 @@ export function CommandPalette({
         title: task.title,
         subtitle: [
           course?.code,
-          task.dueDate ? new Date(task.dueDate).toLocaleDateString() : undefined,
+          task.dueDate ? parseDayKey(task.dueDate).toLocaleDateString() : undefined,
           task.completed ? 'Completed' : 'Pending',
         ]
           .filter(Boolean)

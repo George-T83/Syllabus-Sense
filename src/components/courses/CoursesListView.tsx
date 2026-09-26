@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
 import { GradeCalculatorModal } from '@/components/courses/GradeCalculatorModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { isOverdue } from '@/lib/calendar/dates';
 
 type SortMode = 'code' | 'title' | 'term';
 
@@ -283,10 +284,7 @@ export function CoursesListView() {
               // its per-task badge (CO-1) - surfaced here too so the list a
               // student opens to decide what to worry about actually answers
               // that, instead of only a generic completion percentage.
-              const now = new Date();
-              const overdueCount = items.filter(
-                (i) => !i.completed && new Date(i.dueDate) < now,
-              ).length;
+              const overdueCount = items.filter((i) => isOverdue(i)).length;
 
               return (
                 <Link key={course.id} href={`/courses/${course.id}`} className="block">
