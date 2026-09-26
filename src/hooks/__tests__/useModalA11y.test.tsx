@@ -50,6 +50,21 @@ describe('useModalA11y', () => {
     expect(document.body.style.overflow).toBe('scroll');
   });
 
+  it('keeps focus where it is when the parent re-renders with a new onClose, and Escape calls the latest one', () => {
+    const first = vi.fn();
+    const { rerender } = render(<TestModal open={true} onClose={first} />);
+    const input = screen.getByTestId('middle-input');
+    input.focus();
+
+    const latest = vi.fn();
+    rerender(<TestModal open={true} onClose={latest} />);
+    expect(document.activeElement).toBe(input);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(latest).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+  });
+
   it('moves initial focus to the first focusable element', () => {
     const onClose = vi.fn();
     render(<TestModal open={true} onClose={onClose} />);
