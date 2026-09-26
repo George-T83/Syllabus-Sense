@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import type { DegreeCourse } from '@/types/degreeCompass';
+import { RowActionButton } from '@/components/ui/RowActionButton';
 
 const STATUS_LABEL: Record<DegreeCourse['status'], string> = {
   completed: 'Completed',
@@ -70,20 +71,10 @@ export function DegreeCourseRow({ course, categoryName, onEdit, onDelete }: Degr
           />
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => onEdit(course)}
-              className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(true)}
-              className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
-            >
+            <RowActionButton onClick={() => onEdit(course)}>Edit</RowActionButton>
+            <RowActionButton tone="destructive" onClick={() => setConfirmingDelete(true)}>
               Delete
-            </button>
+            </RowActionButton>
           </>
         )}
       </div>
