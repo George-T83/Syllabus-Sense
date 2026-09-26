@@ -104,6 +104,9 @@ export function FlashcardsView() {
 
       <FlashcardReviewSession
         cards={reviewQueue}
+        allCards={state.flashcards}
+        courses={state.courses}
+        scheduleItems={state.scheduleItems}
         onClose={() => setReviewQueue(null)}
         onRate={handleRate}
       />
