@@ -1,11 +1,13 @@
 /**
- * "Chat to finalize" on the syllabus autofill review screen: instead of
- * hunting through the course fields by hand, a student can just say what's
- * wrong ("this is actually a 4-credit course", "the professor's name is
- * Dr. Alvarez") and have the draft updated. This module is the part that's
- * independent of Next.js request/response plumbing - the prompt, and
- * parsing the model's reply back into a validated patch - so it's testable
- * without a server.
+ * The chat on the syllabus autofill review screen, in two related uses:
+ * "chat to finalize" - a student says what's wrong ("this is actually a
+ * 4-credit course") about a draft Claude already extracted - and "chat to
+ * create," where there's no syllabus at all and the draft starts empty, so
+ * the assistant has to proactively ask for what's still missing rather than
+ * only reacting to corrections. This module is the part that's independent
+ * of Next.js request/response plumbing - the prompt, and parsing the
+ * model's reply back into a validated patch - so it's testable without a
+ * server.
  *
  * Deliberately scoped to the course-level fields only (not schedule items
  * or contacts): those already have their own dedicated review UI with
@@ -48,6 +50,12 @@ const REFINABLE_FIELDS: readonly RefinableField[] = [
 
 const MODALITY_VALUES = new Set(['in-person', 'online', 'hybrid']);
 
+/** The two fields `courseFormSchema` actually requires before a course can
+ * be saved - everything else is optional. Used to decide whether the
+ * assistant should be proactively asking for something, rather than only
+ * reacting to a correction. */
+const REQUIRED_FIELDS: readonly ('code' | 'title')[] = ['code', 'title'];
+
 const FIELD_MAX_LENGTH: Record<RefinableField, number> = {
   code: 20,
   title: 150,
@@ -74,6 +82,14 @@ const FIELD_LABELS: Record<RefinableField, string> = {
   notes: 'Notes',
 };
 
+/** Whether the draft still lacks what `courseFormSchema` requires to save -
+ * the same check the prompt uses to decide whether to proactively ask,
+ * shared here so the chat UI can greet a from-scratch draft differently
+ * from one that's just being corrected. */
+export function needsIntake(draft: Pick<RefineDraftFields, 'code' | 'title'>): boolean {
+  return REQUIRED_FIELDS.some((f) => !draft[f].trim());
+}
+
 /** A short "Updated: Term, Credits" line for the chat log, so an applied
  * patch is visible in the transcript, not just a silent field change
  * somewhere above the fold. */
@@ -90,8 +106,15 @@ export function buildRefinePrompt(
   const historyText = history
     .map((m) => `${m.role === 'user' ? 'Student' : 'Assistant'}: ${m.content}`)
     .join('\n');
-  return `You are helping a student finalize a course record extracted from their syllabus, before it is saved. The only fields that exist to edit are: code, title, instructor, term, modality (in-person, online, hybrid, or none), credits (a whole number 1-12), and notes. There is no other data here yet - no tasks, no grading policy, no contacts - so never claim to have changed anything else.
 
+  const missingRequired = REQUIRED_FIELDS.filter((f) => !draft[f].trim());
+  const intakeNote =
+    missingRequired.length > 0
+      ? `\nThis course can't be saved yet - it's still missing ${missingRequired.map((f) => FIELD_LABELS[f]).join(' and ')}. Treat this as an ongoing intake conversation, not a one-off correction: proactively ask for whichever required field(s) are still missing instead of waiting for the student to bring them up. It's also worth asking about term and instructor if those are unknown too, since the rest of the app relies on them - but don't turn this into a rigid form, ask for at most two or three things at a time, in plain language. Never invent a code or title from something adjacent the student mentioned (e.g. a professor's name is not a course title).\n`
+      : '';
+
+  return `You are helping a student set up a course record before it is saved - either finalizing details pulled from a syllabus, or building one from scratch through this chat because they don't have a syllabus file. The only fields that exist to edit are: code, title, instructor, term, modality (in-person, online, hybrid, or none), credits (a whole number 1-12), and notes. There is no other data here yet - no tasks, no grading policy, no contacts - so never claim to have changed anything else.
+${intakeNote}
 Current draft:
 - Code: ${draft.code || '(none)'}
 - Title: ${draft.title || '(none)'}
@@ -103,7 +126,7 @@ Current draft:
 ${historyText ? `\nConversation so far:\n${historyText}\n` : ''}
 Student: ${message}
 
-Reply in one or two short sentences, conversationally. If the request is ambiguous, or asks for something outside the fields listed above, say so plainly and ask a clarifying question instead of guessing. Never invent a value the student didn't give you and that wasn't already in the draft.
+Reply in one to three short sentences, conversationally. If the request is ambiguous, or asks for something outside the fields listed above, say so plainly and ask a clarifying question instead of guessing. Never invent a value the student didn't give you and that wasn't already in the draft.
 
 If - and only if - you are changing one or more fields, end your reply with a JSON object of ONLY the fields that changed, wrapped exactly like this, with nothing else inside the tags:
 ${PATCH_START_TAG}

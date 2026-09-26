@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildRefinePrompt,
   describePatch,
+  needsIntake,
   parseRefineResponse,
   PATCH_START_TAG,
   PATCH_END_TAG,
@@ -148,5 +149,50 @@ describe('buildRefinePrompt', () => {
   it('omits the conversation section entirely when there is no history', () => {
     const prompt = buildRefinePrompt(draft, [], 'hi');
     expect(prompt).not.toContain('Conversation so far');
+  });
+
+  it('says nothing about missing fields once code and title are both set', () => {
+    const prompt = buildRefinePrompt(draft, [], 'hi');
+    expect(prompt).not.toContain("can't be saved yet");
+  });
+
+  it('tells the model to proactively ask when code and title are both blank', () => {
+    const emptyDraft: RefineDraftFields = {
+      code: '',
+      title: '',
+      instructor: '',
+      term: '',
+      modality: null,
+      credits: '',
+      notes: '',
+    };
+    const prompt = buildRefinePrompt(emptyDraft, [], 'I have a class on Tuesdays');
+    expect(prompt).toContain("can't be saved yet");
+    expect(prompt).toContain('Code and Title');
+  });
+
+  it('only calls out the one field still missing, not both', () => {
+    const halfFilled: RefineDraftFields = { ...draft, code: '', title: 'Intro to Psych' };
+    const prompt = buildRefinePrompt(halfFilled, [], 'hi');
+    expect(prompt).toContain("can't be saved yet - it's still missing Code.");
+  });
+});
+
+describe('needsIntake', () => {
+  it('is true when both code and title are blank', () => {
+    expect(needsIntake({ code: '', title: '' })).toBe(true);
+  });
+
+  it('is true when only one of code/title is blank', () => {
+    expect(needsIntake({ code: 'CSCI 213', title: '' })).toBe(true);
+    expect(needsIntake({ code: '', title: 'Intro to Psych' })).toBe(true);
+  });
+
+  it('is false once both code and title are set', () => {
+    expect(needsIntake({ code: 'CSCI 213', title: 'Computer Science I' })).toBe(false);
+  });
+
+  it('treats whitespace-only values as still blank', () => {
+    expect(needsIntake({ code: '   ', title: 'Computer Science I' })).toBe(true);
   });
 });
