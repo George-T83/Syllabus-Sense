@@ -46,7 +46,7 @@ export function LedgerView({ categories, courses, onEditCourse, onDeleteCourse }
               aria-expanded={isExpanded}
             >
               <div className="flex-1 min-w-0">
-                <CategoryProgressBar progress={progress} />
+                <CategoryProgressBar progress={progress} courses={courses} />
               </div>
               <svg
                 className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`}
