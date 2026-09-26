@@ -221,6 +221,13 @@ export function FlashcardReviewSession({
     return () => clearTimeout(t);
   }, [feedback]);
 
+  // useModalA11y focuses the first button (Close), where Space - the key the
+  // card itself advertises for flipping - would close the session instead.
+  // Start on the card. Declared after useModalA11y so this runs second.
+  useEffect(() => {
+    if (open) cardRef.current?.focus({ preventScroll: true });
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => keyHandlerRef.current(e);
