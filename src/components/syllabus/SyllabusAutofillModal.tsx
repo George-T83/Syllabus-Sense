@@ -2142,7 +2142,7 @@ function StepIndicator({ step }: { step: Step }) {
               className={cn(
                 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors',
                 i < currentIndex
-                  ? 'bg-white text-primary'
+                  ? 'bg-white text-[#5b3df5]'
                   : i === currentIndex
                     ? 'bg-white/25 text-white ring-2 ring-white'
                     : 'bg-white/15 text-white/60',

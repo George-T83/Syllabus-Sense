@@ -154,7 +154,7 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-6">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="space-y-1">
-            <p className="px-4 pb-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            <p className="px-4 pb-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               {group.label}
             </p>
             {group.items.map((item) => {

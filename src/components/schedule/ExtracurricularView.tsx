@@ -346,7 +346,7 @@ export function ExtracurricularView({
       {/* Header & Capacity Banner */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+          <h1 className="font-display text-3xl sm:text-4xl font-medium tracking-tight text-foreground flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/30">
               <svg
                 className="w-5 h-5"

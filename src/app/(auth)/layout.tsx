@@ -30,26 +30,31 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
           centered block instead of being split top/bottom via
           justify-between, which pinned the headline near the top and left a
           dead gap before the pillars. */}
-      <div className="hidden shrink-0 flex-col justify-center bg-gradient-brand p-10 text-white md:flex md:w-[42%] lg:w-1/2">
+      <div className="auth-panel hidden shrink-0 flex-col justify-center p-10 text-white md:flex md:w-[42%] lg:w-1/2">
         <div className="max-w-sm">
-          {/* Deliberately hardcoded dark text, not text-foreground: this
-              chip's background is always white regardless of theme, so a
-              theme-aware token would flip to white-on-white in dark mode. */}
-          <div className="inline-flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-lg">
+          {/* The panel is saturated brand color in both themes, so its type is
+              hardcoded white rather than theme tokens - except the wordmark
+              chip, which is a white card by day. */}
+          <div className="inline-flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 [text-shadow:none] text-[#16122e] shadow-[0_10px_30px_-12px_rgba(20,10,80,0.5)] ring-1 ring-white dark:bg-white/[0.08] dark:text-white dark:shadow-none dark:ring-white/20">
             <Logo className="h-9 w-9 shrink-0" />
-            <span className="text-lg font-bold tracking-tight text-slate-900">Syllabus Sense</span>
+            <span className="font-display text-lg font-semibold tracking-tight">
+              Syllabus Sense
+            </span>
           </div>
-          <p className="mt-8 text-3xl font-bold leading-tight">
-            Your whole semester, actually organized.
+          <p className="mt-8 font-display text-4xl font-medium leading-tight tracking-tight">
+            Your whole semester,{' '}
+            <span className="bg-gradient-to-r from-[#ece8ff] to-[#9ff5e4] bg-clip-text text-transparent [text-shadow:none]">
+              actually organized.
+            </span>
           </p>
-          <p className="mt-3 text-sm text-white/75">
+          <p className="mt-3 text-sm text-white">
             Upload once, plan smarter, and see it all on one beautiful calendar.
           </p>
 
           <ul className="mt-10 space-y-5">
             {PILLARS.map((pillar) => (
               <li key={pillar.title} className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white ring-1 ring-white/30 shadow-[0_0_20px_-4px_rgba(255,255,255,0.35)]">
                   <svg
                     className="h-4 w-4"
                     fill="none"
@@ -66,7 +71,7 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
                 </span>
                 <div>
                   <div className="text-sm font-semibold">{pillar.title}</div>
-                  <div className="text-xs text-white/70">{pillar.description}</div>
+                  <div className="text-xs text-white">{pillar.description}</div>
                 </div>
               </li>
             ))}
@@ -74,7 +79,7 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center bg-background px-4 py-8 md:justify-center md:py-12">
+      <div className="auth-form-side flex flex-1 flex-col items-center px-4 py-8 md:justify-center md:bg-background/70 md:py-12 dark:md:bg-transparent">
         <div className="w-full max-w-sm">
           {/* VA-1: the pitch above was `hidden md:flex` - completely absent
               on mobile, where most first-time visitors land. This gives

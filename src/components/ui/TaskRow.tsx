@@ -332,7 +332,7 @@ function CardRow({
                 aria-label="High priority"
               >
                 <title>High priority</title>
-                <path d="M8 1.5l7 12.5H1z" fill="hsl(0 84% 60%)" />
+                <path d="M8 1.5l7 12.5H1z" fill="hsl(var(--load-critical))" />
                 <rect x="7.25" y="6" width="1.5" height="4" rx="0.75" fill="white" />
                 <circle cx="8" cy="11.5" r="0.9" fill="white" />
               </svg>
@@ -345,7 +345,7 @@ function CardRow({
                 aria-label="Medium priority"
               >
                 <title>Medium priority</title>
-                <path d="M8 1.5l7 12.5H1z" fill="hsl(38 92% 50%)" />
+                <path d="M8 1.5l7 12.5H1z" fill="hsl(var(--load-medium))" />
               </svg>
             )}
             {priority === 'low' && !completed && (
@@ -430,7 +430,7 @@ function PriorityGlyph({
     return (
       <svg className={className} viewBox="0 0 16 16" role="img" aria-label="High priority">
         <title>High priority</title>
-        <path d="M8 1.5l7 12.5H1z" fill="hsl(0 84% 60%)" />
+        <path d="M8 1.5l7 12.5H1z" fill="hsl(var(--load-critical))" />
         <rect x="7.25" y="6" width="1.5" height="4" rx="0.75" fill="white" />
         <circle cx="8" cy="11.5" r="0.9" fill="white" />
       </svg>
@@ -440,7 +440,7 @@ function PriorityGlyph({
     return (
       <svg className={className} viewBox="0 0 16 16" role="img" aria-label="Medium priority">
         <title>Medium priority</title>
-        <path d="M8 1.5l7 12.5H1z" fill="hsl(38 92% 50%)" />
+        <path d="M8 1.5l7 12.5H1z" fill="hsl(var(--load-medium))" />
       </svg>
     );
   }

@@ -23,6 +23,7 @@ import { GpaGoalRadial } from './GpaGoalRadial';
 import { StudyStreakCard } from './StudyStreakCard';
 import { type LetterGrade } from '@/lib/gpa/gpaMath';
 import { LONG_DATE_YEAR_FORMATTER as dateFormatter } from '@/lib/dateFormatters';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 const DELETE_CONFIRM_PHRASE = 'DELETE';
 
@@ -360,12 +361,11 @@ export function ProfileView() {
 
   return (
     <div className="max-w-4xl space-y-6 sm:space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Profile</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Your identity, notifications, and account security - all in one place.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="You"
+        title="Profile"
+        description={<>Your identity, notifications, and account security - all in one place.</>}
+      />
 
       <Card className="overflow-hidden rounded-2xl p-0" data-testid="identity-card">
         <div className="h-24 bg-gradient-brand" />
@@ -707,7 +707,7 @@ export function ProfileView() {
               </div>
               {/* Always OFF: nothing is sent yet, so nothing should ever
                   appear switched on here, no matter what's stored. */}
-              <Toggle checked={false} />
+              <Toggle checked={false} label={row.label} />
             </div>
           ))}
 
@@ -1045,11 +1045,12 @@ function SectionHeading({
   );
 }
 
-function Toggle({ checked }: { checked: boolean }) {
+function Toggle({ checked, label }: { checked: boolean; label: string }) {
   return (
     <button
       type="button"
       role="switch"
+      aria-label={label}
       aria-checked={checked}
       aria-disabled="true"
       disabled

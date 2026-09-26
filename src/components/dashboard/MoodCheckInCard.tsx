@@ -53,7 +53,7 @@ export function MoodCheckInCard() {
         <div>
           <h2 className="text-sm font-semibold text-foreground">How&apos;s today going?</h2>
           {streak > 1 && (
-            <p className="mt-0.5 text-xs text-muted-foreground">🔥 {streak}-day check-in streak</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{streak}-day check-in streak</p>
           )}
         </div>
         <Link

@@ -211,14 +211,14 @@ export function DashboardView() {
   return (
     <>
       <div className="max-w-5xl space-y-6 sm:space-y-8">
-        <div>
-          <h1 className="text-display text-foreground">
-            {greeting}, <span className="text-gradient-brand">{firstName}</span>
-          </h1>
-          <p className="mt-1.5 text-body-sm text-muted-foreground">
+        <header>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
             {currentTerm || courses[0]?.term || 'No courses yet'}
           </p>
-        </div>
+          <h1 className="mt-1.5 font-display text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
+            {greeting}, <span className="text-gradient-brand">{firstName}</span>
+          </h1>
+        </header>
 
         <div className="relative overflow-hidden rounded-2xl bg-gradient-brand p-6 text-white shadow-card">
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
@@ -234,7 +234,7 @@ export function DashboardView() {
             <button
               type="button"
               onClick={() => setAutofillOpen(true)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-label text-primary shadow-sm transition-transform hover:scale-[1.02]"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-label text-[#5b3df5] shadow-sm transition-transform hover:scale-[1.02]"
             >
               <svg
                 className="h-4 w-4"
@@ -462,6 +462,7 @@ export function DashboardView() {
                     size={80}
                     radius={36.5}
                     strokeWidth={7}
+                    aria-label={`Term ${termProgressPct}% complete`}
                   >
                     <div className="text-center">
                       <div className="text-lg font-bold text-foreground">{termProgressPct}%</div>

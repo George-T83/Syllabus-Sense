@@ -13,38 +13,45 @@
 
 @layer base {
   :root {
-    --background: 240 20% 98%;
-    --foreground: 240 10% 3.9%;
+    /* Study Space, daylight: a pearl-lavender canvas under a soft brand
+       nebula (see body::before), with bright white cards floating on it. */
+    --background: 252 75% 97%;
+    --foreground: 248 30% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 248 30% 8%;
 
     --primary: 250 84% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 250 45% 95.5%;
+    --secondary-foreground: 248 30% 12%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 250 45% 95.5%;
+    --accent-foreground: 248 30% 12%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 250 40% 96%;
+    --muted-foreground: 245 10% 42%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Deep enough to hold 4.5:1 both as text on light surfaces and under
+       white button text. */
+    --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5.9% 90%;
+    --border: 252 45% 87%;
     /* Form field fill. Distinct from --background (not just reusing it) so a
        field never depends solely on its border to read as "a field" - see
        the .dark override below for why that distinction actually matters. */
-    --input: 240 20% 98%;
+    --input: 250 50% 98.5%;
     --radius: 1rem;
 
-    --load-low: 142 71% 45%;
-    --load-medium: 38 92% 50%;
-    --load-high: 24 95% 53%;
-    --load-critical: 0 84% 60%;
+    /* Light-mode status colors are used as text on their own 10% tints
+       ("1 overdue", "3 completed"), so they sit deep enough to hold 4.5:1
+       there; dark mode keeps the brighter values below. */
+    --load-low: 142 76% 24%;
+    --load-medium: 30 95% 30%;
+    --load-high: 20 90% 35%;
+    --load-critical: 0 74% 44%;
 
     /* Logo mark's gradient stops (Logo.tsx) - the single source every other
        brand gradient (.bg-gradient-brand, .text-gradient-brand,
@@ -58,9 +65,12 @@
     /* Card v2: a soft, brand-tinted shadow rather than a flat gray one, so
        every card (they all share this component) reads as "lifted" without
        needing per-page custom shadow work. */
-    --card-shadow: 0 1px 2px rgba(16, 12, 30, 0.04), 0 10px 28px -8px rgba(91, 61, 245, 0.16);
+    --card-shadow:
+      0 1px 2px rgba(40, 20, 120, 0.05), 0 18px 44px -18px rgba(91, 61, 245, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
     --card-shadow-hover:
-      0 2px 4px rgba(16, 12, 30, 0.06), 0 18px 40px -10px rgba(91, 61, 245, 0.28);
+      0 2px 4px rgba(40, 20, 120, 0.07), 0 26px 56px -18px rgba(91, 61, 245, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
 
     /* Modal v1: a distinct elevation tier for true modal-overlay surfaces
        (dialogs, sheets) that sit above cards in the stack. In light mode a
@@ -77,39 +87,51 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* Study Space, night: deep violet-black space under the brand nebula
+       (see body::before). Every neutral carries a slight violet bias so
+       surfaces read as part of the same sky rather than flat gray. */
+    --background: 252 45% 3.5%;
+    --foreground: 250 30% 97%;
 
-    --card: 240 10% 7%;
-    --card-foreground: 0 0% 98%;
+    --card: 250 32% 7.5%;
+    --card-foreground: 250 30% 97%;
 
-    --primary: 250 95% 65%;
+    --primary: 250 95% 67%;
+    /* Primary as *text* on dark surfaces. --primary itself stays at 67% so
+       white button labels on it hold 4.5:1; at that lightness primary-colored
+       text on the dark page only reaches ~4.2:1, so text-primary reads this
+       lighter tone instead (5.4:1+). See .dark .text-primary below. */
+    --primary-text: 250 95% 72%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 250 26% 13%;
+    --secondary-foreground: 250 30% 97%;
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 250 26% 13%;
+    --accent-foreground: 250 30% 97%;
 
-    --muted: 240 5.9% 10%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 250 24% 11%;
+    --muted-foreground: 248 14% 68%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%;
+    /* Readable as text on dark surfaces (the old 30.6% was a background
+       shade that left destructive labels like "Delete deck" near-invisible). */
+    --destructive: 0 84% 64%;
+    /* The bright red that reads as text on dark surfaces is too light for
+       white labels (3.4:1), so destructive buttons use dark ink (5.5:1). */
+    --destructive-foreground: 250 40% 8%;
 
     /* 18% lightness measured as "enough" contrast against a 3.9% background
        on paper, but read as functionally invisible in practice - low-lightness
        colors don't separate perceptually the way the same numeric gap does
        higher up the scale. Raised until card/row boundaries are actually
        legible instead of relying entirely on shadow. */
-    --border: 240 6% 26%;
+    --border: 250 22% 22%;
     /* Same lesson as --border above, applied to form fields: --background
        (3.9%) sits BELOW --card (7%), so a field that reused --background
        for its fill rendered darker than the card it sat inside - a
        near-invisible void defined only by a thin border. Lifted well above
        --card so a field always reads as "a field", not a hole in the card. */
-    --input: 240 8% 16%;
+    --input: 250 28% 12%;
 
     --load-low: 142 71% 45%;
     --load-medium: 38 92% 50%;
@@ -122,8 +144,12 @@
 
     /* Dark mode: shadows read as depth via a soft brand glow rather than a
        dark blur (which is nearly invisible against an already-dark page). */
-    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -8px rgba(139, 92, 246, 0.35);
-    --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 40px -10px rgba(139, 92, 246, 0.5);
+    --card-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.5), 0 20px 50px -24px rgba(91, 61, 245, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --card-shadow-hover:
+      0 2px 4px rgba(0, 0, 0, 0.55), 0 26px 60px -22px rgba(91, 61, 245, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
 
     /* Modal v1: distinct from --card-shadow - a deeper, darker near shadow
        plus a wider brand-tinted glow, so a modal reads as sitting above the
@@ -148,6 +174,115 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     @apply font-sans;
+  }
+
+  /* Starfield tiles, shared by the page sky and the auth brand panel. */
+  :root {
+    --stars-day-1: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='613' height='613'><circle cx='146' cy='334' r='0.72' fill='%2300a88c' fill-opacity='0.32'/><circle cx='371' cy='557' r='0.70' fill='%235b3df5' fill-opacity='0.50'/><circle cx='288' cy='513' r='0.74' fill='%235b3df5' fill-opacity='0.33'/><circle cx='93' cy='568' r='0.46' fill='%235b3df5' fill-opacity='0.32'/><circle cx='587' cy='26' r='0.82' fill='%238c6eff' fill-opacity='0.35'/><circle cx='441' cy='539' r='0.86' fill='%238c6eff' fill-opacity='0.41'/><circle cx='354' cy='591' r='0.61' fill='%235b3df5' fill-opacity='0.31'/><circle cx='133' cy='592' r='0.73' fill='%238c6eff' fill-opacity='0.34'/><circle cx='511' cy='352' r='0.63' fill='%235b3df5' fill-opacity='0.48'/><circle cx='418' cy='569' r='0.90' fill='%2300a88c' fill-opacity='0.35'/><circle cx='428' cy='200' r='0.71' fill='%235b3df5' fill-opacity='0.44'/><circle cx='129' cy='510' r='0.58' fill='%235b3df5' fill-opacity='0.39'/><circle cx='392' cy='296' r='0.48' fill='%235b3df5' fill-opacity='0.28'/><circle cx='262' cy='255' r='1.26' fill='%235b3df5' fill-opacity='0.45'/><circle cx='359' cy='338' r='0.58' fill='%235b3df5' fill-opacity='0.50'/><circle cx='190' cy='47' r='0.46' fill='%235b3df5' fill-opacity='0.49'/><circle cx='179' cy='161' r='0.89' fill='%238c6eff' fill-opacity='0.32'/><circle cx='588' cy='550' r='0.66' fill='%2300a88c' fill-opacity='0.29'/><circle cx='531' cy='417' r='1.48' fill='%2300a88c' fill-opacity='0.34'/><circle cx='389' cy='439' r='0.65' fill='%238c6eff' fill-opacity='0.36'/><circle cx='336' cy='7' r='0.71' fill='%235b3df5' fill-opacity='0.36'/><circle cx='361' cy='82' r='0.60' fill='%238c6eff' fill-opacity='0.40'/><circle cx='216' cy='433' r='0.46' fill='%235b3df5' fill-opacity='0.49'/><circle cx='13' cy='226' r='0.58' fill='%2300a88c' fill-opacity='0.28'/><circle cx='223' cy='192' r='0.72' fill='%238c6eff' fill-opacity='0.42'/><circle cx='64' cy='498' r='0.76' fill='%235b3df5' fill-opacity='0.35'/><circle cx='136' cy='493' r='0.53' fill='%238c6eff' fill-opacity='0.39'/><circle cx='59' cy='368' r='0.75' fill='%235b3df5' fill-opacity='0.38'/><circle cx='524' cy='104' r='0.74' fill='%2300a88c' fill-opacity='0.30'/><circle cx='138' cy='74' r='0.54' fill='%2300a88c' fill-opacity='0.25'/><circle cx='171' cy='495' r='0.81' fill='%238c6eff' fill-opacity='0.38'/><circle cx='258' cy='318' r='0.66' fill='%2300a88c' fill-opacity='0.30'/><circle cx='257' cy='251' r='0.52' fill='%235b3df5' fill-opacity='0.39'/><circle cx='510' cy='382' r='0.70' fill='%2300a88c' fill-opacity='0.26'/><circle cx='457' cy='513' r='0.68' fill='%238c6eff' fill-opacity='0.37'/><circle cx='545' cy='528' r='0.89' fill='%235b3df5' fill-opacity='0.46'/><circle cx='28' cy='554' r='0.87' fill='%238c6eff' fill-opacity='0.38'/><circle cx='8' cy='457' r='0.58' fill='%2300a88c' fill-opacity='0.22'/><circle cx='329' cy='33' r='0.50' fill='%235b3df5' fill-opacity='0.34'/><circle cx='528' cy='293' r='0.61' fill='%235b3df5' fill-opacity='0.31'/><circle cx='544' cy='73' r='0.57' fill='%235b3df5' fill-opacity='0.46'/><circle cx='5' cy='385' r='0.47' fill='%238c6eff' fill-opacity='0.31'/><circle cx='379' cy='319' r='1.09' fill='%235b3df5' fill-opacity='0.59'/><circle cx='475' cy='28' r='1.19' fill='%235b3df5' fill-opacity='0.58'/><circle cx='53' cy='308' r='0.59' fill='%238c6eff' fill-opacity='0.34'/><circle cx='239' cy='186' r='0.89' fill='%238c6eff' fill-opacity='0.28'/><circle cx='341' cy='439' r='0.49' fill='%235b3df5' fill-opacity='0.29'/><circle cx='282' cy='399' r='0.74' fill='%235b3df5' fill-opacity='0.42'/><circle cx='265' cy='228' r='0.77' fill='%238c6eff' fill-opacity='0.45'/><circle cx='256' cy='11' r='0.57' fill='%2300a88c' fill-opacity='0.23'/><circle cx='260' cy='261' r='0.87' fill='%238c6eff' fill-opacity='0.45'/><circle cx='343' cy='534' r='0.76' fill='%2300a88c' fill-opacity='0.34'/><circle cx='544' cy='486' r='0.78' fill='%2300a88c' fill-opacity='0.32'/><circle cx='498' cy='439' r='0.56' fill='%238c6eff' fill-opacity='0.27'/><circle cx='56' cy='61' r='0.53' fill='%235b3df5' fill-opacity='0.36'/><circle cx='522' cy='16' r='1.19' fill='%2300a88c' fill-opacity='0.49'/><circle cx='355' cy='490' r='1.36' fill='%2300a88c' fill-opacity='0.39'/><circle cx='146' cy='340' r='1.23' fill='%2300a88c' fill-opacity='0.35'/><circle cx='346' cy='508' r='0.53' fill='%235b3df5' fill-opacity='0.38'/><circle cx='429' cy='578' r='0.72' fill='%238c6eff' fill-opacity='0.37'/><path d='M574 231.5L574.5 234.3L577.3 235L574.5 235.9L574 238.6L572.9 235.9L570.1 235L572.9 234.3Z' fill='%236d51fa' fill-opacity='0.58'/><path d='M503 570.1L504.3 573.3L507.4 574L504.3 575.0L503 578.2L502.5 575.0L499.3 574L502.5 573.3Z' fill='%236d51fa' fill-opacity='0.49'/><path d='M352 544.7L353.3 548.4L357.0 549L353.3 550.5L352 554.1L351.2 550.5L347.5 549L351.2 548.4Z' fill='%236d51fa' fill-opacity='0.39'/></svg>");
+    --stars-day-2: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='877' height='877'><circle cx='207' cy='90' r='0.52' fill='%235b3df5' fill-opacity='0.28'/><circle cx='482' cy='254' r='0.48' fill='%2300a88c' fill-opacity='0.32'/><circle cx='243' cy='151' r='1.03' fill='%235b3df5' fill-opacity='0.58'/><circle cx='707' cy='702' r='0.59' fill='%2300a88c' fill-opacity='0.38'/><circle cx='843' cy='744' r='0.83' fill='%238c6eff' fill-opacity='0.39'/><circle cx='444' cy='156' r='0.49' fill='%2300a88c' fill-opacity='0.37'/><circle cx='6' cy='256' r='0.59' fill='%2300a88c' fill-opacity='0.26'/><circle cx='372' cy='253' r='0.55' fill='%238c6eff' fill-opacity='0.42'/><circle cx='38' cy='41' r='0.58' fill='%2300a88c' fill-opacity='0.34'/><circle cx='615' cy='127' r='0.48' fill='%235b3df5' fill-opacity='0.42'/><circle cx='387' cy='161' r='0.71' fill='%2300a88c' fill-opacity='0.32'/><circle cx='793' cy='89' r='1.04' fill='%2300a88c' fill-opacity='0.41'/><circle cx='208' cy='290' r='0.66' fill='%235b3df5' fill-opacity='0.36'/><circle cx='72' cy='846' r='0.75' fill='%238c6eff' fill-opacity='0.26'/><circle cx='253' cy='847' r='0.63' fill='%2300a88c' fill-opacity='0.34'/><circle cx='68' cy='542' r='0.58' fill='%238c6eff' fill-opacity='0.34'/><circle cx='844' cy='291' r='0.93' fill='%235b3df5' fill-opacity='0.45'/><circle cx='705' cy='875' r='0.65' fill='%235b3df5' fill-opacity='0.37'/><circle cx='182' cy='52' r='1.00' fill='%2300a88c' fill-opacity='0.49'/><circle cx='532' cy='479' r='0.59' fill='%235b3df5' fill-opacity='0.31'/><circle cx='464' cy='679' r='0.89' fill='%238c6eff' fill-opacity='0.30'/><circle cx='385' cy='431' r='0.65' fill='%2300a88c' fill-opacity='0.38'/><circle cx='729' cy='437' r='1.05' fill='%235b3df5' fill-opacity='0.49'/><circle cx='677' cy='366' r='0.60' fill='%238c6eff' fill-opacity='0.37'/><circle cx='869' cy='353' r='0.74' fill='%2300a88c' fill-opacity='0.35'/><circle cx='433' cy='81' r='0.84' fill='%235b3df5' fill-opacity='0.35'/><circle cx='576' cy='701' r='0.82' fill='%2300a88c' fill-opacity='0.26'/><circle cx='703' cy='703' r='0.63' fill='%238c6eff' fill-opacity='0.27'/><circle cx='852' cy='843' r='0.47' fill='%2300a88c' fill-opacity='0.24'/><circle cx='849' cy='585' r='1.00' fill='%2300a88c' fill-opacity='0.38'/><circle cx='414' cy='354' r='0.81' fill='%235b3df5' fill-opacity='0.48'/><circle cx='11' cy='769' r='1.39' fill='%238c6eff' fill-opacity='0.54'/><circle cx='483' cy='771' r='0.75' fill='%238c6eff' fill-opacity='0.42'/><circle cx='493' cy='688' r='0.65' fill='%235b3df5' fill-opacity='0.29'/><circle cx='521' cy='429' r='0.72' fill='%235b3df5' fill-opacity='0.29'/><circle cx='70' cy='771' r='0.58' fill='%238c6eff' fill-opacity='0.43'/><circle cx='75' cy='477' r='0.80' fill='%238c6eff' fill-opacity='0.34'/><circle cx='665' cy='750' r='0.48' fill='%2300a88c' fill-opacity='0.36'/><circle cx='321' cy='877' r='0.77' fill='%238c6eff' fill-opacity='0.27'/><circle cx='773' cy='172' r='0.83' fill='%238c6eff' fill-opacity='0.28'/><circle cx='490' cy='326' r='0.77' fill='%238c6eff' fill-opacity='0.36'/><circle cx='297' cy='475' r='0.77' fill='%235b3df5' fill-opacity='0.42'/><circle cx='106' cy='97' r='0.72' fill='%2300a88c' fill-opacity='0.23'/><circle cx='215' cy='743' r='0.80' fill='%2300a88c' fill-opacity='0.22'/><circle cx='46' cy='796' r='0.86' fill='%2300a88c' fill-opacity='0.28'/><path d='M746 674.1L747.1 677.6L750.7 679L747.1 679.6L746 683.1L745.1 679.6L741.6 679L745.1 677.6Z' fill='%2300a88c' fill-opacity='0.46'/><path d='M138 661.5L138.6 664.5L141.6 665L138.6 666.2L138 669.3L136.9 666.2L133.8 665L136.9 664.5Z' fill='%2300a88c' fill-opacity='0.52'/></svg>");
+    --stars-night-1: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='613' height='613'><circle cx='82' cy='519' r='0.56' fill='%23b4a5ff' fill-opacity='0.60'/><circle cx='289' cy='233' r='0.67' fill='%23b4a5ff' fill-opacity='0.47'/><circle cx='467' cy='1' r='0.77' fill='%23ece9ff' fill-opacity='0.62'/><circle cx='63' cy='195' r='1.29' fill='%23ece9ff' fill-opacity='0.97'/><circle cx='234' cy='133' r='0.46' fill='%23ece9ff' fill-opacity='0.69'/><circle cx='576' cy='339' r='0.75' fill='%23b4a5ff' fill-opacity='0.68'/><circle cx='568' cy='255' r='0.86' fill='%23ece9ff' fill-opacity='0.43'/><circle cx='608' cy='527' r='0.60' fill='%237fe6d2' fill-opacity='0.54'/><circle cx='307' cy='593' r='0.86' fill='%23ece9ff' fill-opacity='0.49'/><circle cx='360' cy='541' r='0.68' fill='%237fe6d2' fill-opacity='0.51'/><circle cx='294' cy='456' r='0.75' fill='%23b4a5ff' fill-opacity='0.52'/><circle cx='431' cy='413' r='0.65' fill='%237fe6d2' fill-opacity='0.28'/><circle cx='100' cy='515' r='0.78' fill='%23b4a5ff' fill-opacity='0.32'/><circle cx='431' cy='603' r='0.63' fill='%23ece9ff' fill-opacity='0.43'/><circle cx='139' cy='8' r='0.86' fill='%237fe6d2' fill-opacity='0.32'/><circle cx='315' cy='584' r='0.66' fill='%23b4a5ff' fill-opacity='0.56'/><circle cx='373' cy='447' r='0.84' fill='%237fe6d2' fill-opacity='0.40'/><circle cx='79' cy='477' r='0.88' fill='%23b4a5ff' fill-opacity='0.65'/><circle cx='349' cy='123' r='0.67' fill='%23b4a5ff' fill-opacity='0.47'/><circle cx='1' cy='331' r='0.60' fill='%237fe6d2' fill-opacity='0.26'/><circle cx='141' cy='109' r='0.84' fill='%237fe6d2' fill-opacity='0.49'/><circle cx='500' cy='156' r='0.75' fill='%23ece9ff' fill-opacity='0.74'/><circle cx='278' cy='462' r='0.57' fill='%237fe6d2' fill-opacity='0.31'/><circle cx='178' cy='103' r='0.88' fill='%237fe6d2' fill-opacity='0.33'/><circle cx='436' cy='279' r='0.66' fill='%23ece9ff' fill-opacity='0.49'/><circle cx='210' cy='488' r='0.56' fill='%237fe6d2' fill-opacity='0.40'/><circle cx='128' cy='371' r='0.46' fill='%23ece9ff' fill-opacity='0.53'/><circle cx='22' cy='588' r='0.68' fill='%23b4a5ff' fill-opacity='0.52'/><circle cx='135' cy='598' r='0.68' fill='%23ece9ff' fill-opacity='0.59'/><circle cx='19' cy='414' r='0.75' fill='%23b4a5ff' fill-opacity='0.32'/><circle cx='183' cy='593' r='0.59' fill='%23ece9ff' fill-opacity='0.49'/><circle cx='576' cy='456' r='0.56' fill='%23ece9ff' fill-opacity='0.60'/><circle cx='521' cy='362' r='0.86' fill='%23b4a5ff' fill-opacity='0.37'/><circle cx='532' cy='597' r='0.68' fill='%23b4a5ff' fill-opacity='0.38'/><circle cx='61' cy='351' r='0.72' fill='%23b4a5ff' fill-opacity='0.34'/><circle cx='408' cy='181' r='0.60' fill='%23b4a5ff' fill-opacity='0.66'/><circle cx='11' cy='123' r='0.89' fill='%23ece9ff' fill-opacity='0.50'/><circle cx='131' cy='413' r='0.87' fill='%23b4a5ff' fill-opacity='0.67'/><circle cx='514' cy='328' r='0.69' fill='%23ece9ff' fill-opacity='0.68'/><circle cx='52' cy='104' r='0.55' fill='%23b4a5ff' fill-opacity='0.54'/><circle cx='516' cy='226' r='0.58' fill='%237fe6d2' fill-opacity='0.48'/><circle cx='438' cy='300' r='0.80' fill='%23b4a5ff' fill-opacity='0.32'/><circle cx='45' cy='531' r='0.82' fill='%23b4a5ff' fill-opacity='0.35'/><circle cx='360' cy='568' r='1.23' fill='%237fe6d2' fill-opacity='0.34'/><circle cx='164' cy='546' r='0.87' fill='%23b4a5ff' fill-opacity='0.66'/><circle cx='66' cy='28' r='0.73' fill='%23ece9ff' fill-opacity='0.39'/><circle cx='71' cy='543' r='1.04' fill='%237fe6d2' fill-opacity='0.47'/><circle cx='71' cy='103' r='0.78' fill='%23ece9ff' fill-opacity='0.55'/><circle cx='591' cy='494' r='0.82' fill='%237fe6d2' fill-opacity='0.33'/><circle cx='292' cy='61' r='0.47' fill='%23ece9ff' fill-opacity='0.70'/><circle cx='567' cy='445' r='0.63' fill='%23b4a5ff' fill-opacity='0.33'/><circle cx='560' cy='594' r='0.50' fill='%23ece9ff' fill-opacity='0.70'/><circle cx='477' cy='546' r='0.66' fill='%23b4a5ff' fill-opacity='0.40'/><circle cx='332' cy='188' r='0.49' fill='%23b4a5ff' fill-opacity='0.34'/><circle cx='462' cy='55' r='0.60' fill='%23ece9ff' fill-opacity='0.53'/><circle cx='188' cy='201' r='0.83' fill='%23b4a5ff' fill-opacity='0.40'/><circle cx='62' cy='375' r='0.49' fill='%23ece9ff' fill-opacity='0.36'/><circle cx='149' cy='44' r='0.48' fill='%23ece9ff' fill-opacity='0.36'/><circle cx='6' cy='460' r='0.66' fill='%23ece9ff' fill-opacity='0.40'/><circle cx='477' cy='201' r='0.75' fill='%23ece9ff' fill-opacity='0.70'/><circle cx='604' cy='504' r='0.50' fill='%237fe6d2' fill-opacity='0.50'/><circle cx='369' cy='77' r='0.70' fill='%237fe6d2' fill-opacity='0.26'/><circle cx='194' cy='554' r='0.86' fill='%237fe6d2' fill-opacity='0.55'/><circle cx='126' cy='183' r='0.47' fill='%237fe6d2' fill-opacity='0.32'/><circle cx='477' cy='418' r='0.64' fill='%23b4a5ff' fill-opacity='0.52'/><circle cx='522' cy='278' r='0.60' fill='%23b4a5ff' fill-opacity='0.49'/><circle cx='486' cy='572' r='0.46' fill='%237fe6d2' fill-opacity='0.36'/><circle cx='85' cy='77' r='0.82' fill='%23b4a5ff' fill-opacity='0.53'/><circle cx='106' cy='55' r='0.53' fill='%23b4a5ff' fill-opacity='0.50'/><circle cx='398' cy='269' r='0.78' fill='%23ece9ff' fill-opacity='0.49'/><path d='M414 563.3L414.7 567.0L418.4 568L414.7 569.1L414 572.9L412.6 569.1L408.8 568L412.6 567.0Z' fill='%23ffffff' fill-opacity='0.43'/><path d='M370 432.6L371.3 436.3L374.9 437L371.3 438.3L370 441.9L369.2 438.3L365.6 437L369.2 436.3Z' fill='%23ffffff' fill-opacity='0.59'/><path d='M146 543.2L146.8 547.0L150.7 548L146.8 549.2L146 553.0L144.7 549.2L140.8 548L144.7 547.0Z' fill='%23ffffff' fill-opacity='0.51'/></svg>");
+    --stars-night-2: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='877' height='877'><circle cx='838' cy='831' r='0.95' fill='%23ece9ff' fill-opacity='0.85'/><circle cx='587' cy='270' r='0.72' fill='%237fe6d2' fill-opacity='0.45'/><circle cx='877' cy='560' r='0.84' fill='%237fe6d2' fill-opacity='0.53'/><circle cx='477' cy='390' r='0.47' fill='%23ece9ff' fill-opacity='0.51'/><circle cx='817' cy='796' r='0.85' fill='%23ece9ff' fill-opacity='0.60'/><circle cx='207' cy='21' r='0.51' fill='%237fe6d2' fill-opacity='0.36'/><circle cx='451' cy='491' r='0.65' fill='%23b4a5ff' fill-opacity='0.59'/><circle cx='795' cy='669' r='0.61' fill='%23b4a5ff' fill-opacity='0.36'/><circle cx='661' cy='627' r='0.69' fill='%23b4a5ff' fill-opacity='0.41'/><circle cx='437' cy='452' r='0.75' fill='%23b4a5ff' fill-opacity='0.66'/><circle cx='404' cy='498' r='0.78' fill='%23b4a5ff' fill-opacity='0.56'/><circle cx='825' cy='714' r='0.84' fill='%237fe6d2' fill-opacity='0.33'/><circle cx='799' cy='271' r='0.77' fill='%237fe6d2' fill-opacity='0.42'/><circle cx='445' cy='540' r='0.78' fill='%23b4a5ff' fill-opacity='0.50'/><circle cx='819' cy='547' r='1.39' fill='%237fe6d2' fill-opacity='0.32'/><circle cx='715' cy='874' r='1.24' fill='%23ece9ff' fill-opacity='0.59'/><circle cx='199' cy='768' r='1.21' fill='%23b4a5ff' fill-opacity='0.50'/><circle cx='185' cy='772' r='0.77' fill='%23ece9ff' fill-opacity='0.38'/><circle cx='316' cy='219' r='0.97' fill='%23ece9ff' fill-opacity='0.45'/><circle cx='640' cy='19' r='0.82' fill='%23ece9ff' fill-opacity='0.68'/><circle cx='459' cy='2' r='0.81' fill='%23ece9ff' fill-opacity='0.42'/><circle cx='32' cy='302' r='0.78' fill='%23ece9ff' fill-opacity='0.48'/><circle cx='429' cy='270' r='0.72' fill='%23ece9ff' fill-opacity='0.76'/><circle cx='663' cy='756' r='0.66' fill='%23ece9ff' fill-opacity='0.39'/><circle cx='603' cy='735' r='1.37' fill='%23ece9ff' fill-opacity='0.73'/><circle cx='685' cy='427' r='0.84' fill='%23b4a5ff' fill-opacity='0.40'/><circle cx='532' cy='368' r='1.23' fill='%23ece9ff' fill-opacity='0.81'/><circle cx='222' cy='116' r='0.65' fill='%23ece9ff' fill-opacity='0.58'/><circle cx='862' cy='819' r='0.55' fill='%23b4a5ff' fill-opacity='0.33'/><circle cx='71' cy='200' r='0.73' fill='%23b4a5ff' fill-opacity='0.40'/><circle cx='371' cy='461' r='0.92' fill='%23b4a5ff' fill-opacity='0.46'/><circle cx='449' cy='77' r='0.91' fill='%23ece9ff' fill-opacity='0.50'/><circle cx='21' cy='587' r='0.69' fill='%23b4a5ff' fill-opacity='0.38'/><circle cx='795' cy='845' r='0.65' fill='%237fe6d2' fill-opacity='0.26'/><circle cx='519' cy='773' r='0.71' fill='%23ece9ff' fill-opacity='0.65'/><circle cx='421' cy='17' r='0.50' fill='%23b4a5ff' fill-opacity='0.42'/><circle cx='863' cy='326' r='1.31' fill='%23ece9ff' fill-opacity='0.50'/><circle cx='174' cy='680' r='0.82' fill='%23ece9ff' fill-opacity='0.53'/><circle cx='426' cy='183' r='0.48' fill='%23b4a5ff' fill-opacity='0.31'/><circle cx='268' cy='635' r='0.67' fill='%23ece9ff' fill-opacity='0.61'/><circle cx='344' cy='406' r='0.63' fill='%23ece9ff' fill-opacity='0.46'/><circle cx='108' cy='541' r='0.63' fill='%23ece9ff' fill-opacity='0.66'/><circle cx='22' cy='578' r='0.78' fill='%23b4a5ff' fill-opacity='0.42'/><circle cx='842' cy='124' r='0.67' fill='%23b4a5ff' fill-opacity='0.59'/><circle cx='638' cy='367' r='0.76' fill='%23b4a5ff' fill-opacity='0.39'/><circle cx='429' cy='227' r='0.76' fill='%23ece9ff' fill-opacity='0.61'/><circle cx='717' cy='84' r='0.90' fill='%23ece9ff' fill-opacity='0.71'/><circle cx='788' cy='700' r='0.76' fill='%237fe6d2' fill-opacity='0.26'/><circle cx='854' cy='343' r='0.85' fill='%23b4a5ff' fill-opacity='0.48'/><circle cx='460' cy='98' r='0.88' fill='%23b4a5ff' fill-opacity='0.34'/><circle cx='453' cy='627' r='0.85' fill='%23b4a5ff' fill-opacity='0.68'/><circle cx='206' cy='767' r='0.79' fill='%237fe6d2' fill-opacity='0.29'/><circle cx='387' cy='26' r='0.85' fill='%23ece9ff' fill-opacity='0.53'/><circle cx='47' cy='240' r='0.78' fill='%23b4a5ff' fill-opacity='0.58'/><circle cx='414' cy='844' r='0.79' fill='%237fe6d2' fill-opacity='0.27'/><path d='M706 623.2L707.0 626.5L710.4 627L707.0 628.4L706 631.8L705.1 628.4L701.7 627L705.1 626.5Z' fill='%23b4a5ff' fill-opacity='0.40'/><path d='M703 335.0L704.4 339.1L708.4 340L704.4 341.3L703 345.4L702.1 341.3L698.0 340L702.1 339.1Z' fill='%23b4a5ff' fill-opacity='0.58'/></svg>");
+  }
+
+  /* The app's atmosphere: the Study Space sky behind every page. Brand
+     nebula washes plus a starfield: two SVG star tiles at co-prime sizes so
+     the pattern never visibly repeats. Fixed and non-interactive, so it costs
+     nothing on scroll. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    /* By day: an aurora over a lavender-pearl sky - violet pooling from the
+       top-left, teal rising bottom-right, an indigo veil across the top - with
+       violet star dust and a few sparkles, the Study Space seen in daylight. */
+    background-image:
+      radial-gradient(1000px 680px at 0% -8%, rgba(124, 92, 255, 0.44), transparent 64%),
+      radial-gradient(900px 620px at 100% 104%, rgba(0, 191, 160, 0.32), transparent 62%),
+      radial-gradient(760px 420px at 72% -8%, rgba(99, 102, 241, 0.26), transparent 64%),
+      radial-gradient(700px 520px at -4% 100%, rgba(140, 110, 255, 0.2), transparent 62%),
+      linear-gradient(
+        112deg,
+        transparent 18%,
+        rgba(140, 110, 255, 0.14) 36%,
+        rgba(99, 102, 241, 0.08) 48%,
+        rgba(0, 191, 160, 0.13) 60%,
+        transparent 78%
+      ),
+      var(--stars-day-1), var(--stars-day-2);
+    background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      613px 613px,
+      877px 877px;
+  }
+  /* At night the sky is the Study Space's own: near-black violet, a real
+     starfield, and nebula light pooling at the edges of the viewport. */
+  .dark body::before {
+    background-image:
+      radial-gradient(1200px 760px at 4% -14%, rgba(91, 61, 245, 0.36), transparent 62%),
+      radial-gradient(1000px 760px at 104% 110%, rgba(0, 191, 160, 0.18), transparent 62%),
+      radial-gradient(900px 560px at 72% -6%, rgba(140, 110, 255, 0.16), transparent 62%),
+      radial-gradient(1400px 900px at 50% 55%, rgba(76, 45, 180, 0.1), transparent 70%),
+      var(--stars-night-1), var(--stars-night-2);
+    background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      613px 613px,
+      877px 877px;
+  }
+
+  /* The sign-in brand panel: saturated brand color against the calm form
+     side, in both themes, so the split always reads. White type throughout
+     (see the auth layout). By day a vivid violet-to-teal aurora; by night the
+     same brand gradient, deeper, with a soft nebula core behind the headline. */
+  .auth-panel {
+    /* Every stop is dark enough for white body text to hold 4.5:1, checked
+       against rendered pixels - the lighter violet and teal that look
+       similar dropped it to ~3:1. The faint shadow keeps small type crisp
+       where a star sits behind it. */
+    background-color: #5b3df5;
+    background-image:
+      radial-gradient(700px 520px at 0% 0%, rgba(106, 75, 255, 0.95), transparent 62%),
+      radial-gradient(680px 560px at 100% 100%, rgba(0, 122, 107, 0.9), transparent 60%),
+      radial-gradient(520px 420px at 85% 10%, rgba(79, 70, 229, 0.9), transparent 62%),
+      var(--stars-night-1), var(--stars-night-2);
+    background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      613px 613px,
+      877px 877px;
+    text-shadow: 0 1px 2px rgba(16, 8, 60, 0.35);
+  }
+  .dark .auth-panel {
+    background-color: #1a1060;
+    background-image:
+      radial-gradient(420px 340px at 30% 40%, rgba(200, 185, 255, 0.28), transparent 70%),
+      radial-gradient(520px 420px at 85% 88%, rgba(0, 191, 160, 0.3), transparent 64%),
+      var(--stars-night-1), var(--stars-night-2),
+      linear-gradient(150deg, #5b3df5 0%, #2d1c9c 45%, #0b5d57 100%);
+    background-size:
+      100% 100%,
+      100% 100%,
+      613px 613px,
+      877px 877px,
+      100% 100%;
+  }
+
+  /* Dark mode splits primary's two jobs (see --primary-text): fills keep
+     --primary, text gets the lighter tone. Two-class selectors so they win
+     over the single-class Tailwind utilities. */
+  .dark .text-primary,
+  .dark .hover\:text-primary:hover,
+  .dark .group:hover .group-hover\:text-primary {
+    color: hsl(var(--primary-text));
   }
 
   /* Chrome/Safari paint autofilled fields with their own opaque white (light
@@ -355,9 +490,9 @@
 
   /* Used on the fixed Navbar, which sits above scrolling page content -
      content with a strong, saturated color (e.g. Profile's cover-banner
-     gradient) can pass directly underneath it. 94% opacity alone already
-     fully smooths any high-contrast edge scrolling underneath (barely 6%
-     of content shows through), so no backdrop-filter blur is needed - and
+     gradient) can pass directly underneath it. ~90% opacity already
+     smooths any high-contrast edge scrolling underneath while still letting
+     the sky's aurora tint the chrome, so no backdrop-filter blur is needed - and
      dropping it avoids a real Chromium bug: a `position: fixed` element
      with `backdrop-filter` flush against the viewport edge can't sample
      pixels "above" the viewport, leaving a visible unblurred seam at the
@@ -365,13 +500,66 @@
      modal's dim overlay stacked above it). Reproduced and confirmed gone
      without blur. */
   .glass {
-    background-color: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background-color: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(91, 61, 245, 0.12);
     @apply shadow-glass;
   }
   .dark .glass {
-    background-color: rgba(18, 18, 24, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(9, 7, 20, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Card surfaces: a faint violet-to-teal sheen over the card color, so
+     every card catches the same light as the Study Space cards. The
+     translucent variant lets the nebula glow through in-page cards; the
+     solid one is for modal panels, which must never show what's behind.
+     No backdrop-filter: it would make every card the containing block for
+     position:fixed descendants, trapping any modal rendered inside a card. */
+  .surface-luminous {
+    background-color: hsl(var(--card) / 0.86);
+    background-image: linear-gradient(
+      155deg,
+      rgba(140, 110, 255, 0.07),
+      rgba(0, 191, 160, 0.03) 55%,
+      transparent 80%
+    );
+  }
+  /* A fine line of light along a card's top edge - violet into teal, fading
+     out at both ends - the way light catches the Study Space's glass card. */
+  .surface-luminous::before,
+  .surface-solid::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(140, 110, 255, 0.75) 30%,
+      rgba(0, 191, 160, 0.6) 70%,
+      transparent
+    );
+  }
+  .surface-solid {
+    background-color: hsl(var(--card));
+    background-image: linear-gradient(
+      155deg,
+      rgba(140, 110, 255, 0.07),
+      rgba(0, 191, 160, 0.03) 55%,
+      transparent 80%
+    );
+  }
+  .dark .surface-luminous,
+  .dark .surface-solid {
+    background-image: linear-gradient(
+      155deg,
+      rgba(140, 110, 255, 0.13),
+      rgba(0, 191, 160, 0.05) 55%,
+      transparent 80%
+    );
   }
 
   /* Neon Edge: a padding-box/border-box gradient (or solid) card border
@@ -519,11 +707,25 @@
     background-image:
       radial-gradient(
         120% 90% at var(--gx, 50%) var(--gy, 0%),
+        rgba(255, 255, 255, 0.9),
+        transparent 55%
+      ),
+      linear-gradient(155deg, rgba(140, 110, 255, 0.14), rgba(0, 191, 160, 0.07) 60%, transparent);
+    border: 1px solid rgba(91, 61, 245, 0.16);
+    box-shadow:
+      0 40px 90px -40px rgba(91, 61, 245, 0.45),
+      0 2px 6px rgba(16, 12, 30, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  .dark .study-card-surface {
+    background-image:
+      radial-gradient(
+        120% 90% at var(--gx, 50%) var(--gy, 0%),
         rgba(255, 255, 255, 0.08),
         transparent 55%
       ),
       linear-gradient(155deg, rgba(140, 110, 255, 0.16), rgba(0, 191, 160, 0.06) 60%, transparent);
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.09);
     box-shadow:
       0 40px 90px -40px rgba(91, 61, 245, 0.65),
       0 0 0 1px rgba(0, 0, 0, 0.4),
@@ -537,8 +739,13 @@
   }
   .study-panel {
     background-color: hsl(var(--card));
+    background-image: linear-gradient(160deg, rgba(140, 110, 255, 0.08), transparent 60%);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--card-shadow);
+  }
+  .dark .study-panel {
     background-image: linear-gradient(160deg, rgba(140, 110, 255, 0.1), transparent 60%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.08);
   }
   @keyframes study-float {
     0% {
@@ -600,6 +807,9 @@
   /* Cards stacked behind the active one: a brighter top edge so each lip
      of the deck catches the light against the dark study space. */
   .study-ghost {
+    border-color: rgba(91, 61, 245, 0.22);
+  }
+  .dark .study-ghost {
     border-color: rgba(255, 255, 255, 0.16);
   }
   /* "In the zone" (a 4+ card combo): the card breathes between the brand's

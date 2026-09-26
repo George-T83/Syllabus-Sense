@@ -213,7 +213,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
         {/* Header */}
         <div className="flex w-full items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {isBreak ? '☕ Break' : '🍅 Focus'}
+            {isBreak ? 'Break' : 'Focus'}
           </span>
           <button
             onClick={() => setVisible(false)}
@@ -303,7 +303,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
         {/* Session counter */}
         {sessionCount > 0 && (
           <p className="text-center text-[10px] text-muted-foreground">
-            {sessionCount} session{sessionCount !== 1 ? 's' : ''} today 🎉
+            {sessionCount} session{sessionCount !== 1 ? 's' : ''} today
           </p>
         )}
       </div>

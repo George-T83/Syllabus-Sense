@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 import { useEffect } from 'react';
 import { GradeCalculatorModal } from '@/components/courses/GradeCalculatorModal';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 type SortMode = 'code' | 'title' | 'term';
 
@@ -126,51 +127,50 @@ export function CoursesListView() {
   return (
     <>
       <div className="max-w-5xl space-y-6 sm:space-y-8">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Courses</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              See what needs attention across every class.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <CardActionButton onClick={() => setSimulatorOpen(true)}>
-              <svg
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                />
-              </svg>
-              Grade Calculator
-            </CardActionButton>
-            <CardActionButton onClick={() => setAutofillOpen(true)}>
-              <svg
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              Autofill from Syllabus
-            </CardActionButton>
-            <CardActionButton variant="solid" withPlus onClick={() => setAddCourseOpen(true)}>
-              Add Course
-            </CardActionButton>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Coursework"
+          title="Courses"
+          description={<>See what needs attention across every class.</>}
+          actions={
+            <>
+              <CardActionButton onClick={() => setSimulatorOpen(true)}>
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+                Grade Calculator
+              </CardActionButton>
+              <CardActionButton onClick={() => setAutofillOpen(true)}>
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Autofill from Syllabus
+              </CardActionButton>
+              <CardActionButton variant="solid" withPlus onClick={() => setAddCourseOpen(true)}>
+                Add Course
+              </CardActionButton>
+            </>
+          }
+        />
 
         <div className="flex flex-wrap gap-2">
           <input
@@ -180,6 +180,7 @@ export function CoursesListView() {
             className="flex-1 min-w-[200px] rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <select
+            aria-label="Filter by term"
             value={effectiveTermFilter}
             onChange={(e) => setTermFilter(e.target.value)}
             className={cn(
@@ -199,6 +200,7 @@ export function CoursesListView() {
             ))}
           </select>
           <select
+            aria-label="Sort courses"
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value as SortMode)}
             className={selectClass}
