@@ -416,3 +416,37 @@ export function remainingScoreThresholds(
     scoreNeeded: Math.round((((t.minPercentage * total) / 100 - points) / (rw / 100)) * 10) / 10,
   }));
 }
+
+export interface CourseStanding {
+  /** Running grade over the work graded so far. */
+  percentage: number;
+  letter: string;
+  /** Share of the final grade already decided by graded work, in percent. */
+  decidedWeight: number;
+  /** How many graded items it rests on. */
+  gradedCount: number;
+}
+
+/**
+ * Where a student stands in a course right now, from their own graded work:
+ * the weighted average of every item with both a weight and a score. Null
+ * when nothing is graded yet - calculateCurrentWeightedGrade reports an
+ * optimistic 100% A for an empty course, which is no standing at all.
+ */
+export function courseStanding(items: ScheduleItem[]): CourseStanding | null {
+  const graded = items.filter(
+    (i) =>
+      typeof i.gradeWeight === 'number' && i.gradeWeight > 0 && typeof i.earnedScore === 'number',
+  );
+  if (graded.length === 0) return null;
+  const { currentPercentage, letterGrade, totalCompletedWeight } = calculateCurrentWeightedGrade(
+    deriveCategoriesFromScheduleItems(graded),
+  );
+  if (totalCompletedWeight <= 0) return null;
+  return {
+    percentage: Math.round(currentPercentage * 10) / 10,
+    letter: letterGrade,
+    decidedWeight: Math.round(totalCompletedWeight * 10) / 10,
+    gradedCount: graded.length,
+  };
+}
