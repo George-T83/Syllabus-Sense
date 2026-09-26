@@ -31,7 +31,7 @@ import {
   type StudySpaceStar,
 } from '@/components/flashcards/StudySpaceCanvas';
 import { SessionRecap, type CourseOutcome } from '@/components/flashcards/SessionRecap';
-import { TIER_COLOR, TIER_LABEL } from '@/components/flashcards/MemoryConstellation';
+import { TIER_COLOR, TIER_LABEL } from '@/components/flashcards/MemoryTiles';
 import type { Flashcard } from '@/types/flashcard';
 import type { Course, ScheduleItem } from '@/types/schedule';
 

@@ -13,7 +13,7 @@ import { isCardDue } from '@/lib/flashcards/sm2';
 import { SM2_DEFAULTS } from '@/lib/flashcards/sm2';
 import { toDayKey } from '@/lib/calendar/dates';
 import { nextExamForCourse, readiness, readinessTarget } from '@/lib/flashcards/memory';
-import { MemoryConstellation } from '@/components/flashcards/MemoryConstellation';
+import { MemoryTiles } from '@/components/flashcards/MemoryTiles';
 import { generatedFlashcardsSchema } from '@/types/flashcard';
 import type { Flashcard } from '@/types/flashcard';
 import type { Course } from '@/types/schedule';
@@ -134,7 +134,7 @@ export function FlashcardDeckCard({
 
       {deckCards.length > 0 && (
         <>
-          <MemoryConstellation cards={deckCards} />
+          <MemoryTiles cards={deckCards} examTitle={exam ? exam.item.title : null} />
           <div>
             <div className="flex items-baseline justify-between gap-3 text-xs">
               <span className="min-w-0 truncate text-muted-foreground">

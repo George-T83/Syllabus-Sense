@@ -19,9 +19,9 @@ const TARGET_RETENTION = 0.9;
 /** A card that has never been recalled successfully (new, or just lapsed)
  * is treated as fragile: half a day to fall to 90%. */
 const FRAGILE_STABILITY_DAYS = 0.5;
-/** A card counts as long-term once SM-2 has graduated it past its fixed
- * 1-day / 6-day opening steps. */
-const LONG_TERM_STABILITY_DAYS = 6;
+/** A card counts as long-term once its memory holds for three weeks - the
+ * same line Anki draws between "young" and "mature" cards. */
+const LONG_TERM_STABILITY_DAYS = 21;
 const DAY_MS = 86_400_000;
 const MAX_SIMULATED_REVIEWS = 60;
 
