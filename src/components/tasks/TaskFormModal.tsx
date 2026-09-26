@@ -24,6 +24,7 @@ import {
   generateRecurringInstances,
   type RecurrenceFrequency,
 } from '@/lib/planner/recurringTaskTemplate';
+import { toDayKey } from '@/lib/calendar/dates';
 
 const REPEAT_FREQUENCY_OPTIONS: { value: RecurrenceFrequency; label: string }[] = [
   { value: 'weekly', label: 'Weekly' },
@@ -104,7 +105,7 @@ export function TaskFormModal({
           title: initialItem.title,
           type: initialItem.type,
           courseId: initialItem.courseId,
-          dueDate: initialItem.dueDate.slice(0, 10),
+          dueDate: toDayKey(initialItem.dueDate),
           estimatedHours: initialItem.estimatedHours?.toString() ?? '',
           priority: initialItem.priority ?? 'medium',
           notes: initialItem.notes ?? '',

@@ -34,6 +34,7 @@ import {
   SHORT_DATE_FORMATTER as dueDateFormatter,
   WEEKDAY_SHORT_FORMATTER as forecastDayFormatter,
 } from '@/lib/dateFormatters';
+import { dueInstant, isOverdue, parseDayKey } from '@/lib/calendar/dates';
 
 function getGreeting(hour: number): string {
   if (hour < 5) return 'Working late';
@@ -119,7 +120,7 @@ export function DashboardView() {
     ? Math.round((completedTasksCount / termScheduleItems.length) * 100)
     : 0;
   const now = useMemo(() => Date.now(), []);
-  const overdueCount = pendingTasks.filter((item) => new Date(item.dueDate).getTime() < now).length;
+  const overdueCount = pendingTasks.filter((item) => isOverdue(item, now)).length;
 
   const courseLoad = semesterCourses.map((course) => {
     const items = scheduleItems.filter((item) => item.courseId === course.id);
@@ -130,7 +131,7 @@ export function DashboardView() {
 
   const upcomingTasks = pendingTasks
     .slice()
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .sort((a, b) => dueInstant(a.dueDate).getTime() - dueInstant(b.dueDate).getTime())
     .slice(0, 4);
 
   const referenceDate = useMemo(() => getLocalReferenceDate(), []);
@@ -326,7 +327,7 @@ export function DashboardView() {
               <div className="flex flex-col gap-2">
                 {upcomingTasks.map((item) => {
                   const course = courses.find((c) => c.id === item.courseId);
-                  const overdue = !item.completed && new Date(item.dueDate).getTime() < now;
+                  const overdue = isOverdue(item, now);
                   return (
                     <TaskRow
                       key={item.id}
@@ -356,7 +357,7 @@ export function DashboardView() {
                             </span>
                           )}
                           <span className="whitespace-nowrap text-xs text-muted-foreground">
-                            {dueDateFormatter.format(new Date(item.dueDate))}
+                            {dueDateFormatter.format(parseDayKey(item.dueDate))}
                           </span>
                         </div>
                       }

@@ -16,6 +16,7 @@ import { appendAdvisorMessage, useAdvisorMessages } from '@/lib/firestore/adviso
 import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from '@/components/advisor/AdvisorWarningCard';
 import { cn } from '@/lib/utils';
+import { isOverdue } from '@/lib/calendar/dates';
 
 function formatTimestamp(): string {
   return TIME_FORMATTER.format(new Date());
@@ -238,9 +239,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
 
       const now = Date.now();
       const pendingTaskCount = state.scheduleItems.filter((i) => !i.completed).length;
-      const overdueTaskCount = state.scheduleItems.filter(
-        (i) => !i.completed && new Date(i.dueDate).getTime() < now,
-      ).length;
+      const overdueTaskCount = state.scheduleItems.filter((i) => isOverdue(i, now)).length;
 
       try {
         await appendAdvisorMessage(user.uid, userMessage);
