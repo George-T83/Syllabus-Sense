@@ -93,3 +93,98 @@ export function groupCoursesByTerm(courses: DegreeCourse[]): TermGroup[] {
 
   return groups;
 }
+
+export type RouteStopState = 'done' | 'current' | 'planned';
+
+export interface RouteStop {
+  term: string;
+  credits: number;
+  courseCount: number;
+  /** Credits on the route up to and including this term. */
+  cumulativeCredits: number;
+  state: RouteStopState;
+}
+
+export interface DegreeRoute {
+  stops: RouteStop[];
+  creditsRequired: number;
+  /** Completed + in-progress credits. */
+  creditsEarned: number;
+  /** Every credit on the route, planned ones included. */
+  creditsOnRoute: number;
+  /** Credits the plan doesn't cover yet. */
+  creditsUnplanned: number;
+  /** The last planned term, when the plan reaches the requirement. */
+  graduationTerm: string | null;
+}
+
+/**
+ * The degree as a route: one stop per term, in order. A term is done when
+ * every course in it is completed, current when anything in it is in
+ * progress, and planned otherwise.
+ */
+export function buildDegreeRoute(
+  categories: DegreeRequirementCategory[],
+  courses: DegreeCourse[],
+): DegreeRoute {
+  const creditsRequired = categories.reduce((sum, c) => sum + c.creditsRequired, 0);
+  let running = 0;
+  const stops: RouteStop[] = groupCoursesByTerm(courses).map((group) => {
+    running += group.totalCredits;
+    const state: RouteStopState = group.courses.every((c) => c.status === 'completed')
+      ? 'done'
+      : group.courses.some((c) => c.status === 'in-progress')
+        ? 'current'
+        : 'planned';
+    return {
+      term: group.term,
+      credits: group.totalCredits,
+      courseCount: group.courses.length,
+      cumulativeCredits: running,
+      state,
+    };
+  });
+  const creditsEarned = courses
+    .filter((c) => c.status !== 'planned')
+    .reduce((sum, c) => sum + c.credits, 0);
+  const creditsUnplanned = Math.max(0, creditsRequired - running);
+  return {
+    stops,
+    creditsRequired,
+    creditsEarned,
+    creditsOnRoute: running,
+    creditsUnplanned,
+    graduationTerm:
+      creditsUnplanned === 0 && stops.length > 0 ? stops[stops.length - 1].term : null,
+  };
+}
+
+export interface CategoryCourseBlocks {
+  /** The category's courses, completed first, then in progress, then planned. */
+  blocks: DegreeCourse[];
+  /** Credits still needed after completed and in-progress courses. */
+  creditsLeft: number;
+  /** Of `creditsLeft`, the part no planned course covers yet. */
+  creditsUnplanned: number;
+}
+
+const STATUS_ORDER: Record<DegreeCourse['status'], number> = {
+  completed: 0,
+  'in-progress': 1,
+  planned: 2,
+};
+
+/** One requirement's courses as blocks, plus what's left and whether the
+ * plan covers it - the data behind "12 cr left, all planned". */
+export function categoryCourseBlocks(
+  category: DegreeRequirementCategory,
+  courses: DegreeCourse[],
+): CategoryCourseBlocks {
+  const blocks = sortCoursesByTerm(courses.filter((c) => c.categoryId === category.id)).sort(
+    (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
+  );
+  const earned = blocks.filter((c) => c.status !== 'planned').reduce((s, c) => s + c.credits, 0);
+  const planned = blocks.filter((c) => c.status === 'planned').reduce((s, c) => s + c.credits, 0);
+  const creditsLeft = Math.max(0, category.creditsRequired - earned);
+  return { blocks, creditsLeft, creditsUnplanned: Math.max(0, creditsLeft - planned) };
+}
