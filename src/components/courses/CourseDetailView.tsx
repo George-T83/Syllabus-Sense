@@ -303,6 +303,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     } else {
       delete updatedCourse.term;
     }
+    if (values.credits) {
+      updatedCourse.credits = Number(values.credits);
+    } else {
+      delete updatedCourse.credits;
+    }
 
     await updateCourse(user.uid, course, updatedCourse, dispatch, courseContacts);
   };

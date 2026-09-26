@@ -450,3 +450,44 @@ export function courseStanding(items: ScheduleItem[]): CourseStanding | null {
     gradedCount: graded.length,
   };
 }
+
+export interface SemesterGpaSummary {
+  /** Credit-weighted GPA across every course that has at least one graded item. */
+  gpa: number;
+  /** How many courses that GPA is built from. */
+  gradedCourseCount: number;
+  /** How many courses were considered, graded or not - so a caller can say
+   * "2 of 5 courses" instead of implying the GPA covers the whole term. */
+  totalCourseCount: number;
+  totalCredits: number;
+}
+
+/**
+ * Rolls every course's real current standing into one credit-weighted
+ * semester GPA. A course with nothing graded yet is left out rather than
+ * assumed - the same honesty `courseStanding` already holds to - so this
+ * returns null (not an optimistic 4.0) until at least one course has a
+ * graded item.
+ */
+export function summarizeSemesterGpa(
+  courses: { id: string; credits?: number }[],
+  itemsByCourseId: Map<string, ScheduleItem[]>,
+): SemesterGpaSummary | null {
+  const graded = courses
+    .map((course) => {
+      const standing = courseStanding(itemsByCourseId.get(course.id) ?? []);
+      if (!standing) return null;
+      return { credits: course.credits ?? 3, percentage: standing.percentage };
+    })
+    .filter((c): c is { credits: number; percentage: number } => c !== null);
+
+  if (graded.length === 0) return null;
+
+  const { gpa, totalCredits } = calculateSemesterGpa(graded);
+  return {
+    gpa,
+    gradedCourseCount: graded.length,
+    totalCourseCount: courses.length,
+    totalCredits,
+  };
+}
