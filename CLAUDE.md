@@ -13,6 +13,7 @@ All commits must be authored as `George-T83 <george.tannious@gmail.com>`, regard
 - Never commit or push directly to `main`. Always work on a feature/fix branch and open a pull request.
 - Branch protection requires the "Lint, Build, and Test" CI check to pass before merging.
 - Prefer a new commit over amending, unless explicitly asked to amend.
+- Commits must not be signed with the environment's own key. Some sessions (e.g. Claude Code in the cloud) set `commit.gpgsign true` globally with a signing key that isn't on the George-T83 GitHub account, which makes GitHub flag every commit "Unverified". Before the first commit in any clone or worktree, run `git config --local commit.gpgsign false`, and check `git config --get commit.gpgsign` prints `false`.
 - Before merging, verify: `tsc --noEmit`, `npm run lint`, and the full `vitest` suite are all green, and CI has passed on the actual PR.
 
 ## Verification standard
