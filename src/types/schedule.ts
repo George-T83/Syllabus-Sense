@@ -29,6 +29,15 @@ export interface MaterialItem {
   cost?: number;
 }
 
+/** A course's attendance rules, as the student copied them from the
+ * syllabus - never assumed: a course without one has no limit on file. */
+export interface AttendancePolicy {
+  /** Unexcused absences allowed before a penalty applies. */
+  allowedUnexcused: number;
+  /** What happens past the limit, in the syllabus's words. */
+  penalty?: string;
+}
+
 /** A single logged absence for AttendanceGauge's per-course tracker. */
 export interface AbsenceRecord {
   id: string;
@@ -92,6 +101,8 @@ export interface Course {
   learningObjectivesApproved?: boolean;
   /** Manually-logged absences for the attendance tracker (AttendanceGauge). */
   absences?: AbsenceRecord[];
+  /** The syllabus's attendance limit, entered by the student. */
+  attendancePolicy?: AttendancePolicy;
 }
 
 /** Whether a contact is the instructor of record or a teaching assistant. */

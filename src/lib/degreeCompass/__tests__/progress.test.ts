@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  buildDegreeRoute,
+  categoryCourseBlocks,
   computeCategoryProgress,
   computeOverallProgress,
   groupCoursesByTerm,
@@ -137,5 +139,72 @@ describe('sortCoursesByTerm', () => {
     ];
     const sorted = sortCoursesByTerm(courses);
     expect(sorted.map((c) => c.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('buildDegreeRoute', () => {
+  // 21 credits required (12 core + 9 gen ed).
+  const route = buildDegreeRoute(categories, [
+    course({ id: 'a', term: 'Fall 2025', credits: 4, status: 'completed' }),
+    course({ id: 'b', term: 'Fall 2025', credits: 3, status: 'completed', categoryId: 'genEd' }),
+    course({ id: 'c', term: 'Spring 2026', credits: 4, status: 'in-progress' }),
+    course({ id: 'd', term: 'Spring 2026', credits: 3, status: 'completed', categoryId: 'genEd' }),
+    course({ id: 'e', term: 'Fall 2026', credits: 4, status: 'planned' }),
+  ]);
+
+  it('makes one stop per term, in order, with a running total', () => {
+    expect(route.stops.map((s) => [s.term, s.state, s.credits, s.cumulativeCredits])).toEqual([
+      ['Fall 2025', 'done', 7, 7],
+      ['Spring 2026', 'current', 7, 14],
+      ['Fall 2026', 'planned', 4, 18],
+    ]);
+    expect(route.stops[1].courseCount).toBe(2);
+  });
+
+  it('counts earned credits and what the plan still has to cover', () => {
+    expect(route.creditsRequired).toBe(21);
+    expect(route.creditsEarned).toBe(14);
+    expect(route.creditsOnRoute).toBe(18);
+    expect(route.creditsUnplanned).toBe(3);
+    expect(route.graduationTerm).toBeNull();
+  });
+
+  it('names the graduation term once the plan reaches the requirement', () => {
+    const full = buildDegreeRoute(categories, [
+      course({ term: 'Fall 2025', credits: 12, status: 'completed' }),
+      course({ term: 'Spring 2026', credits: 9, status: 'planned', categoryId: 'genEd' }),
+    ]);
+    expect(full.creditsUnplanned).toBe(0);
+    expect(full.graduationTerm).toBe('Spring 2026');
+  });
+
+  it('is empty with no courses', () => {
+    const empty = buildDegreeRoute(categories, []);
+    expect(empty.stops).toEqual([]);
+    expect(empty.creditsUnplanned).toBe(21);
+    expect(empty.graduationTerm).toBeNull();
+  });
+});
+
+describe('categoryCourseBlocks', () => {
+  it('orders blocks completed, in progress, planned, and says what is left', () => {
+    const result = categoryCourseBlocks(majorCore, [
+      course({ id: 'p', code: 'CS 301', status: 'planned', credits: 4 }),
+      course({ id: 'c', code: 'CS 101', status: 'completed', credits: 4 }),
+      course({ id: 'i', code: 'CS 201', status: 'in-progress', credits: 3 }),
+      course({ id: 'g', code: 'ENG 101', categoryId: 'genEd' }),
+    ]);
+    expect(result.blocks.map((b) => b.id)).toEqual(['c', 'i', 'p']);
+    // 12 required - 7 earned = 5 left; 4 planned covers all but 1
+    expect(result.creditsLeft).toBe(5);
+    expect(result.creditsUnplanned).toBe(1);
+  });
+
+  it('reports nothing left once the requirement is met', () => {
+    const result = categoryCourseBlocks(genEd, [
+      course({ categoryId: 'genEd', credits: 9, status: 'completed' }),
+    ]);
+    expect(result.creditsLeft).toBe(0);
+    expect(result.creditsUnplanned).toBe(0);
   });
 });

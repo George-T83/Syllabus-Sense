@@ -11,7 +11,12 @@ export function useSyllabi(userId: string | undefined, courseId: string) {
   const { showError } = useToast();
 
   useEffect(() => {
-    if (!userId || !db) return;
+    // No course picked yet (the syllabus chat before one is selected): an
+    // empty path segment would make Firestore throw.
+    if (!userId || !courseId || !db) {
+      setSyllabi([]);
+      return;
+    }
     const unsubscribe = onSnapshot(
       collection(db, 'users', userId, 'courses', courseId, 'syllabi'),
       (snapshot) => setSyllabi(snapshot.docs.map((d) => d.data() as SyllabusUpload)),
