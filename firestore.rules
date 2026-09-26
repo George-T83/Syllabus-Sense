@@ -1,3 +1,6 @@
+// Deployed automatically on merge to main by
+// .github/workflows/deploy-firestore-rules.yml - editing this file and
+// merging is enough; no manual `firebase deploy` step needed anymore.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
