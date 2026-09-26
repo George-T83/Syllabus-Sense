@@ -405,7 +405,7 @@ export function NextClassHeroBanner({
               rel="noopener noreferrer"
               onClick={() => onJoinMeeting?.(course, meetingLink)}
               data-testid="join-class-btn"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white hover:bg-white/90 text-primary font-semibold text-sm shadow-sm active:scale-95 transition-all min-h-[44px] cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white hover:bg-white/90 text-[#5b3df5] font-semibold text-sm shadow-sm active:scale-95 transition-all min-h-[44px] cursor-pointer"
             >
               <svg
                 className="w-5 h-5"

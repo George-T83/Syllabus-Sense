@@ -353,7 +353,7 @@ export function ProjectChunkerModal({
                     : 'border-border bg-input text-muted-foreground hover:bg-accent'
                 }`}
               >
-                📅 Daily Bite Chunks (30–60 min/day)
+                Daily Bite Chunks (30–60 min/day)
               </button>
               <button
                 type="button"
@@ -364,7 +364,7 @@ export function ProjectChunkerModal({
                     : 'border-border bg-input text-muted-foreground hover:bg-accent'
                 }`}
               >
-                📆 Weekly Major Milestones
+                Weekly Major Milestones
               </button>
             </div>
           </div>

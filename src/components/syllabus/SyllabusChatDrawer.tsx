@@ -86,7 +86,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
     {
       id: 'welcome-msg',
       sender: 'assistant',
-      text: "👋 Hi! I'm your **AI Syllabus & Study Copilot**. Ask me anything about your enrolled course syllabi — such as grading breakdowns, late penalties, exam schedules, or professor office hours!",
+      text: "Hi! I'm your **AI Syllabus & Study Copilot**. Ask me anything about your enrolled course syllabi — such as grading breakdowns, late penalties, exam schedules, or professor office hours!",
       timestamp: formatTimestamp(),
     },
   ]);
@@ -521,7 +521,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
                               key={i}
                               className="inline-flex items-center gap-1 rounded bg-card/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border/40"
                             >
-                              📑 {cite}
+                              {cite}
                             </span>
                           ))}
                         </div>
@@ -588,7 +588,6 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
           {mode === 'syllabus' && uploadedFile && (
             <div className="px-3 py-1.5 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5 truncate">
-                <span>📄</span>
                 <span className="font-medium text-foreground truncate">{uploadedFile.name}</span>
                 <span className="text-[10px] text-muted-foreground font-semibold px-1.5 py-0.5 rounded bg-muted/70">
                   Context Added
@@ -740,7 +739,6 @@ function SuggestedChunksCard({
     <div className="mt-3.5 p-3.5 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
       <div className="flex items-center justify-between border-b border-primary/10 pb-2">
         <div className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
-          <span>⚡</span>
           <span>Suggested Project Chunks ({chunks.length})</span>
         </div>
         <span className="text-[10px] text-muted-foreground font-mono">
@@ -792,7 +790,7 @@ function SuggestedChunksCard({
           </>
         ) : (
           <>
-            <span>📅 Apply to Planner</span>
+            <span>Apply to Planner</span>
           </>
         )}
       </button>

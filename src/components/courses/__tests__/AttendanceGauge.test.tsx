@@ -16,10 +16,10 @@ describe('AttendanceGauge (Item 48)', () => {
         courseTitle="Data Structures"
         maxAllowedAbsences={3}
         initialAbsences={SAMPLE_ABSENCES}
-      />
+      />,
     );
 
-    expect(screen.getByText('Attendance & Absence Allowance Gauge')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Attendance' })).toBeDefined();
     expect(screen.getByRole('progressbar')).toBeDefined();
     expect(screen.getByTestId('absence-status-badge')).toBeDefined();
     expect(screen.getByText(/2 of 3 Absences Remaining/i)).toBeDefined();
@@ -36,7 +36,7 @@ describe('AttendanceGauge (Item 48)', () => {
         courseCode="CS 301"
         maxAllowedAbsences={3}
         initialAbsences={warningAbsences}
-      />
+      />,
     );
 
     expect(screen.getByText(/Final Warning: 1 Absence Left/i)).toBeDefined();
@@ -50,7 +50,7 @@ describe('AttendanceGauge (Item 48)', () => {
         maxAllowedAbsences={3}
         initialAbsences={SAMPLE_ABSENCES}
         onAbsenceLogged={onLogged}
-      />
+      />,
     );
 
     // Open modal
@@ -75,7 +75,7 @@ describe('AttendanceGauge (Item 48)', () => {
         maxAllowedAbsences={3}
         initialAbsences={SAMPLE_ABSENCES}
         onAbsenceDeleted={onDeleted}
-      />
+      />,
     );
 
     const deleteBtn = screen.getByLabelText(/Delete absence on 2026-09-10/i);
