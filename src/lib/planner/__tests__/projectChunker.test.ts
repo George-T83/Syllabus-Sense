@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { afterAll, beforeAll, describe, it, expect } from 'vitest';
 import {
   divideProjectIntoChunks,
   calculateWorkloadBreakdown,
   toLocalDateStr,
+  parseDateString,
   PHASE_TEMPLATES,
   type ChunkableType,
   type ProjectChunk,
@@ -326,8 +327,22 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('F6-2: date shifting rebalances heavy peak day into moderate/light days', () => {
       const items = [
-        createScheduleItem({ id: 't1', title: 'Task 1', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 4, completed: false, type: 'assignment' }),
-        createScheduleItem({ id: 't2', title: 'Task 2', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 3, completed: false, type: 'assignment' }),
+        createScheduleItem({
+          id: 't1',
+          title: 'Task 1',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 4,
+          completed: false,
+          type: 'assignment',
+        }),
+        createScheduleItem({
+          id: 't2',
+          title: 'Task 2',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 3,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       const initial = calculateWorkloadBreakdown(items, [], fixedToday);
       expect(initial.today.totalMinutes).toBe(420); // 7 hrs -> heavy
@@ -337,7 +352,7 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
       const rebalanced = calculateWorkloadBreakdown(
         [items[0], createScheduleItem({ ...items[1], dueDate: localIsoDate(2026, 4, 11) })],
         [],
-        fixedToday
+        fixedToday,
       );
       expect(rebalanced.today.totalMinutes).toBe(240); // 4 hrs -> moderate
       expect(rebalanced.today.intensity).toBe('moderate');
@@ -348,9 +363,30 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('F6-3: shifting multiple tasks preserves total weekly hours', () => {
       const items = [
-        createScheduleItem({ id: 't1', title: 'Task 1', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 2, completed: false, type: 'project' }),
-        createScheduleItem({ id: 't2', title: 'Task 2', dueDate: localIsoDate(2026, 4, 11), estimatedHours: 3, completed: false, type: 'project' }),
-        createScheduleItem({ id: 't3', title: 'Task 3', dueDate: localIsoDate(2026, 4, 12), estimatedHours: 4, completed: false, type: 'project' }),
+        createScheduleItem({
+          id: 't1',
+          title: 'Task 1',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 2,
+          completed: false,
+          type: 'project',
+        }),
+        createScheduleItem({
+          id: 't2',
+          title: 'Task 2',
+          dueDate: localIsoDate(2026, 4, 11),
+          estimatedHours: 3,
+          completed: false,
+          type: 'project',
+        }),
+        createScheduleItem({
+          id: 't3',
+          title: 'Task 3',
+          dueDate: localIsoDate(2026, 4, 12),
+          estimatedHours: 4,
+          completed: false,
+          type: 'project',
+        }),
       ];
       const b1 = calculateWorkloadBreakdown(items, [], fixedToday);
       const b2 = calculateWorkloadBreakdown(
@@ -360,7 +396,7 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
           createScheduleItem({ ...items[2], dueDate: localIsoDate(2026, 4, 16) }),
         ],
         [],
-        fixedToday
+        fixedToday,
       );
       expect(b1.thisWeek.totalMinutes).toBe(b2.thisWeek.totalMinutes);
     });
@@ -378,7 +414,11 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
       expect(b1.thisWeek.totalMinutes).toBe(300);
 
       // Shift beyond 7 days (e.g. 2026-04-20)
-      const b2 = calculateWorkloadBreakdown([createScheduleItem({ ...item, dueDate: localIsoDate(2026, 4, 20) })], [], fixedToday);
+      const b2 = calculateWorkloadBreakdown(
+        [createScheduleItem({ ...item, dueDate: localIsoDate(2026, 4, 20) })],
+        [],
+        fixedToday,
+      );
       expect(b2.thisWeek.totalMinutes).toBe(0);
     });
 
@@ -391,7 +431,11 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
         completed: false,
         type: 'quiz',
       });
-      const b = calculateWorkloadBreakdown([createScheduleItem({ ...item, dueDate: localIsoDate(2026, 4, 10) })], [], fixedToday);
+      const b = calculateWorkloadBreakdown(
+        [createScheduleItem({ ...item, dueDate: localIsoDate(2026, 4, 10) })],
+        [],
+        fixedToday,
+      );
       expect(b.today.totalMinutes).toBe(120);
       expect(b.today.items[0].id).toBe('t1');
     });
@@ -432,8 +476,22 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('F7-3: multiple completed past tasks retain their original completion minutes', () => {
       const items = [
-        createScheduleItem({ id: 'p1', title: 'P1', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 2, completed: true, type: 'reading' }),
-        createScheduleItem({ id: 'p2', title: 'P2', dueDate: localIsoDate(2026, 4, 8), estimatedHours: 1.5, completed: true, type: 'quiz' }),
+        createScheduleItem({
+          id: 'p1',
+          title: 'P1',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 2,
+          completed: true,
+          type: 'reading',
+        }),
+        createScheduleItem({
+          id: 'p2',
+          title: 'P2',
+          dueDate: localIsoDate(2026, 4, 8),
+          estimatedHours: 1.5,
+          completed: true,
+          type: 'quiz',
+        }),
       ];
       const breakdown = calculateWorkloadBreakdown(items, [], fixedToday);
       expect(breakdown.rolledOverCount).toBe(0);
@@ -496,9 +554,30 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('F8-2: multiple uncompleted past tasks accumulate into today and increment rolledOverCount', () => {
       const items = [
-        createScheduleItem({ id: 'm1', title: 'Task A', dueDate: localIsoDate(2026, 4, 7), estimatedHours: 1, completed: false, type: 'reading' }),
-        createScheduleItem({ id: 'm2', title: 'Task B', dueDate: localIsoDate(2026, 4, 8), estimatedHours: 2, completed: false, type: 'coding' }),
-        createScheduleItem({ id: 'm3', title: 'Task C', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 3, completed: false, type: 'exam' }),
+        createScheduleItem({
+          id: 'm1',
+          title: 'Task A',
+          dueDate: localIsoDate(2026, 4, 7),
+          estimatedHours: 1,
+          completed: false,
+          type: 'reading',
+        }),
+        createScheduleItem({
+          id: 'm2',
+          title: 'Task B',
+          dueDate: localIsoDate(2026, 4, 8),
+          estimatedHours: 2,
+          completed: false,
+          type: 'coding',
+        }),
+        createScheduleItem({
+          id: 'm3',
+          title: 'Task C',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 3,
+          completed: false,
+          type: 'exam',
+        }),
       ];
       const breakdown = calculateWorkloadBreakdown(items, [], fixedToday);
       expect(breakdown.rolledOverCount).toBe(3);
@@ -508,8 +587,22 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('F8-3: mixing past completed and uncompleted tasks only rolls over uncompleted ones', () => {
       const items = [
-        createScheduleItem({ id: 'past-completed', title: 'Done HW', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 2, completed: true, type: 'assignment' }),
-        createScheduleItem({ id: 'past-pending', title: 'Pending HW', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 1.5, completed: false, type: 'assignment' }),
+        createScheduleItem({
+          id: 'past-completed',
+          title: 'Done HW',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 2,
+          completed: true,
+          type: 'assignment',
+        }),
+        createScheduleItem({
+          id: 'past-pending',
+          title: 'Pending HW',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 1.5,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       const breakdown = calculateWorkloadBreakdown(items, [], fixedToday);
       expect(breakdown.rolledOverCount).toBe(1);
@@ -519,8 +612,22 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('F8-4: rollover tasks combine with native today tasks to calculate today load intensity', () => {
       const items = [
-        createScheduleItem({ id: 'past-pending', title: 'Late Lab', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 2, completed: false, type: 'assignment' }),
-        createScheduleItem({ id: 'today-task', title: 'Today Quiz', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 1.5, completed: false, type: 'quiz' }),
+        createScheduleItem({
+          id: 'past-pending',
+          title: 'Late Lab',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
+        createScheduleItem({
+          id: 'today-task',
+          title: 'Today Quiz',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 1.5,
+          completed: false,
+          type: 'quiz',
+        }),
       ];
       const breakdown = calculateWorkloadBreakdown(items, [], fixedToday);
       expect(breakdown.today.totalMinutes).toBe(210); // 120 + 90 = 210 mins (moderate)
@@ -530,13 +637,24 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('F8-5: completing a rolled-over task on today clears rollover state upon recalculation', () => {
       const items = [
-        createScheduleItem({ id: 'item-1', title: 'Late Assignment', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 2, completed: false, type: 'assignment' }),
+        createScheduleItem({
+          id: 'item-1',
+          title: 'Late Assignment',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       const before = calculateWorkloadBreakdown(items, [], fixedToday);
       expect(before.rolledOverCount).toBe(1);
 
       // Complete it
-      const after = calculateWorkloadBreakdown([createScheduleItem({ ...items[0], completed: true })], [], fixedToday);
+      const after = calculateWorkloadBreakdown(
+        [createScheduleItem({ ...items[0], completed: true })],
+        [],
+        fixedToday,
+      );
       expect(after.rolledOverCount).toBe(0);
       expect(after.today.items).toHaveLength(0);
     });
@@ -706,7 +824,14 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
       expect(emptyBreakdown.next7Days.every((d) => d.intensity === 'light')).toBe(true);
 
       const itemsWithNoDue: ScheduleItem[] = [
-        { id: 'no-due-1', courseId: 'c1', dueDate: '', title: 'Floating task', completed: false, type: 'assignment' },
+        {
+          id: 'no-due-1',
+          courseId: 'c1',
+          dueDate: '',
+          title: 'Floating task',
+          completed: false,
+          type: 'assignment',
+        },
       ];
       const noDueBreakdown = calculateWorkloadBreakdown(itemsWithNoDue, [], fixedToday);
       expect(noDueBreakdown.thisWeek.totalMinutes).toBe(0);
@@ -721,7 +846,7 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
           estimatedHours: 0.5, // 30 mins each
           completed: i % 4 === 0,
           type: 'assignment',
-        })
+        }),
       );
 
       const start = performance.now();
@@ -733,8 +858,20 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
     });
 
     it('B11: handles items with missing estimatedHours applying type-specific fallbacks', () => {
-      const examItem = createScheduleItem({ id: 'exam-no-hr', title: 'Exam', dueDate: localIsoDate(2026, 4, 10), completed: false, type: 'exam' });
-      const defaultItem = createScheduleItem({ id: 'def-no-hr', title: 'Task', dueDate: localIsoDate(2026, 4, 10), completed: false, type: 'assignment' });
+      const examItem = createScheduleItem({
+        id: 'exam-no-hr',
+        title: 'Exam',
+        dueDate: localIsoDate(2026, 4, 10),
+        completed: false,
+        type: 'exam',
+      });
+      const defaultItem = createScheduleItem({
+        id: 'def-no-hr',
+        title: 'Task',
+        dueDate: localIsoDate(2026, 4, 10),
+        completed: false,
+        type: 'assignment',
+      });
 
       const b = calculateWorkloadBreakdown([examItem, defaultItem], [], fixedToday);
       expect(b.today.items[0].durationMinutes).toBe(120); // 120m for exam
@@ -798,7 +935,7 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
       const b2 = calculateWorkloadBreakdown(
         [completedPast, createScheduleItem({ ...futureTask, dueDate: localIsoDate(2026, 4, 15) })],
         [],
-        fixedToday
+        fixedToday,
       );
       expect(b2.rolledOverCount).toBe(0);
       const day11 = b2.next7Days.find((d) => d.dateStr === '2026-04-11')!;
@@ -809,10 +946,42 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('P3: Multi-Course Chunking: tasks across 4 courses aggregate seamlessly into daily forecast', () => {
       const items = [
-        createScheduleItem({ id: 'c1-t1', courseId: 'c-cs', title: 'CS Coding', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 2, completed: false, type: 'coding' }),
-        createScheduleItem({ id: 'c2-t1', courseId: 'c-math', title: 'Math Problem Set', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 2, completed: false, type: 'assignment' }),
-        createScheduleItem({ id: 'c3-t1', courseId: 'c-bio', title: 'Bio Flashcards', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 1, completed: false, type: 'flashcards' }),
-        createScheduleItem({ id: 'c4-t1', courseId: 'c-hist', title: 'History Reading', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 1.5, completed: false, type: 'reading' }),
+        createScheduleItem({
+          id: 'c1-t1',
+          courseId: 'c-cs',
+          title: 'CS Coding',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 2,
+          completed: false,
+          type: 'coding',
+        }),
+        createScheduleItem({
+          id: 'c2-t1',
+          courseId: 'c-math',
+          title: 'Math Problem Set',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
+        createScheduleItem({
+          id: 'c3-t1',
+          courseId: 'c-bio',
+          title: 'Bio Flashcards',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 1,
+          completed: false,
+          type: 'flashcards',
+        }),
+        createScheduleItem({
+          id: 'c4-t1',
+          courseId: 'c-hist',
+          title: 'History Reading',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 1.5,
+          completed: false,
+          type: 'reading',
+        }),
       ];
       const breakdown = calculateWorkloadBreakdown(items, [], fixedToday);
       expect(breakdown.today.items).toHaveLength(4);
@@ -837,10 +1006,25 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('P5: Coexistence of Persisted Items & Unpersisted Preview Chunks: both contribute without conflict', () => {
       const persisted = [
-        createScheduleItem({ id: 'persisted-1', title: 'Regular Task', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 2, completed: false, type: 'assignment' }),
+        createScheduleItem({
+          id: 'persisted-1',
+          title: 'Regular Task',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 2,
+          completed: false,
+          type: 'assignment',
+        }),
       ];
       const preview: ProjectChunk[] = [
-        { id: 'chunk-1', title: 'Preview Part 1', targetDate: '2026-04-10', durationMinutes: 90, completed: false, phase: 'Phase 1', type: 'paper' },
+        {
+          id: 'chunk-1',
+          title: 'Preview Part 1',
+          targetDate: '2026-04-10',
+          durationMinutes: 90,
+          completed: false,
+          phase: 'Phase 1',
+          type: 'paper',
+        },
       ];
 
       const b = calculateWorkloadBreakdown(persisted, preview, fixedToday);
@@ -915,12 +1099,47 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
 
     it('Scenario 3: Sick Day Rollover Recovery (Missed 2 days, 4 tasks roll over to today)', () => {
       const items = [
-        createScheduleItem({ id: 'missed-1', title: 'Day-2 Task 1', dueDate: localIsoDate(2026, 4, 8), estimatedHours: 2, completed: false, type: 'reading' }),
-        createScheduleItem({ id: 'missed-2', title: 'Day-2 Task 2', dueDate: localIsoDate(2026, 4, 8), estimatedHours: 1.5, completed: false, type: 'quiz' }),
-        createScheduleItem({ id: 'missed-3', title: 'Day-1 Task 1', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 2.5, completed: false, type: 'assignment' }),
-        createScheduleItem({ id: 'missed-4', title: 'Day-1 Task 2', dueDate: localIsoDate(2026, 4, 9), estimatedHours: 1, completed: false, type: 'coding' }),
+        createScheduleItem({
+          id: 'missed-1',
+          title: 'Day-2 Task 1',
+          dueDate: localIsoDate(2026, 4, 8),
+          estimatedHours: 2,
+          completed: false,
+          type: 'reading',
+        }),
+        createScheduleItem({
+          id: 'missed-2',
+          title: 'Day-2 Task 2',
+          dueDate: localIsoDate(2026, 4, 8),
+          estimatedHours: 1.5,
+          completed: false,
+          type: 'quiz',
+        }),
+        createScheduleItem({
+          id: 'missed-3',
+          title: 'Day-1 Task 1',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 2.5,
+          completed: false,
+          type: 'assignment',
+        }),
+        createScheduleItem({
+          id: 'missed-4',
+          title: 'Day-1 Task 2',
+          dueDate: localIsoDate(2026, 4, 9),
+          estimatedHours: 1,
+          completed: false,
+          type: 'coding',
+        }),
         // A task completed before sickness
-        createScheduleItem({ id: 'done-before', title: 'Day-3 Done Task', dueDate: localIsoDate(2026, 4, 7), estimatedHours: 2, completed: true, type: 'assignment' }),
+        createScheduleItem({
+          id: 'done-before',
+          title: 'Day-3 Done Task',
+          dueDate: localIsoDate(2026, 4, 7),
+          estimatedHours: 2,
+          completed: true,
+          type: 'assignment',
+        }),
       ];
 
       const initialBreakdown = calculateWorkloadBreakdown(items, [], fixedToday);
@@ -954,8 +1173,22 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
       });
 
       const concurrentHomework = [
-        createScheduleItem({ id: 'hw-1', title: 'Stats Weekly Set', dueDate: localIsoDate(2026, 4, 12), estimatedHours: 3, completed: false, type: 'assignment' }),
-        createScheduleItem({ id: 'hw-2', title: 'CS Code Review', dueDate: localIsoDate(2026, 4, 14), estimatedHours: 2, completed: false, type: 'coding' }),
+        createScheduleItem({
+          id: 'hw-1',
+          title: 'Stats Weekly Set',
+          dueDate: localIsoDate(2026, 4, 12),
+          estimatedHours: 3,
+          completed: false,
+          type: 'assignment',
+        }),
+        createScheduleItem({
+          id: 'hw-2',
+          title: 'CS Code Review',
+          dueDate: localIsoDate(2026, 4, 14),
+          estimatedHours: 2,
+          completed: false,
+          type: 'coding',
+        }),
       ];
 
       const breakdown = calculateWorkloadBreakdown(concurrentHomework, paperChunks, fixedToday);
@@ -966,9 +1199,30 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
     it('Scenario 5: End-of-Semester Grade Polish Workload Balancing', () => {
       // Overloaded Monday: 3 heavy finals and 2 projects due
       const overloadedItems = [
-        createScheduleItem({ id: 'f1', title: 'Algorithms Final', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 4, completed: false, type: 'exam' }),
-        createScheduleItem({ id: 'f2', title: 'Databases Final', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 3, completed: false, type: 'exam' }),
-        createScheduleItem({ id: 'p1', title: 'Web App Final Submission', dueDate: localIsoDate(2026, 4, 10), estimatedHours: 3, completed: false, type: 'project' }),
+        createScheduleItem({
+          id: 'f1',
+          title: 'Algorithms Final',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 4,
+          completed: false,
+          type: 'exam',
+        }),
+        createScheduleItem({
+          id: 'f2',
+          title: 'Databases Final',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 3,
+          completed: false,
+          type: 'exam',
+        }),
+        createScheduleItem({
+          id: 'p1',
+          title: 'Web App Final Submission',
+          dueDate: localIsoDate(2026, 4, 10),
+          estimatedHours: 3,
+          completed: false,
+          type: 'project',
+        }),
       ];
 
       const b1 = calculateWorkloadBreakdown(overloadedItems, [], fixedToday);
@@ -987,5 +1241,25 @@ describe('projectChunker Engine & Algorithmic Workload Suite', () => {
       expect(b2.today.intensity).toBe('moderate');
       expect(b2.next7Days.every((d) => d.intensity !== 'heavy')).toBe(true);
     });
+  });
+});
+
+describe('parseDateString west of UTC', () => {
+  const originalTZ = process.env.TZ;
+  beforeAll(() => {
+    process.env.TZ = 'America/New_York';
+  });
+  afterAll(() => {
+    process.env.TZ = originalTZ;
+  });
+
+  it('reads a bare date as that local day', () => {
+    expect(toLocalDateStr(parseDateString('2026-09-26'))).toBe('2026-09-26');
+  });
+
+  it('keeps an ISO instant on its local day instead of slicing the UTC date', () => {
+    // A task due 23:59 on Sep 26 in New York is stored as 03:59Z on Sep 27.
+    const stored = new Date(2026, 8, 26, 23, 59).toISOString();
+    expect(toLocalDateStr(parseDateString(stored))).toBe('2026-09-26');
   });
 });

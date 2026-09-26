@@ -73,19 +73,6 @@ const WITHIN_SORT_LABELS: Record<WithinSort, string> = {
 
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
 
-function isOverdue(item: ScheduleItem, today: Date): boolean {
-  return !item.completed && new Date(item.dueDate) < today;
-}
-
-/** Days between an item's due date and `today`, ignoring time of day, so
- * "Today"/"This Week" buckets don't depend on what hour it currently is. */
-function dayDiff(dueDate: string, today: Date): number {
-  const due = new Date(dueDate);
-  const dueMidnight = new Date(due.getFullYear(), due.getMonth(), due.getDate());
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  return Math.round((dueMidnight.getTime() - todayMidnight.getTime()) / 86_400_000);
-}
-
 /** Overdue, then started-but-not-done, then not-yet-started, then completed
  * - the same four-way status split used for 'status' grouping, reused here
  * so 'Then by: Status' produces a consistent order whatever it's layered
@@ -107,7 +94,7 @@ function compareWithin(sort: WithinSort, a: ScheduleItem, b: ScheduleItem, today
     const rankB = statusRank(b, today);
     if (rankA !== rankB) return rankA - rankB;
   }
-  return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  return dueInstant(a.dueDate).getTime() - dueInstant(b.dueDate).getTime();
 }
 
 interface ItemGroup {
@@ -143,7 +130,7 @@ function groupByMonth(
 ): { key: string; label: string; items: ScheduleItem[] }[] {
   const byMonth = new Map<string, ScheduleItem[]>();
   for (const item of items) {
-    const due = new Date(item.dueDate);
+    const due = parseDayKey(item.dueDate);
     const monthKey = `${due.getFullYear()}-${due.getMonth()}`;
     const list = byMonth.get(monthKey);
     if (list) list.push(item);
@@ -169,6 +156,7 @@ import { WorkloadOverviewDashboard } from '@/components/planner/WorkloadOverview
 import { SemesterHeatmapCard } from '@/components/planner/SemesterHeatmapCard';
 import { StudyBlockSuggestionsCard } from '@/components/planner/StudyBlockSuggestionsCard';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { daysUntilDue, dueInstant, isOverdue, parseDayKey } from '@/lib/calendar/dates';
 
 /** Default number of task rows a group shows before collapsing the rest
  * behind a "Show N more" toggle. A real semester's task list can run into
@@ -254,7 +242,7 @@ function PlannedTaskRow({
   onToggleComplete?: () => void;
   variant?: 'card' | 'touch';
 }) {
-  const dueLabel = dueDateFormatter.format(new Date(item.dueDate));
+  const dueLabel = dueDateFormatter.format(parseDayKey(item.dueDate));
   const startLabel = formatPlanDateKey(startDate);
   return (
     <TaskRow
@@ -487,7 +475,7 @@ export function PlannerView() {
         buckets.completed.push(item);
         continue;
       }
-      const diff = dayDiff(item.dueDate, today);
+      const diff = daysUntilDue(item.dueDate, today);
       if (diff < 0) buckets.overdue.push(item);
       else if (diff === 0) buckets.today.push(item);
       else if (diff < 7) buckets.week.push(item);
@@ -601,7 +589,7 @@ export function PlannerView() {
               </span>
             )}
             <span className="text-xs text-muted-foreground">
-              Due {dueDateFormatter.format(new Date(item.dueDate))}
+              Due {dueDateFormatter.format(parseDayKey(item.dueDate))}
             </span>
             {/* Edit/Delete: de-emphasized (not full-strength) for a completed
              * task so finished work doesn't compete visually with
