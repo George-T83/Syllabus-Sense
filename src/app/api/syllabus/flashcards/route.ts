@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
     const file = adminStorage.bucket().file(storagePath);
     const [bytes] = await file.download();
     fileBase64 = bytes.toString('base64');
-  } catch {
+  } catch (err) {
+    console.error('Failed to read syllabus file from Storage for flashcards:', storagePath, err);
     return NextResponse.json({ error: "Couldn't read that file." }, { status: 404 });
   }
 
