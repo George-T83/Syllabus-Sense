@@ -19,12 +19,11 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
    */
   accent?: boolean | 'top' | 'left' | 'glow' | 'none';
   /**
-   * The default `bg-card/90 backdrop-blur-md` reads as a deliberate frosted
-   * pane behind an in-page card, but the same 10% transparency lets a modal
-   * dialog's own backdrop bleed the page through the panel itself - visible
-   * wherever the panel isn't fully covered by dense content. Modal panels
-   * (this Card wrapping a `role="dialog"` element) should pass `opaque` for
-   * a fully solid background; in-page cards keep the frosted default.
+   * The default `surface-luminous` is a deliberately frosted pane that lets
+   * the page's nebula glow through an in-page card, but that translucency
+   * would let a modal dialog's backdrop bleed the page through the panel
+   * itself. Modal panels (this Card wrapping a `role="dialog"` element)
+   * pass `opaque` for `surface-solid`; in-page cards keep the frosted default.
    */
   opaque?: boolean;
 }
@@ -43,8 +42,8 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
           accentGlow
             ? 'glow-edge glow-edge-low'
             : opaque
-              ? 'border border-border bg-card shadow-card'
-              : 'border border-border bg-card/90 backdrop-blur-md shadow-card',
+              ? 'border border-border surface-solid shadow-card'
+              : 'border border-border surface-luminous shadow-card',
           isInteractive &&
             'transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover',
           accentLeft && 'border-l-[3px] border-l-primary',

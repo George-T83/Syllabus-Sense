@@ -398,7 +398,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
               <div className="min-w-0">
                 <h1
                   className={cn(
-                    'text-2xl font-bold leading-tight tracking-tight text-foreground',
+                    'font-display text-3xl font-medium leading-tight tracking-tight text-foreground',
                     item.completed && 'text-muted-foreground line-through',
                   )}
                 >

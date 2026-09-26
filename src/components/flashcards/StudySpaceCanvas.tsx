@@ -50,10 +50,29 @@ const RGB = {
   ember: '255,138,122',
   slate: '148,146,176',
 };
-const BG = '#07060d';
 const DUST_COUNT = 170;
 const MAX_PARTICLES = 420;
 const IGNITE_MS = 900;
+
+/** How the sky paints in each theme. At night, light adds up ('lighter'),
+ * so nebulae and stars glow; in daylight additive blending would wash to
+ * white, so everything paints normally in violet ink on a pearl sky. */
+interface Sky {
+  bg: string;
+  blend: GlobalCompositeOperation;
+  ink: string;
+  core: string | null;
+}
+
+function readSky(): Sky {
+  const root = document.documentElement;
+  const bgVar = getComputedStyle(root).getPropertyValue('--background').trim();
+  const dark = root.classList.contains('dark');
+  const bg = bgVar ? `hsl(${bgVar})` : dark ? '#07060d' : '#f8f7fd';
+  return dark
+    ? { bg, blend: 'lighter', ink: RGB.white, core: '255,255,255' }
+    : { bg, blend: 'source-over', ink: '91,61,245', core: null };
+}
 
 function prefersReducedMotion() {
   return (
@@ -107,6 +126,12 @@ export const StudySpaceCanvas = forwardRef<
   const dustRef = useRef<Dust[]>([]);
   const paintRef = useRef<(t: number) => void>(() => {});
   const reducedRef = useRef(false);
+  const skyRef = useRef<Sky>({
+    bg: '#07060d',
+    blend: 'lighter',
+    ink: RGB.white,
+    core: '255,255,255',
+  });
 
   useImperativeHandle(ref, () => ({
     celebrate(x, y, starId, big) {
@@ -125,7 +150,7 @@ export const StudySpaceCanvas = forwardRef<
           life: 0,
           max: 55 + Math.random() * 35,
           size: 1.2 + Math.random() * (big ? 2.6 : 1.8),
-          rgb: i % 3 === 0 ? RGB.teal : i % 3 === 1 ? RGB.violet : RGB.white,
+          rgb: i % 3 === 0 ? RGB.teal : i % 3 === 1 ? RGB.violet : skyRef.current.ink,
           home: {
             sx: x + (Math.random() - 0.5) * 60,
             sy: y + (Math.random() - 0.5) * 40,
@@ -175,6 +200,7 @@ export const StudySpaceCanvas = forwardRef<
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
     reducedRef.current = prefersReducedMotion();
+    skyRef.current = readSky();
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -213,7 +239,7 @@ export const StudySpaceCanvas = forwardRef<
       ctx.beginPath();
       ctx.arc(x, y, r * 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = `rgba(255,255,255,${Math.min(1, alpha + 0.2)})`;
+      ctx.fillStyle = `rgba(${skyRef.current.core ?? rgb},${Math.min(1, alpha + 0.2)})`;
       ctx.beginPath();
       ctx.arc(x, y, r * 0.55, 0, Math.PI * 2);
       ctx.fill();
@@ -227,11 +253,12 @@ export const StudySpaceCanvas = forwardRef<
       const f = flowRef.current;
       const big = Math.max(w, h);
 
+      const sky = skyRef.current;
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = BG;
+      ctx.fillStyle = sky.bg;
       ctx.fillRect(0, 0, w, h);
 
-      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalCompositeOperation = sky.blend;
       nebula(
         w * (0.22 + 0.03 * Math.sin(t / 9000)),
         h * 0.28,
@@ -256,7 +283,7 @@ export const StudySpaceCanvas = forwardRef<
 
       for (const d of dustRef.current) {
         const a = d.a * (0.55 + 0.45 * Math.sin(t * d.speed + d.phase));
-        ctx.fillStyle = `rgba(${RGB.white},${a})`;
+        ctx.fillStyle = `rgba(${sky.ink},${a})`;
         ctx.beginPath();
         ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
         ctx.fill();
@@ -296,7 +323,7 @@ export const StudySpaceCanvas = forwardRef<
         } else if (s.state === 'lapsed') {
           glowDot(p.x, p.y, r * 0.8, RGB.ember, 0.45);
         } else {
-          glowDot(p.x, p.y, r * 0.8, RGB.white, 0.2 + s.strength * 0.45);
+          glowDot(p.x, p.y, r * 0.8, sky.ink, 0.2 + s.strength * 0.45);
         }
       }
 
@@ -319,7 +346,7 @@ export const StudySpaceCanvas = forwardRef<
           shooting.x - shooting.vx * 14,
           shooting.y - shooting.vy * 14,
         );
-        tail.addColorStop(0, `rgba(${RGB.white},${0.9 * shooting.life})`);
+        tail.addColorStop(0, `rgba(${sky.ink},${0.9 * shooting.life})`);
         tail.addColorStop(1, `rgba(${RGB.violet},0)`);
         ctx.strokeStyle = tail;
         ctx.lineWidth = 2;

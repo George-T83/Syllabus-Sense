@@ -53,25 +53,29 @@ const RATINGS: { rating: ReviewRating; label: string; key: string; className: st
     rating: 'again',
     label: 'Again',
     key: '1',
-    className: 'bg-rose-500/15 text-rose-200 ring-rose-400/30 hover:bg-rose-500/25',
+    className:
+      'bg-rose-500/15 text-rose-700 ring-rose-400/40 hover:bg-rose-500/25 dark:text-rose-200 dark:ring-rose-400/30',
   },
   {
     rating: 'hard',
     label: 'Hard',
     key: '2',
-    className: 'bg-amber-500/15 text-amber-200 ring-amber-400/30 hover:bg-amber-500/25',
+    className:
+      'bg-amber-500/15 text-amber-700 ring-amber-400/40 hover:bg-amber-500/25 dark:text-amber-200 dark:ring-amber-400/30',
   },
   {
     rating: 'good',
     label: 'Good',
     key: '3',
-    className: 'bg-violet-500/20 text-violet-100 ring-violet-400/40 hover:bg-violet-500/30',
+    className:
+      'bg-violet-500/15 text-violet-700 ring-violet-400/50 hover:bg-violet-500/25 dark:bg-violet-500/20 dark:text-violet-100 dark:ring-violet-400/40',
   },
   {
     rating: 'easy',
     label: 'Easy',
     key: '4',
-    className: 'bg-emerald-500/15 text-emerald-200 ring-emerald-400/30 hover:bg-emerald-500/25',
+    className:
+      'bg-emerald-500/15 text-emerald-700 ring-emerald-400/40 hover:bg-emerald-500/25 dark:text-emerald-200 dark:ring-emerald-400/30',
   },
 ];
 
@@ -136,7 +140,7 @@ function examChip(exam: UpcomingExam | null) {
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="hidden rounded-md border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-white/60 sm:inline-block">
+    <kbd className="hidden rounded-md border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-foreground/60 sm:inline-block">
       {children}
     </kbd>
   );
@@ -468,14 +472,14 @@ export function FlashcardReviewSession({
 
   return (
     <div
-      className="dark fixed inset-0 z-[70] overflow-hidden bg-[#07060d] text-foreground"
+      className="fixed inset-0 z-[70] overflow-hidden bg-background text-foreground"
       role="dialog"
       aria-modal="true"
       aria-labelledby="flashcard-review-title"
     >
       <StudySpaceCanvas ref={canvasRef} stars={stars} flow={flow} />
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(7,6,13,0.75)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,hsl(var(--background)/0.75)_100%)]"
         aria-hidden
       />
 
@@ -489,7 +493,7 @@ export function FlashcardReviewSession({
             type="button"
             onClick={handleClose}
             aria-label="Close review session"
-            className="rounded-full bg-white/5 p-2 text-white/70 ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-full bg-foreground/5 p-2 text-foreground/70 ring-1 ring-foreground/10 transition-colors hover:bg-foreground/10 hover:text-foreground"
           >
             <svg
               className="h-4 w-4"
@@ -504,10 +508,10 @@ export function FlashcardReviewSession({
 
           {ctx && (
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold tracking-wide text-white">
+              <span className="rounded-full bg-foreground/10 px-3 py-1 text-xs font-bold tracking-wide text-foreground">
                 {ctx.code}
               </span>
-              <span className="truncate rounded-full bg-white/5 px-3 py-1 text-xs text-white/70 ring-1 ring-white/10">
+              <span className="truncate rounded-full bg-foreground/5 px-3 py-1 text-xs text-foreground/70 ring-1 ring-foreground/10">
                 {examChip(ctx.exam)}
               </span>
             </div>
@@ -516,28 +520,31 @@ export function FlashcardReviewSession({
           {!done && (
             <div className="ml-auto flex items-center gap-4 sm:gap-6">
               <div className="text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Points
                 </p>
                 <p
                   key={stats.points}
-                  className="study-pop font-display text-xl tabular-nums text-white"
+                  className="study-pop font-display text-xl tabular-nums text-foreground"
                 >
                   {stats.points.toLocaleString()}
                 </p>
               </div>
               <div className="w-28">
-                <p className="flex items-center justify-between gap-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
+                <p className="flex items-center justify-between gap-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <span>{inZone ? 'In the zone' : 'Combo'}</span>
                   <span
-                    className={cn('tabular-nums', stats.combo > 0 ? 'text-white' : 'text-white/50')}
+                    className={cn(
+                      'tabular-nums',
+                      stats.combo > 0 ? 'text-foreground' : 'text-muted-foreground',
+                    )}
                   >
                     ×{stats.combo}
                   </span>
                 </p>
                 <div
                   className={cn(
-                    'mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10',
+                    'mt-1.5 h-1.5 overflow-hidden rounded-full bg-foreground/10',
                     inZone && 'study-zone-bar',
                   )}
                   aria-hidden
@@ -561,11 +568,11 @@ export function FlashcardReviewSession({
                     strokeWidth={5}
                     aria-label={`Exam readiness ${pct(ctx.readiness)}`}
                   >
-                    <span className="text-[11px] font-bold tabular-nums text-white">
+                    <span className="text-[11px] font-bold tabular-nums text-foreground">
                       {pct(ctx.readiness)}
                     </span>
                   </RingGauge>
-                  <p className="hidden text-[10px] font-semibold uppercase leading-tight tracking-[0.16em] text-white/50 lg:block">
+                  <p className="hidden text-[10px] font-semibold uppercase leading-tight tracking-[0.16em] text-muted-foreground lg:block">
                     Exam
                     <br />
                     readiness
@@ -581,7 +588,7 @@ export function FlashcardReviewSession({
             <div className="mx-auto flex max-w-xl items-center gap-3">
               <p
                 id="flashcard-review-title"
-                className="shrink-0 text-xs font-semibold tabular-nums text-white/70"
+                className="shrink-0 text-xs font-semibold tabular-nums text-foreground/70"
               >
                 Card {index + 1} of {queue.length}
               </p>
@@ -596,8 +603,8 @@ export function FlashcardReviewSession({
                         : results[c.id] === 'lapsed'
                           ? 'bg-rose-400/70'
                           : i === index
-                            ? 'animate-pulse bg-violet-300'
-                            : 'bg-white/15',
+                            ? 'animate-pulse bg-violet-500 dark:bg-violet-300'
+                            : 'bg-foreground/15',
                     )}
                   />
                 ))}
@@ -628,8 +635,8 @@ export function FlashcardReviewSession({
                       className={cn(
                         'study-float rounded-full px-4 py-1.5 text-center text-sm font-semibold shadow-lg backdrop-blur',
                         feedback.tone === 'win'
-                          ? 'bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/40'
-                          : 'bg-rose-400/10 text-rose-100 ring-1 ring-rose-300/30',
+                          ? 'bg-emerald-400/15 text-emerald-800 ring-1 ring-emerald-400/50 dark:text-emerald-100 dark:ring-emerald-300/40'
+                          : 'bg-rose-400/10 text-rose-800 ring-1 ring-rose-400/40 dark:text-rose-100 dark:ring-rose-300/30',
                       )}
                     >
                       {feedback.title}
@@ -651,7 +658,7 @@ export function FlashcardReviewSession({
                         <div
                           key={c.id}
                           ref={cardRef}
-                          className="absolute inset-0 cursor-grab touch-pan-y select-none outline-none active:cursor-grabbing [transform-style:preserve-3d] focus-visible:ring-2 focus-visible:ring-violet-300/70 rounded-[28px]"
+                          className="absolute inset-0 cursor-grab touch-pan-y select-none outline-none active:cursor-grabbing [transform-style:preserve-3d] focus-visible:ring-2 focus-visible:ring-primary/70 rounded-[28px]"
                           style={cardStyle(0)}
                           role="button"
                           tabIndex={0}
@@ -674,7 +681,7 @@ export function FlashcardReviewSession({
                                   inZone && 'spin-border study-zone',
                                 )}
                               >
-                                <div className="relative z-10 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
+                                <div className="relative z-10 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                                   <span>{ctx?.code ?? 'Flashcard'}</span>
                                   <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
                                     <span
@@ -694,22 +701,24 @@ export function FlashcardReviewSession({
                                   </span>
                                 </div>
                                 <div className="relative z-10 flex flex-1 items-center justify-center overflow-y-auto py-4">
-                                  <p className="text-balance text-center font-display text-2xl leading-snug text-white sm:text-[1.75rem]">
+                                  <p className="text-balance text-center font-display text-2xl leading-snug text-foreground sm:text-[1.75rem]">
                                     {c.front}
                                   </p>
                                 </div>
                                 <div className="relative z-10 flex items-end justify-between gap-3 text-xs">
                                   {examRecall === null ? (
-                                    <span className="text-white/50">New card · first look</span>
+                                    <span className="text-muted-foreground">
+                                      New card · first look
+                                    </span>
                                   ) : (
                                     <div className="min-w-0">
-                                      <p className="text-white/50">
+                                      <p className="text-muted-foreground">
                                         {ctx?.exam ? 'Exam-day recall' : 'Recall in a week'}{' '}
-                                        <span className="font-semibold tabular-nums text-white">
+                                        <span className="font-semibold tabular-nums text-foreground">
                                           {pct(examRecall)}
                                         </span>
                                       </p>
-                                      <div className="mt-1.5 h-1 w-32 overflow-hidden rounded-full bg-white/10">
+                                      <div className="mt-1.5 h-1 w-32 overflow-hidden rounded-full bg-foreground/10">
                                         <div
                                           className="h-full rounded-full bg-gradient-brand"
                                           style={{ width: `${examRecall * 100}%` }}
@@ -717,7 +726,7 @@ export function FlashcardReviewSession({
                                       </div>
                                     </div>
                                   )}
-                                  <span className="shrink-0 text-white/40">
+                                  <span className="shrink-0 text-muted-foreground/80">
                                     Tap
                                     <span className="hidden sm:inline">
                                       {' '}
@@ -757,8 +766,8 @@ export function FlashcardReviewSession({
                                     className={cn(
                                       'absolute top-6 z-20 rounded-lg border-2 px-2.5 py-0.5 text-sm font-black uppercase tracking-widest',
                                       dragX > 0
-                                        ? 'left-6 -rotate-12 border-violet-300 text-violet-200'
-                                        : 'right-6 rotate-12 border-rose-300 text-rose-200',
+                                        ? 'left-6 -rotate-12 border-violet-500 text-violet-600 dark:border-violet-300 dark:text-violet-200'
+                                        : 'right-6 rotate-12 border-rose-500 text-rose-600 dark:border-rose-300 dark:text-rose-200',
                                     )}
                                     style={{ opacity: swipeTint }}
                                   >
@@ -767,20 +776,22 @@ export function FlashcardReviewSession({
                                 )}
                                 <p
                                   className={cn(
-                                    'relative z-10 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 transition-opacity',
+                                    'relative z-10 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-opacity',
                                     dragX !== 0 && 'opacity-0',
                                   )}
                                 >
                                   Answer
                                 </p>
                                 <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-4 overflow-y-auto py-3 text-center">
-                                  <p className="text-sm leading-relaxed text-white/55">{c.front}</p>
+                                  <p className="text-sm leading-relaxed text-muted-foreground">
+                                    {c.front}
+                                  </p>
                                   <div className="h-px w-16 bg-gradient-brand opacity-70" />
-                                  <p className="text-balance font-display text-2xl leading-snug text-white sm:text-[1.75rem]">
+                                  <p className="text-balance font-display text-2xl leading-snug text-foreground sm:text-[1.75rem]">
                                     {c.back}
                                   </p>
                                 </div>
-                                <p className="relative z-10 text-center text-xs text-white/40">
+                                <p className="relative z-10 text-center text-xs text-muted-foreground/80">
                                   <Kbd>←</Kbd> swipe left for Again · swipe right for Good{' '}
                                   <Kbd>→</Kbd>
                                 </p>
@@ -830,7 +841,7 @@ export function FlashcardReviewSession({
                   </div>
                 ) : (
                   <div className="study-rise">
-                    <p className="mb-2.5 text-center text-xs text-white/50">
+                    <p className="mb-2.5 text-center text-xs text-muted-foreground">
                       Gut call before you flip — do you know it?
                     </p>
                     <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -839,7 +850,7 @@ export function FlashcardReviewSession({
                           key={value}
                           type="button"
                           onClick={() => flip(value)}
-                          className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-white/5 text-sm font-semibold text-white/85 ring-1 ring-white/10 transition-all hover:-translate-y-0.5 hover:bg-white/10 hover:text-white active:translate-y-0"
+                          className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-foreground/5 text-sm font-semibold text-foreground/85 ring-1 ring-foreground/10 transition-all hover:-translate-y-0.5 hover:bg-foreground/10 hover:text-foreground active:translate-y-0"
                         >
                           {label}
                           <Kbd>{key}</Kbd>

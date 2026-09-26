@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Logo from '@/components/layout/Logo';
 import { ICON_PATHS, type IconKey } from '@/lib/icons';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 /**
  * The three real differentiators this page pitches, grounded in what the
@@ -35,25 +36,28 @@ const FEATURES: { icon: IconKey; title: string; description: string }[] = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
+    <div className="min-h-screen">
+      <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2">
             <Logo className="h-8 w-8 shrink-0" />
-            <span className="text-base font-bold tracking-tight text-foreground">
+            <span className="hidden whitespace-nowrap font-display text-base font-semibold tracking-tight text-foreground min-[340px]:inline sm:text-lg">
               Syllabus Sense
             </span>
           </div>
-          <nav className="flex items-center gap-2 sm:gap-3">
+          {/* Under 400px the header Log in link drops out - the hero's full-width
+              Log in button sits right below it - so the row never overflows. */}
+          <nav className="flex items-center gap-1.5 sm:gap-3">
+            <ThemeToggle />
             <Link
               href="/login"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              className="hidden whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent min-[400px]:inline-block sm:px-3.5"
             >
               Log in
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              className="whitespace-nowrap rounded-full bg-gradient-brand px-3.5 py-2 text-sm font-semibold text-white sm:px-4 shadow-[0_8px_24px_-10px_rgba(91,61,245,0.8)] transition-transform hover:scale-[1.03]"
             >
               Sign up
             </Link>
@@ -66,7 +70,7 @@ export default function LandingPage() {
         <section className="mx-auto max-w-6xl px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
             <div>
-              <h1 className="text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1]">
+              <h1 className="font-display text-4xl font-medium leading-tight tracking-tight text-foreground sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
                 Everything that matters,{' '}
                 <span className="text-gradient-brand">right where you can see it</span>.
               </h1>
@@ -78,13 +82,13 @@ export default function LandingPage() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/signup"
-                  className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-card transition-opacity hover:opacity-90"
+                  className="inline-flex items-center justify-center rounded-full bg-gradient-brand px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_32px_-12px_rgba(91,61,245,0.85)] transition-transform hover:scale-[1.03]"
                 >
                   Get started free
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+                  className="inline-flex items-center justify-center rounded-full border border-border surface-luminous px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
                 >
                   Log in
                 </Link>
@@ -101,18 +105,18 @@ export default function LandingPage() {
         </section>
 
         {/* Features */}
-        <section className="border-t border-border bg-card/40">
+        <section className="border-t border-border/60">
           <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-            <h2 className="text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h2 className="text-center font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
               What actually changes once it&apos;s uploaded
             </h2>
             <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((feature) => (
                 <div
                   key={feature.title}
-                  className="rounded-glass border border-border bg-card/90 p-6 shadow-card"
+                  className="relative overflow-hidden rounded-glass border border-border surface-luminous p-6 shadow-card"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-brand text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-brand text-white shadow-[0_8px_20px_-6px_rgba(91,61,245,0.6)]">
                     <svg
                       className="h-5 w-5"
                       fill="none"
@@ -140,7 +144,7 @@ export default function LandingPage() {
         {/* Final CTA */}
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <div className="rounded-glass-lg bg-gradient-brand px-6 py-10 text-center text-white shadow-card sm:px-12 sm:py-14">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <h2 className="font-display text-3xl font-medium tracking-tight sm:text-4xl">
               We read the fine print so you don&apos;t have to.
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-white/80 sm:text-base">
@@ -150,13 +154,13 @@ export default function LandingPage() {
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-card transition-opacity hover:opacity-90"
+                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#3a22c0] shadow-card transition-transform hover:scale-[1.03]"
               >
                 Sign up free
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center rounded-lg border border-white/40 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                className="inline-flex items-center justify-center rounded-full border border-white/50 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
                 I already have an account
               </Link>
@@ -165,11 +169,13 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border">
+      <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-8 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6">
           <div className="flex items-center gap-2">
             <Logo className="h-5 w-5 shrink-0" />
-            <span className="font-semibold text-foreground">Syllabus Sense</span>
+            <span className="font-display text-sm font-semibold text-foreground">
+              Syllabus Sense
+            </span>
           </div>
           <span>Built for students who&apos;d rather plan the semester once, not weekly.</span>
         </div>
@@ -187,7 +193,7 @@ export default function LandingPage() {
  */
 function SyllabusMockup() {
   return (
-    <div className="rounded-glass-lg border border-border bg-card shadow-card">
+    <div className="relative overflow-hidden rounded-glass-lg border border-border surface-solid shadow-card">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-load-medium/80" />

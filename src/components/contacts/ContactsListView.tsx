@@ -61,6 +61,7 @@ function courseLabel(course: Course | undefined): string {
 import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmailDrafterModal';
 import { ContactShareModal } from '@/components/contacts/ContactShareModal';
 import { ScheduleOfficeVisitModal } from '@/components/contacts/ScheduleOfficeVisitModal';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function ContactsListView() {
   const { state, dispatch } = useAppState();
@@ -263,17 +264,18 @@ export function ContactsListView() {
   return (
     <>
       <div className="max-w-5xl space-y-6 sm:space-y-8">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Contacts</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Professors and TAs across your courses, in one place.
-            </p>
-          </div>
-          <CardActionButton variant="solid" withPlus onClick={openCreate}>
-            Add Contact
-          </CardActionButton>
-        </div>
+        <PageHeader
+          eyebrow="You"
+          title="Contacts"
+          description={<>Professors and TAs across your courses, in one place.</>}
+          actions={
+            <>
+              <CardActionButton variant="solid" withPlus onClick={openCreate}>
+                Add Contact
+              </CardActionButton>
+            </>
+          }
+        />
 
         <div className="flex flex-wrap gap-2">
           <input
@@ -283,6 +285,7 @@ export function ContactsListView() {
             className="flex-1 min-w-[200px] rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           />
           <select
+            aria-label="Filter by term"
             value={effectiveTermFilter}
             onChange={(e) => setTermFilter(e.target.value)}
             className={cn(

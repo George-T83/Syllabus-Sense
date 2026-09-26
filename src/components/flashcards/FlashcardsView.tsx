@@ -11,6 +11,7 @@ import { applySM2, isCardDue, type ReviewRating } from '@/lib/flashcards/sm2';
 import { FlashcardDeckCard } from '@/components/flashcards/FlashcardDeckCard';
 import { FlashcardReviewSession } from '@/components/flashcards/FlashcardReviewSession';
 import type { Flashcard } from '@/types/flashcard';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function FlashcardsView() {
   const { user } = useAuth();
@@ -39,13 +40,16 @@ export function FlashcardsView() {
   return (
     <>
       <div className="max-w-5xl space-y-6 sm:space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Flashcards</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Generated from your syllabi, reviewed with spaced repetition (SM-2) so the cards you
-            keep forgetting come back sooner.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Coursework"
+          title="Flashcards"
+          description={
+            <>
+              Generated from your syllabi, reviewed with spaced repetition (SM-2) so the cards you
+              keep forgetting come back sooner.
+            </>
+          }
+        />
 
         {dueCards.length > 0 && (
           <Card accent="none" className="rounded-2xl border-primary/20 bg-primary/5 p-5">
