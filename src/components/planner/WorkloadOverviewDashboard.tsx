@@ -144,12 +144,12 @@ export function WorkloadOverviewDashboard({
       <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-              📊 Daily &amp; Weekly Workload Center
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+              Daily &amp; Weekly Workload Center
             </span>
             {breakdown.rolledOverCount > 0 && (
               <span className="rounded-full border border-load-critical/30 bg-load-critical/10 px-2.5 py-1 text-xs font-bold text-load-critical">
-                ⚠️ {breakdown.rolledOverCount} Rollover{' '}
+                {breakdown.rolledOverCount} Rollover{' '}
                 {breakdown.rolledOverCount === 1 ? 'Task' : 'Tasks'}
               </span>
             )}
@@ -218,7 +218,7 @@ export function WorkloadOverviewDashboard({
                 WORKLOAD_BADGE_CLASS[INTENSITY_TO_LEVEL[activeDay.intensity]],
               )}
             >
-              {activeDay.intensity === 'heavy' ? '⚠️ Heavy Peak' : `${activeDay.intensity} Pace`}
+              {activeDay.intensity === 'heavy' ? 'Heavy Peak' : `${activeDay.intensity} Pace`}
             </span>
           </CardHeader>
 
@@ -261,6 +261,7 @@ export function WorkloadOverviewDashboard({
                             type="checkbox"
                             checked={!!item.completed}
                             onChange={() => handleToggleTask(item.id)}
+                            aria-label={`Mark ${item.title} as ${item.completed ? 'not done' : 'done'}`}
                             className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                           />
                           <span
@@ -389,7 +390,7 @@ export function WorkloadOverviewDashboard({
                         WORKLOAD_TEXT_CLASS[level],
                       )}
                     >
-                      {day.intensity === 'heavy' ? '⚠️ Heavy' : day.intensity}
+                      {day.intensity === 'heavy' ? 'Heavy' : day.intensity}
                     </span>
                   </button>
                 );

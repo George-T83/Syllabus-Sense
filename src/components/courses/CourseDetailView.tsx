@@ -677,10 +677,13 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   {course.code.slice(0, 1)}
                 </span>
                 <div>
-                  <h1 className="text-xl font-bold text-foreground">
-                    {course.code} · {course.title}
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+                    {course.code}
+                  </p>
+                  <h1 className="mt-1 font-display text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
+                    {course.title}
                   </h1>
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {[course.instructor, course.term].filter(Boolean).join(' · ') ||
                       'No details yet'}
                   </p>

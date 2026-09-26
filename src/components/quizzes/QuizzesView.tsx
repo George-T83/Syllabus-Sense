@@ -10,6 +10,7 @@ import { createQuizAttempt } from '@/lib/firestore/quizzes';
 import { QuizCard } from '@/components/quizzes/QuizCard';
 import { QuizSession } from '@/components/quizzes/QuizSession';
 import type { Quiz } from '@/types/quiz';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export function QuizzesView() {
   const { user } = useAuth();
@@ -41,13 +42,16 @@ export function QuizzesView() {
   return (
     <>
       <div className="max-w-5xl space-y-6 sm:space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Practice Quizzes</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            AI-generated multiple-choice quizzes from your syllabi, so you can check how well
-            something actually stuck before it counts.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Coursework"
+          title="Practice Quizzes"
+          description={
+            <>
+              AI-generated multiple-choice quizzes from your syllabi, so you can check how well
+              something actually stuck before it counts.
+            </>
+          }
+        />
 
         {state.courses.length === 0 ? (
           <Card className="rounded-2xl p-6">

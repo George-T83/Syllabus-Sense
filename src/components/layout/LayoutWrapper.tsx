@@ -92,7 +92,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       <SidebarProvider>
         <AppStateProvider>
           <FirestoreSync />
-          <div className="min-h-screen flex flex-col bg-background text-foreground">
+          <div className="min-h-screen flex flex-col text-foreground">
             <OfflineBanner />
             <Navbar onCommandPaletteAction={handleCommandPaletteAction} />
             <div className="flex flex-1 pt-20">

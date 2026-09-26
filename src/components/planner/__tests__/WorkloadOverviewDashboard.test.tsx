@@ -184,7 +184,7 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
         }),
       ];
       renderDashboard(items);
-      expect(screen.getAllByText(/⚠️ Heavy Peak/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Heavy Peak/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -497,7 +497,7 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
         }),
       ];
       renderDashboard(items);
-      expect(screen.getByText(/⚠️ 1 Rollover Task/i)).toBeDefined();
+      expect(screen.getByText(/1 Rollover Task/i)).toBeDefined();
     });
 
     it('F8-2: multiple uncompleted past tasks display correct pluralized rollover count', () => {
@@ -522,7 +522,7 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
         }),
       ];
       renderDashboard(items);
-      expect(screen.getByText(/⚠️ 2 Rollover Tasks/i)).toBeDefined();
+      expect(screen.getByText(/2 Rollover Tasks/i)).toBeDefined();
     });
 
     it('F8-3: rollover task appears in Today task list with "(Rollover)" appended', () => {
@@ -806,7 +806,7 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       ];
 
       renderDashboard(items);
-      expect(screen.getByText(/⚠️ 2 Rollover Tasks/i)).toBeDefined();
+      expect(screen.getByText(/2 Rollover Tasks/i)).toBeDefined();
       expect(screen.getByText('5.0 hrs')).toBeDefined();
 
       // Reschedule task 1 to 2 days ahead
@@ -889,7 +889,7 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
 
       renderDashboard(items);
       expect(screen.getByText('6.5 hrs')).toBeDefined();
-      expect(screen.getAllByText(/⚠️ Heavy Peak/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Heavy Peak/i).length).toBeGreaterThan(0);
 
       // Shift Exam Cram 2 to tomorrow
       const dateInputs = screen.getAllByDisplayValue(todayStr);

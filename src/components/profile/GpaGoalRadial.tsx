@@ -124,12 +124,12 @@ export function GpaGoalRadial({
             data-testid="gpa-status-badge"
             className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full border ${
               goalResult.status === 'ahead'
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                 : goalResult.status === 'on_track'
-                  ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
+                  ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
                   : goalResult.status === 'at_risk'
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                    : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30'
             }`}
           >
             {goalResult.status === 'ahead'

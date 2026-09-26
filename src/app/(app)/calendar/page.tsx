@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { MonthCalendar } from '@/components/calendar/MonthCalendar';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export const metadata: Metadata = {
   title: 'Calendar | Syllabus Sense',
@@ -10,12 +11,11 @@ export const metadata: Metadata = {
 export default function CalendarPage() {
   return (
     <div className="max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Calendar</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          See your workload build before it hits — not just what&apos;s due.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Planning"
+        title="Calendar"
+        description={<>See your workload build before it hits — not just what&apos;s due.</>}
+      />
       <Suspense fallback={null}>
         <MonthCalendar />
       </Suspense>

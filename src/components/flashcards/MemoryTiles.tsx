@@ -111,6 +111,11 @@ export function MemoryTiles({ cards, examTitle, today }: MemoryTilesProps) {
       </p>
 
       <div className="relative">
+        <span id={labelId} className="sr-only">
+          {`Deck memory: ${TIER_ORDER.filter((t) => counts[t] > 0)
+            .map((t) => `${counts[t]} ${TIER_LABEL[t].toLowerCase()}`)
+            .join(', ')}. Use arrow keys to inspect each card.`}
+        </span>
         <ul
           aria-labelledby={labelId}
           tabIndex={tiles.length ? 0 : -1}
@@ -125,11 +130,6 @@ export function MemoryTiles({ cards, examTitle, today }: MemoryTilesProps) {
           }}
           onBlur={() => setActive(null)}
         >
-          <span id={labelId} className="sr-only">
-            {`Deck memory: ${TIER_ORDER.filter((t) => counts[t] > 0)
-              .map((t) => `${counts[t]} ${TIER_LABEL[t].toLowerCase()}`)
-              .join(', ')}. Use arrow keys to inspect each card.`}
-          </span>
           {tiles.map((t, i) => {
             const color = t.tier === 'new' ? null : TIER_COLOR[t.tier];
             return (

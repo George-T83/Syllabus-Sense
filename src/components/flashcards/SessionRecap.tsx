@@ -146,8 +146,8 @@ export function SessionRecap({
                 <span
                   className={
                     deltaPts > 0
-                      ? 'rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-sm font-semibold text-emerald-300'
-                      : 'rounded-full bg-white/5 px-2.5 py-0.5 text-sm font-semibold text-muted-foreground'
+                      ? 'rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-sm font-semibold text-emerald-700 dark:text-emerald-300'
+                      : 'rounded-full bg-foreground/5 px-2.5 py-0.5 text-sm font-semibold text-muted-foreground'
                   }
                 >
                   {deltaPts > 0 ? `+${deltaPts}` : deltaPts}
