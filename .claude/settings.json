@@ -3,5 +3,8 @@
     "commit": "",
     "pr": "",
     "sessionUrl": false
+  },
+  "env": {
+    "CLAUDE_CODE_SUPPRESS_SESSION_ATTRIBUTION": "1"
   }
 }
