@@ -59,6 +59,7 @@ const emptyValues: CourseFormValues = {
   title: '',
   instructor: '',
   term: '',
+  credits: '',
   color: COURSE_COLOR_PRESETS[0].value,
   icon: DEFAULT_COURSE_ICON,
   modality: undefined,
@@ -89,6 +90,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
           title: initialCourse.title,
           instructor: initialCourse.instructor ?? '',
           term: initialCourse.term ?? '',
+          credits: initialCourse.credits?.toString() ?? '',
           color: initialCourse.color ?? COURSE_COLOR_PRESETS[0].value,
           icon: initialCourse.icon ?? DEFAULT_COURSE_ICON,
           modality: initialCourse.modality,
@@ -267,14 +269,25 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                     placeholder="Computer Science I"
                   />
 
-                  <Field
-                    id="instructor"
-                    label="Instructor"
-                    value={values.instructor ?? ''}
-                    error={errors.instructor}
-                    onChange={(v) => updateField('instructor', v)}
-                    placeholder="Dr. Ada Lovelace"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field
+                      id="instructor"
+                      label="Instructor"
+                      value={values.instructor ?? ''}
+                      error={errors.instructor}
+                      onChange={(v) => updateField('instructor', v)}
+                      placeholder="Dr. Ada Lovelace"
+                    />
+                    <Field
+                      id="credits"
+                      label="Credit Hours"
+                      type="number"
+                      value={values.credits ?? ''}
+                      error={errors.credits}
+                      onChange={(v) => updateField('credits', v)}
+                      placeholder="3"
+                    />
+                  </div>
 
                   <div className="space-y-1.5">
                     <span className="text-sm font-medium text-foreground">Color</span>
@@ -553,10 +566,11 @@ interface FieldProps {
   value: string;
   error?: string;
   placeholder?: string;
+  type?: 'text' | 'number';
   onChange: (value: string) => void;
 }
 
-function Field({ id, label, value, error, placeholder, onChange }: FieldProps) {
+function Field({ id, label, value, error, placeholder, type = 'text', onChange }: FieldProps) {
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="text-sm font-medium text-foreground">
@@ -564,6 +578,7 @@ function Field({ id, label, value, error, placeholder, onChange }: FieldProps) {
       </label>
       <input
         id={id}
+        type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}

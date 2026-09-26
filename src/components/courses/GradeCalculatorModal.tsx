@@ -173,7 +173,7 @@ export function GradeCalculatorModal({
   // immediately in the semester projection too.
   const semesterGpaResult = useMemo(() => {
     const coursesList = state.courses.map((course) => {
-      const cr = (course as { credits?: number }).credits ?? 3;
+      const cr = course.credits ?? 3;
       if (course.id === selectedCourseId) {
         return { credits: cr, percentage: projectedGrade };
       }
