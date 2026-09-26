@@ -85,6 +85,45 @@ describe('DegreeCompassView', () => {
     expect(screen.getByText('CS 101')).toBeDefined();
   });
 
+  it('draws the route from Start to Graduation with a stop to plan the rest', () => {
+    useDegreeProfileMock.mockReturnValue({ profile, loading: false });
+    useDegreeCoursesMock.mockReturnValue([
+      ...courses,
+      {
+        id: 'c2',
+        term: 'Spring 2026',
+        code: 'CS 201',
+        credits: 4,
+        categoryId: 'core',
+        status: 'in-progress',
+      },
+      {
+        id: 'c3',
+        term: 'Fall 2026',
+        code: 'CS 301',
+        credits: 4,
+        categoryId: 'core',
+        status: 'planned',
+      },
+    ]);
+
+    renderView();
+
+    const route = screen.getByRole('list', { name: 'Your route to graduation' });
+    const stops = Array.from(route.querySelectorAll(':scope > li')).map((li) => li.textContent);
+    expect(stops[0]).toContain('Start');
+    expect(stops[1]).toContain('Fall 2025');
+    expect(stops[1]).toContain('4 of 66 cr');
+    expect(stops[2]).toContain('You are here');
+    expect(stops[3]).toContain('12 of 66 cr');
+    expect(stops[4]).toContain('54 cr still to plan');
+    expect(stops[5]).toContain('Graduation');
+    expect(screen.getByText('Plan 54 more credits to reach 66')).toBeDefined();
+    // Requirements say what's left in plain words.
+    expect(screen.getByText('22 cr left, 18 not planned yet')).toBeDefined();
+    expect(screen.getByText('36 cr left, none planned yet')).toBeDefined();
+  });
+
   it('switches to the Ledger view when its toggle is clicked', () => {
     useDegreeProfileMock.mockReturnValue({ profile, loading: false });
     useDegreeCoursesMock.mockReturnValue(courses);
