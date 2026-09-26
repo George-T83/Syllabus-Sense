@@ -40,7 +40,14 @@ import { normalizeMaterials, sumMaterialCosts } from '@/lib/courses/materials';
 import { cn } from '@/lib/utils';
 import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { Course, ScheduleItem, Contact, ContactRole, AbsenceRecord } from '@/types/schedule';
+import type {
+  Course,
+  ScheduleItem,
+  Contact,
+  ContactRole,
+  AbsenceRecord,
+  AttendancePolicy,
+} from '@/types/schedule';
 import { SHORT_DATE_FORMATTER as dueDateFormatter } from '@/lib/dateFormatters';
 
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -619,6 +626,18 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     }
   };
 
+  const handleAttendancePolicyChange = async (attendancePolicy: AttendancePolicy) => {
+    if (!user) return;
+    try {
+      await updateCourse(user.uid, course, { ...course, attendancePolicy }, dispatch);
+    } catch (err) {
+      showError(
+        'Could not save the attendance policy',
+        err instanceof Error ? err.message : undefined,
+      );
+    }
+  };
+
   const handleDeleteAbsence = async (id: string) => {
     if (!user) return;
     const current = (course.absences ?? []).filter((a) => a.id !== id);
@@ -870,8 +889,10 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         <AttendanceGauge
           courseCode={course.code}
           courseTitle={course.title}
-          maxAllowedAbsences={course.notes?.toLowerCase().includes('attendance') ? 3 : 4}
+          maxAllowedAbsences={course.attendancePolicy?.allowedUnexcused}
+          penaltyDescription={course.attendancePolicy?.penalty}
           initialAbsences={course.absences ?? []}
+          onPolicyChange={handleAttendancePolicyChange}
           onAbsenceLogged={handleLogAbsence}
           onAbsenceDeleted={handleDeleteAbsence}
         />
