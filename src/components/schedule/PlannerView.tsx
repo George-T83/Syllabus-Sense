@@ -9,7 +9,11 @@ import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateScheduleItem, deleteScheduleItem } from '@/lib/firestore/scheduleItems';
+import {
+  createScheduleItem,
+  updateScheduleItem,
+  deleteScheduleItem,
+} from '@/lib/firestore/scheduleItems';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { courseSwatch } from '@/lib/courseColors';
 import { clampProgress } from '@/lib/taskStatus';
@@ -156,6 +160,9 @@ import { WorkloadOverviewDashboard } from '@/components/planner/WorkloadOverview
 import { SemesterHeatmapCard } from '@/components/planner/SemesterHeatmapCard';
 import { StudyBlockSuggestionsCard } from '@/components/planner/StudyBlockSuggestionsCard';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyPageGuide } from '@/components/ui/EmptyPageGuide';
+import { CardActionButton, CardActionLink, SyllabusIcon } from '@/components/ui/CardAction';
+import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import { daysUntilDue, dueInstant, isOverdue, parseDayKey } from '@/lib/calendar/dates';
 
 /** Default number of task rows a group shows before collapsing the rest
@@ -344,6 +351,8 @@ export function PlannerView() {
   const [withinSort, setWithinSort] = useState<WithinSort>('dueDate');
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [autofillOpen, setAutofillOpen] = useState(false);
 
   const today = useMemo(() => new Date(), []);
 
@@ -543,6 +552,30 @@ export function PlannerView() {
     );
   };
 
+  const handleAddTask = async (values: ScheduleItemFormValues) => {
+    if (!user) throw new Error('You must be signed in to add a task.');
+    // Firestore's setDoc rejects `undefined` field values, so optional fields
+    // are only included when they actually have a value.
+    await createScheduleItem(
+      user.uid,
+      {
+        id: crypto.randomUUID(),
+        title: values.title,
+        type: values.type,
+        courseId: values.courseId,
+        dueDate: new Date(`${values.dueDate}T23:59:00`).toISOString(),
+        completed: false,
+        priority: values.priority,
+        ...(values.estimatedHours ? { estimatedHours: Number(values.estimatedHours) } : {}),
+        ...(values.notes ? { notes: values.notes } : {}),
+        ...(values.gradeWeight ? { gradeWeight: Number(values.gradeWeight) } : {}),
+        ...(values.gradeCategory ? { gradeCategory: values.gradeCategory } : {}),
+        ...(values.assignedTo ? { assignedTo: values.assignedTo } : {}),
+      },
+      dispatch,
+    );
+  };
+
   const handleDeleteTask = async (item: ScheduleItem) => {
     if (!user) return;
     try {
@@ -642,6 +675,76 @@ export function PlannerView() {
       />
     );
   };
+
+  // Nothing to plan yet: every card below would render at zero ("0.0h due
+  // today", seven "LIGHT" days, empty study blocks), so the page says what
+  // it will do and how to fill it instead.
+  if (state.initialized && scheduleItems.length === 0) {
+    const noCourses = courses.length === 0;
+    return (
+      <>
+        <div className="max-w-5xl space-y-6 sm:space-y-8">
+          <PageHeader
+            eyebrow="Coursework"
+            title="Tasks"
+            description="Everything due, across every course - plus what to start when."
+          />
+          <EmptyPageGuide
+            title={noCourses ? 'Start with a course' : 'Your deadlines go here'}
+            lead={
+              noCourses
+                ? "Tasks belong to a course. Upload a syllabus and we'll set up the course and every deadline in it, or add a course first and fill in its work by hand."
+                : 'Add your assignments, quizzes and exams, and this page works out how much to do each day and when to start each one.'
+            }
+            actions={
+              <>
+                <CardActionButton variant="primary" onClick={() => setAutofillOpen(true)}>
+                  <SyllabusIcon />
+                  Upload a syllabus
+                </CardActionButton>
+                {noCourses ? (
+                  <CardActionLink href="/courses" withChevron>
+                    Add a course
+                  </CardActionLink>
+                ) : (
+                  <CardActionButton withPlus onClick={() => setAddTaskOpen(true)}>
+                    Add a task
+                  </CardActionButton>
+                )}
+              </>
+            }
+            previews={[
+              {
+                icon: <SectionIcon icon="tasks" />,
+                title: "Today's load",
+                detail:
+                  'The hours to put in today across every course, weighted by how big each piece of work is.',
+              },
+              {
+                icon: <SectionIcon icon="planner" />,
+                title: 'What to start when',
+                detail:
+                  "Each deadline gets a start date from its size, so a 10-hour project doesn't sneak up on you.",
+              },
+              {
+                icon: <SectionIcon icon="calendar" />,
+                title: 'Study blocks',
+                detail:
+                  'Concrete times to work, fitted around your classes and the rest of your week.',
+              },
+            ]}
+          />
+        </div>
+        <TaskFormModal
+          open={addTaskOpen}
+          onClose={() => setAddTaskOpen(false)}
+          onSubmit={handleAddTask}
+          courses={courses}
+        />
+        <SyllabusAutofillModal open={autofillOpen} onClose={() => setAutofillOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <>
