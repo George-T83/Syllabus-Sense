@@ -42,6 +42,8 @@ import type { CourseFormValues } from '@/lib/validation/course';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
 import type { Course, ScheduleItem, Contact, ContactRole, AbsenceRecord } from '@/types/schedule';
 import { SHORT_DATE_FORMATTER as dueDateFormatter } from '@/lib/dateFormatters';
+import { RowActionButton } from '@/components/ui/RowActionButton';
+import { CourseStandingStrip } from '@/components/courses/CourseStanding';
 
 const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -706,6 +708,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   ) : (
                     <RingGauge
                       progress={progressPct / 100}
+                      aria-label={`${completedCount} of ${items.length} tracked tasks done`}
                       variant="brand"
                       size={56}
                       radius={25}
@@ -721,6 +724,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 </div>
               )}
             </div>
+
+            <CourseStandingStrip
+              items={items}
+              onOpenCalculator={() => setGradeCalculatorOpen(true)}
+            />
 
             {(course.meetingTimes?.length || course.modality || rmpUrl) && (
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
@@ -958,12 +966,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           )}
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
-                          <button
-                            onClick={() => handleStartEditContact(contact)}
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                          >
+                          <RowActionButton onClick={() => handleStartEditContact(contact)}>
                             Edit
-                          </button>
+                          </RowActionButton>
                           {confirmingDeleteContactId === contact.id ? (
                             <ConfirmDeleteInline
                               deleting={deletingContactId === contact.id}
@@ -971,12 +976,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                               onCancel={() => setConfirmingDeleteContactId(null)}
                             />
                           ) : (
-                            <button
+                            <RowActionButton
+                              tone="destructive"
                               onClick={() => setConfirmingDeleteContactId(contact.id)}
-                              className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                             >
                               Delete
-                            </button>
+                            </RowActionButton>
                           )}
                         </div>
                       </div>
@@ -1129,20 +1134,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         />
                       ) : (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => handleStartEditObjective(i)}
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                          >
+                          <RowActionButton onClick={() => handleStartEditObjective(i)}>
                             Edit
-                          </button>
-                          <button
-                            type="button"
+                          </RowActionButton>
+                          <RowActionButton
+                            tone="destructive"
                             onClick={() => setConfirmingDeleteObjectiveIndex(i)}
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                           >
                             Delete
-                          </button>
+                          </RowActionButton>
                         </>
                       )}
                     </div>
@@ -1319,20 +1319,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         />
                       ) : (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => handleStartEditMaterial(i)}
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                          >
+                          <RowActionButton onClick={() => handleStartEditMaterial(i)}>
                             Edit
-                          </button>
-                          <button
-                            type="button"
+                          </RowActionButton>
+                          <RowActionButton
+                            tone="destructive"
                             onClick={() => setConfirmingDeleteMaterialIndex(i)}
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                           >
                             Delete
-                          </button>
+                          </RowActionButton>
                         </>
                       )}
                     </div>
@@ -1499,12 +1494,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         <span className="text-xs text-muted-foreground">
                           Due {dueDateFormatter.format(new Date(item.dueDate))}
                         </span>
-                        <button
-                          onClick={() => setEditingItem(item)}
-                          className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                        >
-                          Edit
-                        </button>
+                        <RowActionButton onClick={() => setEditingItem(item)}>Edit</RowActionButton>
                         {confirmingDeleteItemId === item.id ? (
                           <ConfirmDeleteInline
                             deleting={deletingItemId === item.id}
@@ -1512,12 +1502,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                             onCancel={() => setConfirmingDeleteItemId(null)}
                           />
                         ) : (
-                          <button
+                          <RowActionButton
+                            tone="destructive"
                             onClick={() => setConfirmingDeleteItemId(item.id)}
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                           >
                             Delete
-                          </button>
+                          </RowActionButton>
                         )}
                       </>
                     }
