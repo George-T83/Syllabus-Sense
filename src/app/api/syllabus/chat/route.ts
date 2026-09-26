@@ -9,6 +9,9 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+/** Syllabus text sent with a question - a long syllabus is a few dozen KB of
+ * text; anything past this is trimmed rather than rejected. */
+const MAX_SYLLABUS_CHARS = 60_000;
 
 function detectFileKind(fileBase64: string): 'pdf' | 'docx' | null {
   if (fileBase64.startsWith('JVBERi0')) return 'pdf';
@@ -26,6 +29,11 @@ export async function POST(req: NextRequest) {
 
   if (!body.message || typeof body.message !== 'string') {
     return NextResponse.json({ error: 'Missing message parameter.' }, { status: 400 });
+  }
+  if (typeof body.syllabusText === 'string' && body.syllabusText.length > MAX_SYLLABUS_CHARS) {
+    body.syllabusText = body.syllabusText.slice(0, MAX_SYLLABUS_CHARS);
+  } else if (body.syllabusText !== undefined && typeof body.syllabusText !== 'string') {
+    body.syllabusText = undefined;
   }
 
   // Optional authentication check (graceful for demo/dev)
@@ -75,8 +83,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Check if Anthropic LLM is available
-  const anthropic = getAnthropicClient();
-  if (anthropic && process.env.ANTHROPIC_API_KEY) {
+  // getAnthropicClient throws without a key - check first, so a missing
+  // key falls through to the offline answer below instead of a 500.
+  const anthropic = process.env.ANTHROPIC_API_KEY ? getAnthropicClient() : null;
+  if (anthropic) {
     try {
       const contentBlocks: Anthropic.MessageParam['content'] = [];
 
@@ -94,15 +104,17 @@ export async function POST(req: NextRequest) {
         fileContext = `Uploaded Assignment Rubric Document (${body.fileName || 'document.docx'}): \n\n${docxText}\n\n`;
       }
 
+      const syllabusContext = [body.syllabusText, body.notes].filter(Boolean).join('\n\n');
       const promptText = `You are the Syllabus Sense AI Study Copilot. You assist students by answering questions accurately based strictly on their syllabus.
+Never invent course policies, grade weights, office hours, dates, or requirements. If the syllabus content below doesn't answer the question, say it isn't in the syllabus on file and suggest asking the instructor - a guessed policy is worse than no answer, because the student will act on it.
 Course Code: ${body.courseCode || 'General Course'}
 Course Title: ${body.courseTitle || ''}
-Instructor: ${body.instructor || ''}
-Location: ${body.location || ''}
-Materials: ${body.materials?.join(', ') || 'Standard materials'}
-Objectives: ${body.learningObjectives?.join('; ') || 'Standard course objectives'}
+Instructor: ${body.instructor || 'not on file'}
+Location: ${body.location || 'not on file'}
+Materials: ${body.materials?.join(', ') || 'none on file'}
+Objectives: ${body.learningObjectives?.join('; ') || 'none on file'}
 Syllabus Content Context:
-${body.syllabusText || body.notes || 'Standard university syllabus structure with homework, exams, and attendance policies.'}
+${syllabusContext || '(No syllabus text is on file for this course.)'}
 
 ${fileContext}Student Query: ${body.message}
 

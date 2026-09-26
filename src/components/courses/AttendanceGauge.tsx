@@ -4,29 +4,51 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { RingGauge, type RingGaugeLevel } from '@/components/ui/RingGauge';
-import type { AbsenceRecord } from '@/types/schedule';
+import type { AbsenceRecord, AttendancePolicy } from '@/types/schedule';
 
 export type { AbsenceRecord };
 
 export interface AttendanceGaugeProps {
   courseCode?: string;
   courseTitle?: string;
+  /** Unexcused absences the syllabus allows - from the course's saved
+   * attendance policy. Undefined when none is on file: the card then says
+   * so and never assumes a limit. */
   maxAllowedAbsences?: number;
+  /** What the syllabus says happens past the limit, as the student entered it. */
   penaltyDescription?: string;
   initialAbsences?: AbsenceRecord[];
   onAbsenceLogged?: (record: AbsenceRecord) => void;
   onAbsenceDeleted?: (id: string) => void;
+  /** Saves the policy the student enters from their syllabus. Without it the
+   * card is read-only about policy. */
+  onPolicyChange?: (policy: AttendancePolicy) => void;
+}
+
+/** A stable empty default: a fresh `[]` per render would re-fire the sync
+ * effect below on every render and loop forever. */
+const NO_ABSENCES: AbsenceRecord[] = [];
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function AttendanceGauge({
-  courseCode = 'CS 301',
-  courseTitle = 'Data Structures & Algorithms',
-  maxAllowedAbsences = 3,
-  penaltyDescription = 'Each unexcused absence beyond 3 incurs a 3% deduction from the final grade.',
-  initialAbsences = [],
+  courseCode,
+  courseTitle,
+  maxAllowedAbsences,
+  penaltyDescription,
+  initialAbsences = NO_ABSENCES,
   onAbsenceLogged,
   onAbsenceDeleted,
+  onPolicyChange,
 }: AttendanceGaugeProps) {
+  const hasLimit = typeof maxAllowedAbsences === 'number' && maxAllowedAbsences >= 0;
+  const limit = hasLimit ? maxAllowedAbsences : 0;
+  const [editingPolicy, setEditingPolicy] = useState(false);
+  const [draftLimit, setDraftLimit] = useState(hasLimit ? String(maxAllowedAbsences) : '');
+  const [draftPenalty, setDraftPenalty] = useState(penaltyDescription ?? '');
   const [absences, setAbsences] = useState<AbsenceRecord[]>(initialAbsences);
 
   // Course switches re-mount this component under a different key in
@@ -37,7 +59,7 @@ export function AttendanceGauge({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAbsences]);
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
-  const [newDate, setNewDate] = useState('2026-10-15');
+  const [newDate, setNewDate] = useState(todayKey);
   const [newType, setNewType] = useState<'excused' | 'unexcused'>('unexcused');
   const [newReason, setNewReason] = useState('');
   const [newNote, setNewNote] = useState('');
@@ -50,16 +72,28 @@ export function AttendanceGauge({
     return absences.filter((a) => a.type === 'excused').length;
   }, [absences]);
 
-  const remainingAllowed = Math.max(0, maxAllowedAbsences - unexcusedCount);
-  const excessAbsences = Math.max(0, unexcusedCount - maxAllowedAbsences);
+  const remainingAllowed = Math.max(0, limit - unexcusedCount);
+  const excessAbsences = Math.max(0, unexcusedCount - limit);
 
   const status = useMemo<'safe' | 'warning' | 'critical'>(() => {
-    if (unexcusedCount >= maxAllowedAbsences) return 'critical';
+    if (!hasLimit) return 'safe';
+    if (unexcusedCount >= limit) return 'critical';
     if (remainingAllowed === 1) return 'warning';
     return 'safe';
-  }, [unexcusedCount, maxAllowedAbsences, remainingAllowed]);
+  }, [hasLimit, unexcusedCount, limit, remainingAllowed]);
 
-  const progressRatio = Math.min(1, unexcusedCount / Math.max(1, maxAllowedAbsences));
+  const progressRatio = hasLimit ? Math.min(1, unexcusedCount / Math.max(1, limit)) : 0;
+
+  const handleSavePolicy = (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = Number(draftLimit);
+    if (draftLimit.trim() === '' || !Number.isInteger(n) || n < 0) return;
+    onPolicyChange?.({
+      allowedUnexcused: n,
+      ...(draftPenalty.trim() ? { penalty: draftPenalty.trim() } : {}),
+    });
+    setEditingPolicy(false);
+  };
   const gaugeLevel: RingGaugeLevel =
     status === 'critical' ? 'critical' : status === 'warning' ? 'medium' : 'low';
 
@@ -99,7 +133,10 @@ export function AttendanceGauge({
           <div>
             <h2 className="text-base font-semibold text-foreground">Attendance</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {courseCode} · {courseTitle} — unexcused absences against the syllabus policy.
+              {[courseCode, courseTitle].filter(Boolean).join(' · ')}
+              {hasLimit
+                ? ' — unexcused absences against your syllabus limit.'
+                : ' — unexcused absences you have logged.'}
             </p>
           </div>
           <CardActionButton
@@ -121,17 +158,21 @@ export function AttendanceGauge({
               level={gaugeLevel}
               size={176}
               radius={70}
-              aria-label={`Unexcused absences: ${unexcusedCount} of ${maxAllowedAbsences}`}
+              aria-label={
+                hasLimit
+                  ? `Unexcused absences: ${unexcusedCount} of ${limit}`
+                  : `Unexcused absences: ${unexcusedCount}, no limit on file`
+              }
               aria-valuenow={unexcusedCount}
               aria-valuemin={0}
-              aria-valuemax={maxAllowedAbsences}
+              aria-valuemax={hasLimit ? limit : unexcusedCount}
             >
               <div className="flex flex-col items-center justify-center text-center">
                 <span className="text-3xl font-extrabold text-foreground tracking-tight">
                   {unexcusedCount}
-                  <span className="text-base font-medium text-muted-foreground">
-                    /{maxAllowedAbsences}
-                  </span>
+                  {hasLimit && (
+                    <span className="text-base font-medium text-muted-foreground">/{limit}</span>
+                  )}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Unexcused
@@ -143,20 +184,24 @@ export function AttendanceGauge({
               <span
                 data-testid="absence-status-badge"
                 className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                  status === 'safe'
-                    ? 'bg-load-low/10 text-load-low border-load-low/30'
-                    : status === 'warning'
-                      ? 'bg-load-medium/10 text-load-medium border-load-medium/30'
-                      : 'bg-load-critical/10 text-load-critical border-load-critical/30'
+                  !hasLimit
+                    ? 'bg-muted text-muted-foreground border-border'
+                    : status === 'safe'
+                      ? 'bg-load-low/10 text-load-low border-load-low/30'
+                      : status === 'warning'
+                        ? 'bg-load-medium/10 text-load-medium border-load-medium/30'
+                        : 'bg-load-critical/10 text-load-critical border-load-critical/30'
                 }`}
               >
-                {status === 'safe'
-                  ? `${remainingAllowed} of ${maxAllowedAbsences} Absences Remaining`
-                  : status === 'warning'
-                    ? 'Final Warning: 1 Absence Left'
-                    : excessAbsences > 0
-                      ? `Penalty Active: +${excessAbsences} Over Limit`
-                      : 'Limit Reached: 0 Remaining'}
+                {!hasLimit
+                  ? 'No limit on file'
+                  : status === 'safe'
+                    ? `${remainingAllowed} of ${limit} Absences Remaining`
+                    : status === 'warning'
+                      ? 'Final Warning: 1 Absence Left'
+                      : excessAbsences > 0
+                        ? `Penalty Active: +${excessAbsences} Over Limit`
+                        : 'Limit Reached: 0 Remaining'}
               </span>
               <p className="text-xs text-muted-foreground">
                 {excusedCount} excused {excusedCount === 1 ? 'absence' : 'absences'} logged (no
@@ -165,72 +210,119 @@ export function AttendanceGauge({
             </div>
           </div>
 
-          {/* Right Side: Policy Details & Advice (7 cols) */}
+          {/* Right Side: the policy as the student entered it, and advice
+              only once there's a real limit to measure against. */}
           <div className="md:col-span-7 rounded-2xl border border-border bg-foreground/[0.025] p-5 space-y-4 flex flex-col justify-between">
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-                <span>Syllabus Attendance Policy Rules</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-primary">Attendance policy</span>
+                {onPolicyChange && hasLimit && !editingPolicy && (
+                  <CardActionButton onClick={() => setEditingPolicy(true)}>Edit</CardActionButton>
+                )}
               </div>
 
-              <div className="p-4 rounded-2xl bg-muted/50 border border-border text-xs text-foreground space-y-2">
-                <p className="leading-relaxed font-mono">&ldquo;{penaltyDescription}&rdquo;</p>
-                <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>
-                    Allowed Unexcused: <strong>{maxAllowedAbsences}</strong>
-                  </span>
-                  <span>
-                    Current Unexcused: <strong className="text-foreground">{unexcusedCount}</strong>
-                  </span>
+              {editingPolicy ? (
+                <form
+                  onSubmit={handleSavePolicy}
+                  className="space-y-3"
+                  aria-label="Attendance policy"
+                >
+                  <label className="block text-xs font-semibold text-foreground">
+                    Unexcused absences allowed
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      required
+                      value={draftLimit}
+                      onChange={(e) => setDraftLimit(e.target.value)}
+                      className="mt-1 block w-24 rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </label>
+                  <label className="block text-xs font-semibold text-foreground">
+                    What happens after that{' '}
+                    <span className="font-normal text-muted-foreground">(optional)</span>
+                    <input
+                      type="text"
+                      value={draftPenalty}
+                      onChange={(e) => setDraftPenalty(e.target.value)}
+                      placeholder="As your syllabus puts it"
+                      className="mt-1 block w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <CardActionButton type="submit" variant="solid">
+                      Save policy
+                    </CardActionButton>
+                    <CardActionButton onClick={() => setEditingPolicy(false)}>
+                      Cancel
+                    </CardActionButton>
+                  </div>
+                </form>
+              ) : hasLimit ? (
+                <div className="space-y-2 rounded-2xl border border-border bg-muted/50 p-4 text-xs text-foreground">
+                  <p>
+                    <strong>{limit}</strong> unexcused {limit === 1 ? 'absence' : 'absences'}{' '}
+                    allowed
+                    {penaltyDescription ? '. After that:' : '.'}
+                  </p>
+                  {penaltyDescription && (
+                    <p className="leading-relaxed text-muted-foreground">{penaltyDescription}</p>
+                  )}
+                  <p className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+                    From your syllabus, as you entered it.
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3 rounded-2xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+                  <p>
+                    No attendance policy on file. Check your syllabus for how many absences are
+                    allowed and what happens after that, and add it here. This card will then warn
+                    you before an absence starts to cost you.
+                  </p>
+                  {onPolicyChange && (
+                    <CardActionButton
+                      variant="solid"
+                      withPlus
+                      onClick={() => setEditingPolicy(true)}
+                    >
+                      Add policy
+                    </CardActionButton>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div
-              className={`p-4 rounded-2xl border text-xs space-y-1 ${
-                status === 'safe'
-                  ? 'bg-load-low/10 border-load-low/30 text-load-low'
-                  : status === 'warning'
-                    ? 'bg-load-medium/10 border-load-medium/30 text-load-medium'
-                    : 'bg-load-critical/10 border-load-critical/30 text-load-critical'
-              }`}
-            >
-              <div className="font-bold flex items-center gap-1.5">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span>Attendance Advisory</span>
+            {hasLimit && !editingPolicy && (
+              <div
+                className={`p-4 rounded-2xl border text-xs space-y-1 ${
+                  status === 'safe'
+                    ? 'bg-load-low/10 border-load-low/30 text-load-low'
+                    : status === 'warning'
+                      ? 'bg-load-medium/10 border-load-medium/30 text-load-medium'
+                      : 'bg-load-critical/10 border-load-critical/30 text-load-critical'
+                }`}
+              >
+                <p className="font-bold">
+                  {status === 'safe'
+                    ? 'In good standing'
+                    : status === 'warning'
+                      ? 'Close to your limit'
+                      : excessAbsences > 0
+                        ? 'Over your limit'
+                        : 'At your limit'}
+                </p>
+                <p>
+                  {status === 'safe'
+                    ? `By your policy, you can miss ${remainingAllowed} more ${remainingAllowed === 1 ? 'class' : 'classes'} before it applies.`
+                    : status === 'warning'
+                      ? `One more unexcused absence reaches your limit of ${limit}.`
+                      : excessAbsences > 0
+                        ? `You're ${excessAbsences} over your limit of ${limit}. Talk to your instructor, and log anything with documentation as excused.`
+                        : `You've used all ${limit}. The next unexcused absence counts against you.`}
+                </p>
               </div>
-              <p>
-                {status === 'safe'
-                  ? `You are in good standing. You can miss ${remainingAllowed} more classes without any academic penalty.`
-                  : status === 'warning'
-                    ? 'Caution: You have used 2 absences. Missing one more class will trigger automatic grade deductions.'
-                    : 'Warning: You have reached or exceeded the allowed absences. Contact your professor or submit medical documentation.'}
-              </p>
-            </div>
+            )}
           </div>
         </div>
 
