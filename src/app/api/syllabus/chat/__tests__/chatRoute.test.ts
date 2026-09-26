@@ -50,43 +50,88 @@ describe('AI Syllabus Chat Route (Item 35)', () => {
     expect(data.error).toMatch(/Missing message/i);
   });
 
-  it('generates accurate late policy answers and citations in offline mode', () => {
+  // Offline answers come only from what's on record. They used to invent
+  // "typical" policies (a 25/25/35/15 grading split, "up to 2 unexcused
+  // absences", Tue/Thu 2-4pm office hours) and cite them as the student's
+  // own syllabus.
+  const SYLLABUS = [
+    'CS 301 - Data Structures',
+    'Late work: 10% off per day, up to 3 days. No work accepted after solutions post.',
+    'Grading: Homework 30%, Midterm 30%, Final 40%.',
+    'Office hours: Mondays 1-3pm in Gates 204, or email chen@example.edu.',
+  ].join('\n');
+
+  it('quotes the late policy from the syllabus text, with a citation', () => {
     const result = generateOfflineSyllabusAnswer({
       message: 'What is the late work policy for this class?',
       courseCode: 'CS 301',
-      courseTitle: 'Data Structures',
-      notes: 'Late work allowed with slip days.',
+      syllabusText: SYLLABUS,
     });
-
-    expect(result.reply).toContain('Late Submission Policy');
-    expect(result.citations.length).toBeGreaterThan(0);
-    expect(result.citations[0]).toContain('CS 301');
+    expect(result.reply).toContain('- “Late work: 10% off per day, up to 3 days.');
+    expect(result.reply).not.toContain('Grading:');
+    expect(result.citations).toEqual(['[CS 301 Syllabus]']);
     expect(result.suggestions.length).toBeGreaterThan(0);
   });
 
-  it('generates accurate grading breakdown answers in offline mode', () => {
+  it('quotes the real grading weights and invents none', () => {
+    const result = generateOfflineSyllabusAnswer({
+      message: 'How are grades and exams weighted?',
+      courseCode: 'CS 301',
+      syllabusText: SYLLABUS,
+    });
+    expect(result.reply).toContain('Homework 30%, Midterm 30%, Final 40%');
+    expect(result.reply).not.toMatch(/25%|35%|15%/);
+    // Only the grading line - not the late policy's "10% off per day".
+    expect(result.reply).not.toContain('Late work');
+  });
+
+  it('says so instead of guessing when there is no syllabus text', () => {
     const result = generateOfflineSyllabusAnswer({
       message: 'How are grades and exams weighted?',
       courseCode: 'MATH 240',
       courseTitle: 'Linear Algebra',
     });
-
-    expect(result.reply).toContain('Grading Breakdown');
-    expect(result.reply).toContain('Final Exam');
-    expect(result.citations[0]).toContain('MATH 240');
+    expect(result.reply).toMatch(/can't answer that without guessing/);
+    expect(result.reply).toContain('no syllabus text saved for MATH 240');
+    expect(result.reply).not.toMatch(/\d+%/);
+    expect(result.citations).toEqual([]);
   });
 
-  it('handles office hours and instructor queries accurately', () => {
+  it('says the syllabus does not cover it rather than inventing a policy', () => {
+    const result = generateOfflineSyllabusAnswer({
+      message: 'How many classes can I miss?',
+      courseCode: 'CS 301',
+      instructor: 'Dr. Chen',
+      syllabusText: SYLLABUS,
+    });
+    expect(result.reply).toMatch(/couldn't find anything about attendance/);
+    expect(result.reply).toContain('Dr. Chen is the one to ask');
+    expect(result.reply).not.toMatch(/unexcused absences/);
+    expect(result.citations).toEqual([]);
+  });
+
+  it('answers contact questions from the saved instructor plus the syllabus lines', () => {
     const result = generateOfflineSyllabusAnswer({
       message: 'When are the professor office hours?',
-      courseCode: 'PHYS 202',
-      instructor: 'Dr. Feynman',
-      location: 'Science Hall 304',
+      courseCode: 'CS 301',
+      instructor: 'Dr. Chen',
+      location: 'Gates 104',
+      syllabusText: SYLLABUS,
     });
+    expect(result.reply).toContain('**Instructor:** Dr. Chen');
+    expect(result.reply).toContain('**Class location:** Gates 104');
+    expect(result.reply).toContain('- “Office hours: Mondays 1-3pm in Gates 204');
+    expect(result.reply).not.toContain('Tuesdays & Thursdays');
+  });
 
-    expect(result.reply).toContain('Dr. Feynman');
-    expect(result.reply).toContain('Office Hours');
-    expect(result.citations[0]).toContain('Staff Information');
+  it('lists saved materials without a syllabus citation', () => {
+    const result = generateOfflineSyllabusAnswer({
+      message: 'What textbooks are required?',
+      courseCode: 'CHEM 101',
+      materials: ['Organic Chemistry 8th Edition'],
+    });
+    expect(result.reply).toContain('- Organic Chemistry 8th Edition');
+    expect(result.citations).toEqual([]);
   });
 
   it('responds with status 200 and structured reply over POST endpoint', async () => {
@@ -103,6 +148,7 @@ describe('AI Syllabus Chat Route (Item 35)', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.reply).toContain('Organic Chemistry 8th Edition');
-    expect(data.citations.length).toBeGreaterThan(0);
+    // Saved materials, not a syllabus quote - so no syllabus citation.
+    expect(data.citations).toEqual([]);
   });
 });
