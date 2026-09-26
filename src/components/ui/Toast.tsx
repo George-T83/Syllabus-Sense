@@ -112,7 +112,7 @@ function ToastContainer({
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="fixed top-5 right-5 z-50 flex max-w-sm flex-col gap-2.5 sm:top-6 sm:right-6"
+      className="fixed top-5 right-5 z-[100] flex max-w-sm flex-col gap-2.5 sm:top-6 sm:right-6"
     >
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} onDismiss={() => onDismiss(toast.id)} />

@@ -12,14 +12,11 @@ import { createFlashcards, deleteFlashcard } from '@/lib/firestore/flashcards';
 import { isCardDue } from '@/lib/flashcards/sm2';
 import { SM2_DEFAULTS } from '@/lib/flashcards/sm2';
 import { toDayKey } from '@/lib/calendar/dates';
+import { nextExamForCourse, readiness, readinessTarget } from '@/lib/flashcards/memory';
+import { MemoryTiles } from '@/components/flashcards/MemoryTiles';
 import { generatedFlashcardsSchema } from '@/types/flashcard';
 import type { Flashcard } from '@/types/flashcard';
 import type { Course } from '@/types/schedule';
-
-/** A card is treated as "mastered" once it's survived two consecutive
- * successful reviews - matches SM-2's own graduation point (the interval
- * stops being a fixed 1/6 days and starts compounding by the ease factor). */
-const MASTERED_REPETITIONS = 2;
 
 export function FlashcardDeckCard({
   course,
@@ -43,8 +40,8 @@ export function FlashcardDeckCard({
 
   const deckCards = state.flashcards.filter((c) => c.courseId === course.id);
   const dueCards = deckCards.filter((c) => isCardDue(c));
-  const masteredCount = deckCards.filter((c) => c.repetitions >= MASTERED_REPETITIONS).length;
-  const masteredPct = deckCards.length ? Math.round((masteredCount / deckCards.length) * 100) : 0;
+  const exam = nextExamForCourse(course.id, state.scheduleItems);
+  const deckReadiness = readiness(deckCards, readinessTarget(exam));
 
   const handleGenerate = async () => {
     if (!user || !latestSyllabus) return;
@@ -136,12 +133,27 @@ export function FlashcardDeckCard({
       </div>
 
       {deckCards.length > 0 && (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-gradient-brand transition-all"
-            style={{ width: `${masteredPct}%` }}
-          />
-        </div>
+        <>
+          <MemoryTiles cards={deckCards} examTitle={exam ? exam.item.title : null} />
+          <div>
+            <div className="flex items-baseline justify-between gap-3 text-xs">
+              <span className="min-w-0 truncate text-muted-foreground">
+                {exam
+                  ? `${exam.item.title} ${exam.daysAway === 0 ? 'today' : exam.daysAway === 1 ? 'tomorrow' : `in ${exam.daysAway} days`}`
+                  : 'Readiness a week out'}
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums text-foreground">
+                {Math.round(deckReadiness * 100)}% ready
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-gradient-brand transition-all"
+                style={{ width: `${deckReadiness * 100}%` }}
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
@@ -177,7 +189,7 @@ export function FlashcardDeckCard({
             <button
               type="button"
               onClick={() => setConfirmingDelete(true)}
-              className="inline-flex min-h-[36px] items-center justify-center rounded-full px-3 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+              className="inline-flex min-h-[36px] items-center justify-center rounded-full bg-destructive/10 px-3 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/20"
             >
               Delete deck
             </button>

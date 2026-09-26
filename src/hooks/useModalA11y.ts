@@ -17,6 +17,11 @@ const FOCUSABLE_SELECTOR =
 export function useModalA11y<T extends HTMLElement>(open: boolean, onClose: () => void) {
   const containerRef = useRef<T>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  // Callers usually pass an inline onClose that changes every render. Keyed
+  // on it, the effect below would tear down and re-run on every render -
+  // yanking focus back to the first button each time - so read it via a ref.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +62,7 @@ export function useModalA11y<T extends HTMLElement>(open: boolean, onClose: () =
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -96,7 +101,7 @@ export function useModalA11y<T extends HTMLElement>(open: boolean, onClose: () =
       document.body.style.overflow = originalBodyOverflow;
       triggerRef.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return containerRef;
 }
