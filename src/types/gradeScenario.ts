@@ -13,5 +13,8 @@ export interface GradeScenario {
   categories: GradeCategory[];
   finalExamWeight: number;
   targetPercentage: number;
+  /** The what-if slider: average score assumed on the work still ahead.
+   * Optional - scenarios saved before the slider existed don't have it. */
+  remainingScore?: number;
   createdAt: string;
 }
