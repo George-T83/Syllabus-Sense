@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect } from 'vitest';
 import {
+  courseStanding,
   percentageToLetterGrade,
   letterGradeToGpaPoints,
   calculateCurrentWeightedGrade,
@@ -284,5 +285,32 @@ describe('remainingWorkFromScheduleItems', () => {
     expect(
       remainingWorkFromScheduleItems([item({ id: 'a', gradeWeight: 100, earnedScore: 80 })]),
     ).toEqual({ weight: 0, titles: [] });
+  });
+});
+
+describe('courseStanding', () => {
+  const item = (o: Partial<ScheduleItem> & { id: string }): ScheduleItem => ({
+    courseId: 'cs',
+    title: o.id,
+    type: 'assignment',
+    dueDate: '2026-09-01',
+    completed: true,
+    ...o,
+  });
+
+  it('is null until something is graded, never an optimistic 100% A', () => {
+    expect(courseStanding([])).toBeNull();
+    expect(courseStanding([item({ id: 'a', gradeWeight: 20 })])).toBeNull();
+    expect(courseStanding([item({ id: 'b', earnedScore: 90 })])).toBeNull();
+  });
+
+  it('averages graded work by weight and says how much of the grade it covers', () => {
+    const s = courseStanding([
+      item({ id: 'hw', gradeWeight: 10, earnedScore: 92, gradeCategory: 'Homework' }),
+      item({ id: 'mid', gradeWeight: 25, earnedScore: 78, gradeCategory: 'Exams' }),
+      item({ id: 'final', gradeWeight: 40, gradeCategory: 'Exams' }),
+    ]);
+    // (10*92 + 25*78) / 35 = 82
+    expect(s).toEqual({ percentage: 82, letter: 'B-', decidedWeight: 35, gradedCount: 2 });
   });
 });
