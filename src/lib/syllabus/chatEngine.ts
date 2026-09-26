@@ -13,8 +13,109 @@ export interface ChatRequestBody {
   fileName?: string;
 }
 
+interface Topic {
+  label: string;
+  /** Matched against the question to pick the topic. */
+  askedWith: RegExp;
+  /** Matched against syllabus lines to find what it says about the topic. */
+  foundWith: RegExp;
+  suggestions: string[];
+}
+
+const TOPICS: Topic[] = [
+  {
+    label: 'late work',
+    askedWith: /\blate\b|extension|deadline|penalt|slip day|grace/,
+    foundWith: /\blate\b|extension|slip day|grace period|penalt/i,
+    suggestions: ['How are grades weighted?', 'What is the attendance policy?'],
+  },
+  {
+    label: 'grading',
+    askedWith: /grade|grading|weight|scale|percent|curve|calculat/,
+    // Not bare percentages: a late policy's "20% off" isn't a grade weight.
+    foundWith: /\bgrades?\b|\bgrading\b|weight|curve|letter grade|grade scale/i,
+    suggestions: ['What is the late work policy?', 'When are office hours?'],
+  },
+  {
+    label: 'office hours and contact details',
+    askedWith: /office hour|professor|instructor|contact|email|\bta\b|where|location/,
+    foundWith: /office|hours|email|@|instructor|professor|\bta\b|room|location/i,
+    suggestions: ['What textbooks do I need?', 'What is the attendance policy?'],
+  },
+  {
+    label: 'required materials',
+    askedWith: /book|textbook|material|software|calculator|hardware/,
+    foundWith: /textbook|\bbook\b|required|material|edition|software|calculator/i,
+    suggestions: ['How are grades weighted?', 'What are the learning objectives?'],
+  },
+  {
+    label: 'attendance',
+    askedWith: /attend|absen|\bmiss|sick/,
+    foundWith: /attend|absen|excused|participation/i,
+    suggestions: ['What is the late work policy?', 'When are office hours?'],
+  },
+  {
+    label: 'learning objectives',
+    askedWith: /objective|outcome|learn|goal|topic|prereq/,
+    foundWith: /objective|outcome|students will|able to|prerequisite/i,
+    suggestions: ['How are grades weighted?', 'What textbooks do I need?'],
+  },
+];
+
+const DEFAULT_SUGGESTIONS = [
+  'What is the late work policy?',
+  'How are grades weighted?',
+  'When are office hours?',
+];
+
+/** How many syllabus lines to quote - enough to answer, short enough to read. */
+const MAX_QUOTED_LINES = 6;
+
+const STOP_WORDS = new Set([
+  'what',
+  'when',
+  'where',
+  'which',
+  'does',
+  'this',
+  'that',
+  'there',
+  'about',
+  'with',
+  'have',
+  'will',
+  'class',
+  'course',
+  'should',
+  'could',
+  'would',
+]);
+
+/** Syllabus lines matching `pattern`, trimmed, deduplicated, in order. */
+function findLines(text: string, pattern: RegExp): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/\s+/g, ' ').trim();
+    if (line.length < 4 || seen.has(line) || !pattern.test(line)) continue;
+    seen.add(line);
+    lines.push(line);
+    if (lines.length >= MAX_QUOTED_LINES) break;
+  }
+  return lines;
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * Intelligent contextual syllabus query engine for deterministic offline / fallback processing.
+ * The answer the syllabus chat gives when the AI isn't available: only what
+ * is actually on record for the course - lines quoted from the syllabus
+ * text, plus the instructor, materials and objectives saved on the course.
+ * It never fills a gap with a typical policy: a made-up "2 unexcused
+ * absences" or "10% per day late" cited as the student's own syllabus is
+ * worse than no answer, because they'd act on it.
  */
 export function generateOfflineSyllabusAnswer(body: ChatRequestBody): {
   reply: string;
@@ -23,157 +124,58 @@ export function generateOfflineSyllabusAnswer(body: ChatRequestBody): {
 } {
   const q = body.message.toLowerCase();
   const code = body.courseCode || 'this course';
-  const title = body.courseTitle || '';
-  const text = (body.syllabusText || body.notes || '').toLowerCase();
-  const objectives = body.learningObjectives || [];
-  const materials = body.materials || [];
+  const text = [body.syllabusText, body.notes].filter(Boolean).join('\n');
+  const topic = TOPICS.find((t) => t.askedWith.test(q));
+  const suggestions = topic?.suggestions ?? DEFAULT_SUGGESTIONS;
 
-  // 1. Late Work & Submission Policy
-  if (
-    q.includes('late') ||
-    q.includes('deadline') ||
-    q.includes('extension') ||
-    q.includes('penalty')
-  ) {
-    let policy =
-      'Late assignments are penalized 10% per 24 hours late, up to a maximum of 3 calendar days (72 hours). After 72 hours or once official solutions are posted, submissions will receive a zero unless an official excused extension is granted.';
-    if (text.includes('grace period') || text.includes('late token') || text.includes('slip day')) {
-      policy =
-        'You have up to 2 free late slip days for the entire semester that can be applied to homework assignments without penalty. Subsequent late work incurs a 15% penalty per day.';
+  // What the course record itself knows, for the topics it covers.
+  const onRecord: string[] = [];
+  if (topic?.label === 'office hours and contact details') {
+    if (body.instructor) onRecord.push(`**Instructor:** ${body.instructor}`);
+    if (body.location) onRecord.push(`**Class location:** ${body.location}`);
+  }
+  if (topic?.label === 'required materials' && body.materials?.length) {
+    onRecord.push(...body.materials.map((m) => `- ${m}`));
+  }
+  if (topic?.label === 'learning objectives' && body.learningObjectives?.length) {
+    onRecord.push(...body.learningObjectives.map((o, i) => `${i + 1}. ${o}`));
+  }
+
+  // What the syllabus says: lines matching the topic, or failing that, lines
+  // sharing a meaningful word with the question.
+  let quoted: string[] = [];
+  if (text) {
+    if (topic) quoted = findLines(text, topic.foundWith);
+    if (quoted.length === 0) {
+      const words = q.match(/[a-z]{4,}/g)?.filter((w) => !STOP_WORDS.has(w)) ?? [];
+      if (words.length) {
+        quoted = findLines(text, new RegExp(words.map(escapeRegExp).join('|'), 'i'));
+      }
     }
+  }
+
+  const about = topic ? topic.label : 'that';
+  const parts: string[] = [];
+  if (onRecord.length) {
+    parts.push(`**What's saved for ${code}:**\n\n${onRecord.join('\n')}`);
+  }
+  if (quoted.length) {
+    parts.push(
+      `**What your ${code} syllabus says about ${about}:**\n\n${quoted.map((l) => `- “${l}”`).join('\n')}`,
+    );
+  }
+
+  if (parts.length) {
     return {
-      reply: `**Late Submission Policy for ${code}:**\n\n${policy}\n\n*Tip: If you foresee an emergency, contact your instructor at least 24 hours before the deadline.*`,
-      citations: [`[${code} Syllabus § Academic Policies - Late Submissions]`],
-      suggestions: [
-        'How do I request an assignment extension?',
-        'What is the attendance policy?',
-        'How are course grades calculated?',
-      ],
+      reply: parts.join('\n\n'),
+      // Only a real quote earns a syllabus citation.
+      citations: quoted.length ? [`[${code} Syllabus]`] : [],
+      suggestions,
     };
   }
 
-  // 2. Grading Scale & Weight Breakdown
-  if (
-    q.includes('grade') ||
-    q.includes('weight') ||
-    q.includes('scale') ||
-    q.includes('percent') ||
-    q.includes('curve') ||
-    q.includes('calculate')
-  ) {
-    return {
-      reply: `**Grading Breakdown for ${code} ${title ? `(${title})` : ''}:**\n\n- **Homework & Labs:** 25%\n- **Midterm Exam:** 25%\n- **Final Exam / Capstone:** 35%\n- **Quizzes & Participation:** 15%\n\n**Standard Grading Scale:**\n- **A:** 93.0% – 100%\n- **A-:** 90.0% – 92.9%\n- **B+:** 87.0% – 89.9%\n- **B:** 83.0% – 86.9%\n- **C+:** 77.0% – 79.9%\n- **C:** 70.0% – 76.9%\n- **D/F:** Below 70.0%`,
-      citations: [`[${code} Syllabus § Course Grading & Evaluation Scheme]`],
-      suggestions: [
-        'What score do I need on the final to get an A?',
-        'When are the midterm exams?',
-        'What is the late work policy?',
-      ],
-    };
-  }
-
-  // 3. Office Hours & Instructor Info
-  if (
-    q.includes('office hour') ||
-    q.includes('professor') ||
-    q.includes('instructor') ||
-    q.includes('contact') ||
-    q.includes('email') ||
-    q.includes('ta') ||
-    q.includes('where') ||
-    q.includes('location')
-  ) {
-    const instructor = body.instructor || 'Course Instructor';
-    const location = body.location || 'Science Hall / Zoom';
-    return {
-      reply: `**Instructor & Office Hours for ${code}:**\n\n- **Instructor:** ${instructor}\n- **Class Location:** ${location}\n- **Office Hours:** Tuesdays & Thursdays, 2:00 PM – 4:00 PM (or by appointment)\n- **Office Location:** Department Hall Room 310 / Virtual Zoom Link\n- **Preferred Etiquette:** Include \`[${code}]\` in your email subject line and allow up to 24-48 business hours for replies.`,
-      citations: [`[${code} Syllabus § Staff Information & Office Hours]`],
-      suggestions: [
-        'Draft an email to the professor for office hours',
-        'What are the required textbooks?',
-        'What is the attendance policy?',
-      ],
-    };
-  }
-
-  // 4. Textbooks & Required Materials
-  if (
-    q.includes('book') ||
-    q.includes('textbook') ||
-    q.includes('material') ||
-    q.includes('software') ||
-    q.includes('calculator') ||
-    q.includes('hardware')
-  ) {
-    const matList =
-      materials.length > 0
-        ? materials.map((m) => `- ${m}`).join('\n')
-        : `- Required Primary Textbook (Refer to syllabus reading list)\n- Scientific/Graphing Calculator or IDE environment\n- Canvas LMS & Gradescope access`;
-
-    return {
-      reply: `**Required Materials & Textbooks for ${code}:**\n\n${matList}\n\n*Note: Digital copies and university library reserve editions are also permitted.*`,
-      citations: [`[${code} Syllabus § Textbooks, Materials, and Tooling]`],
-      suggestions: [
-        'What are the course prerequisites?',
-        'What are the key learning objectives?',
-        'How are grades weighted?',
-      ],
-    };
-  }
-
-  // 5. Attendance & Absence Policy
-  if (
-    q.includes('attend') ||
-    q.includes('absence') ||
-    q.includes('absent') ||
-    q.includes('miss') ||
-    q.includes('sick')
-  ) {
-    return {
-      reply: `**Attendance & Absence Allowance for ${code}:**\n\n- Regular class attendance and active participation are expected.\n- Students are allowed **up to 2 unexcused absences** without grade penalty.\n- For university-sanctioned events or documented medical emergencies, notify the professor at least 24 hours in advance.\n- Unexcused absences exceeding the allowance will deduct 1.5% from the final course participation score per occurrence.`,
-      citations: [`[${code} Syllabus § Course Attendance & Participation Policy]`],
-      suggestions: [
-        'How do I draft an absence notification email?',
-        'When is the next assignment due?',
-        'What is the late work policy?',
-      ],
-    };
-  }
-
-  // 6. Learning Objectives & Goals
-  if (
-    q.includes('objective') ||
-    q.includes('learn') ||
-    q.includes('goal') ||
-    q.includes('topic') ||
-    q.includes('prereq') ||
-    q.includes('prerequisite')
-  ) {
-    const objList =
-      objectives.length > 0
-        ? objectives.map((o, idx) => `${idx + 1}. ${o}`).join('\n')
-        : `1. Master foundational principles, algorithms, and methodologies of ${code}.\n2. Apply problem-solving techniques to complex multi-stage assignments.\n3. Analyze real-world datasets and synthesize research findings in technical reports.`;
-
-    return {
-      reply: `**Learning Objectives for ${code}:**\n\n${objList}\n\n**Prerequisites:** Prior introductory coursework with a grade of C or better.`,
-      citations: [`[${code} Syllabus § Course Learning Outcomes & Prerequisites]`],
-      suggestions: [
-        'How are exams weighted in this course?',
-        'What textbooks do I need?',
-        'When are office hours?',
-      ],
-    };
-  }
-
-  // 7. General Syllabus Copilot Answer
-  return {
-    reply: `Here is what I found in the **${code}** syllabus regarding your question:\n\nFor **"${body.message}"**, this course emphasizes continuous assessment, active collaborative learning, and adherence to university academic integrity standards. All deadlines are published in the syllabus calendar and are due at 11:59 PM unless specified otherwise.\n\nWould you like me to look up specific details about grading weights, late penalties, office hours, or required reading?`,
-    citations: [`[${code} Syllabus § General Policies & Overview]`],
-    suggestions: [
-      'What is the late work policy?',
-      'How are course grades calculated?',
-      'When and where are office hours?',
-      'What textbooks are required?',
-    ],
-  };
+  const reply = text
+    ? `I couldn't find anything about ${about} in the ${code} syllabus on file, so I won't guess. It may not be covered - ${body.instructor ? `${body.instructor} is` : 'your instructor is'} the one to ask.`
+    : `I can't answer that without guessing: there's no syllabus text saved for ${code} yet, and the AI assistant isn't available right now. Upload the syllabus on the course page and ask again, or check it directly.`;
+  return { reply, citations: [], suggestions };
 }
