@@ -1,0 +1,44 @@
+name: Deploy Firestore Rules
+
+# Runs only when the rules or indexes files themselves change on main, and
+# only after they've already passed CI as part of that merge - this is not
+# a substitute for the "Lint, Build, and Test" check, just the step nothing
+# else in this repo performs: pushing firestore.rules/firestore.indexes.json
+# to the live Firebase project. Without this, a rule added in code (e.g. a
+# new top-level collection) can sit un-deployed indefinitely, silently
+# denying reads/writes for real users while the rest of the app works fine.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - firestore.rules
+      - firestore.indexes.json
+
+jobs:
+  deploy:
+    name: Deploy rules and indexes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Write service account credentials
+        run: echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy Firestore rules and indexes
+        run: npx firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT_ID" --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
