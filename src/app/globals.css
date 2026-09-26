@@ -13,8 +13,10 @@
 
 @layer base {
   :root {
-    /* Study Space, daylight: a pearl-lavender canvas under a soft brand
-       nebula (see body::before), with bright white cards floating on it. */
+    /* Study Space, daylight: a pearl-lavender canvas, with bright white
+       cards floating on it. The sign-in/sign-up screen layers its own soft
+       brand nebula on top of this (see .auth-shell::before); everywhere
+       else this plain tint is the whole background. */
     --background: 252 75% 97%;
     --foreground: 248 30% 8%;
 
@@ -87,9 +89,10 @@
   }
 
   .dark {
-    /* Study Space, night: deep violet-black space under the brand nebula
-       (see body::before). Every neutral carries a slight violet bias so
-       surfaces read as part of the same sky rather than flat gray. */
+    /* Study Space, night: deep violet-black space - the sign-in nebula's own
+       backdrop (see .auth-shell::before), and the plain canvas everywhere
+       else. Every neutral carries a slight violet bias so surfaces read as
+       part of the same sky rather than flat gray. */
     --background: 252 45% 3.5%;
     --foreground: 250 30% 97%;
 
@@ -184,11 +187,17 @@
     --stars-night-2: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='877' height='877'><circle cx='838' cy='831' r='0.95' fill='%23ece9ff' fill-opacity='0.85'/><circle cx='587' cy='270' r='0.72' fill='%237fe6d2' fill-opacity='0.45'/><circle cx='877' cy='560' r='0.84' fill='%237fe6d2' fill-opacity='0.53'/><circle cx='477' cy='390' r='0.47' fill='%23ece9ff' fill-opacity='0.51'/><circle cx='817' cy='796' r='0.85' fill='%23ece9ff' fill-opacity='0.60'/><circle cx='207' cy='21' r='0.51' fill='%237fe6d2' fill-opacity='0.36'/><circle cx='451' cy='491' r='0.65' fill='%23b4a5ff' fill-opacity='0.59'/><circle cx='795' cy='669' r='0.61' fill='%23b4a5ff' fill-opacity='0.36'/><circle cx='661' cy='627' r='0.69' fill='%23b4a5ff' fill-opacity='0.41'/><circle cx='437' cy='452' r='0.75' fill='%23b4a5ff' fill-opacity='0.66'/><circle cx='404' cy='498' r='0.78' fill='%23b4a5ff' fill-opacity='0.56'/><circle cx='825' cy='714' r='0.84' fill='%237fe6d2' fill-opacity='0.33'/><circle cx='799' cy='271' r='0.77' fill='%237fe6d2' fill-opacity='0.42'/><circle cx='445' cy='540' r='0.78' fill='%23b4a5ff' fill-opacity='0.50'/><circle cx='819' cy='547' r='1.39' fill='%237fe6d2' fill-opacity='0.32'/><circle cx='715' cy='874' r='1.24' fill='%23ece9ff' fill-opacity='0.59'/><circle cx='199' cy='768' r='1.21' fill='%23b4a5ff' fill-opacity='0.50'/><circle cx='185' cy='772' r='0.77' fill='%23ece9ff' fill-opacity='0.38'/><circle cx='316' cy='219' r='0.97' fill='%23ece9ff' fill-opacity='0.45'/><circle cx='640' cy='19' r='0.82' fill='%23ece9ff' fill-opacity='0.68'/><circle cx='459' cy='2' r='0.81' fill='%23ece9ff' fill-opacity='0.42'/><circle cx='32' cy='302' r='0.78' fill='%23ece9ff' fill-opacity='0.48'/><circle cx='429' cy='270' r='0.72' fill='%23ece9ff' fill-opacity='0.76'/><circle cx='663' cy='756' r='0.66' fill='%23ece9ff' fill-opacity='0.39'/><circle cx='603' cy='735' r='1.37' fill='%23ece9ff' fill-opacity='0.73'/><circle cx='685' cy='427' r='0.84' fill='%23b4a5ff' fill-opacity='0.40'/><circle cx='532' cy='368' r='1.23' fill='%23ece9ff' fill-opacity='0.81'/><circle cx='222' cy='116' r='0.65' fill='%23ece9ff' fill-opacity='0.58'/><circle cx='862' cy='819' r='0.55' fill='%23b4a5ff' fill-opacity='0.33'/><circle cx='71' cy='200' r='0.73' fill='%23b4a5ff' fill-opacity='0.40'/><circle cx='371' cy='461' r='0.92' fill='%23b4a5ff' fill-opacity='0.46'/><circle cx='449' cy='77' r='0.91' fill='%23ece9ff' fill-opacity='0.50'/><circle cx='21' cy='587' r='0.69' fill='%23b4a5ff' fill-opacity='0.38'/><circle cx='795' cy='845' r='0.65' fill='%237fe6d2' fill-opacity='0.26'/><circle cx='519' cy='773' r='0.71' fill='%23ece9ff' fill-opacity='0.65'/><circle cx='421' cy='17' r='0.50' fill='%23b4a5ff' fill-opacity='0.42'/><circle cx='863' cy='326' r='1.31' fill='%23ece9ff' fill-opacity='0.50'/><circle cx='174' cy='680' r='0.82' fill='%23ece9ff' fill-opacity='0.53'/><circle cx='426' cy='183' r='0.48' fill='%23b4a5ff' fill-opacity='0.31'/><circle cx='268' cy='635' r='0.67' fill='%23ece9ff' fill-opacity='0.61'/><circle cx='344' cy='406' r='0.63' fill='%23ece9ff' fill-opacity='0.46'/><circle cx='108' cy='541' r='0.63' fill='%23ece9ff' fill-opacity='0.66'/><circle cx='22' cy='578' r='0.78' fill='%23b4a5ff' fill-opacity='0.42'/><circle cx='842' cy='124' r='0.67' fill='%23b4a5ff' fill-opacity='0.59'/><circle cx='638' cy='367' r='0.76' fill='%23b4a5ff' fill-opacity='0.39'/><circle cx='429' cy='227' r='0.76' fill='%23ece9ff' fill-opacity='0.61'/><circle cx='717' cy='84' r='0.90' fill='%23ece9ff' fill-opacity='0.71'/><circle cx='788' cy='700' r='0.76' fill='%237fe6d2' fill-opacity='0.26'/><circle cx='854' cy='343' r='0.85' fill='%23b4a5ff' fill-opacity='0.48'/><circle cx='460' cy='98' r='0.88' fill='%23b4a5ff' fill-opacity='0.34'/><circle cx='453' cy='627' r='0.85' fill='%23b4a5ff' fill-opacity='0.68'/><circle cx='206' cy='767' r='0.79' fill='%237fe6d2' fill-opacity='0.29'/><circle cx='387' cy='26' r='0.85' fill='%23ece9ff' fill-opacity='0.53'/><circle cx='47' cy='240' r='0.78' fill='%23b4a5ff' fill-opacity='0.58'/><circle cx='414' cy='844' r='0.79' fill='%237fe6d2' fill-opacity='0.27'/><path d='M706 623.2L707.0 626.5L710.4 627L707.0 628.4L706 631.8L705.1 628.4L701.7 627L705.1 626.5Z' fill='%23b4a5ff' fill-opacity='0.40'/><path d='M703 335.0L704.4 339.1L708.4 340L704.4 341.3L703 345.4L702.1 341.3L698.0 340L702.1 339.1Z' fill='%23b4a5ff' fill-opacity='0.58'/></svg>");
   }
 
-  /* The app's atmosphere: the Study Space sky behind every page. Brand
-     nebula washes plus a starfield: two SVG star tiles at co-prime sizes so
-     the pattern never visibly repeats. Fixed and non-interactive, so it costs
-     nothing on scroll. */
-  body::before {
+  /* The Study Space sky: brand nebula washes plus a starfield, two SVG star
+     tiles at co-prime sizes so the pattern never visibly repeats. This used
+     to run behind every page via `body::before`, but spread across a
+     dashboard's dozen white or near-black cards the same colorful, moving-
+     feeling wash reads as noise the eye has to filter out before it can find
+     the numbers. It's a first impression, not a working surface, so it's
+     scoped to `.auth-shell` - the sign-in/sign-up/action layout's own root -
+     rather than the whole app; everywhere else now sits on the plain
+     `--background` every card already floats on. Fixed and non-interactive,
+     so it costs nothing on scroll. */
+  .auth-shell::before {
     content: '';
     position: fixed;
     inset: 0;
@@ -222,7 +231,7 @@
   }
   /* At night the sky is the Study Space's own: near-black violet, a real
      starfield, and nebula light pooling at the edges of the viewport. */
-  .dark body::before {
+  .dark .auth-shell::before {
     background-image:
       radial-gradient(1200px 760px at 4% -14%, rgba(91, 61, 245, 0.36), transparent 62%),
       radial-gradient(1000px 760px at 104% 110%, rgba(0, 191, 160, 0.18), transparent 62%),
