@@ -289,7 +289,11 @@ export function DashboardView() {
         <BurnoutWarningCard />
         <AdvisorInsightCard />
 
-        <WeeklyBriefingCard scheduleItems={state.scheduleItems} />
+        <WeeklyBriefingCard
+          scheduleItems={termScheduleItems}
+          courses={semesterCourses}
+          flashcards={state.flashcards}
+        />
 
         <MaterialsBudgetCard courses={state.courses} />
 
