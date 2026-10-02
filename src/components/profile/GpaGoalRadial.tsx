@@ -1,83 +1,104 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import {
-  computeGpaGoalTarget,
-  CourseGradeEntry,
-  LetterGrade,
-  GRADE_POINT_MAP,
-} from '@/lib/gpa/gpaMath';
+import Link from 'next/link';
+import { computeGpaGoalTarget, LetterGrade, GRADE_POINT_MAP } from '@/lib/gpa/gpaMath';
+import type { GpaGoalCourse } from '@/lib/gpa/termCourses';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { RingGauge, type RingGaugeLevel } from '@/components/ui/RingGauge';
 
 export interface GpaGoalRadialProps {
+  /** Earlier-terms history. Optional: left blank, the simulator treats this
+   * as a first term rather than assuming a GPA the student never entered. */
   initialPriorGpa?: number;
   initialPriorCredits?: number;
   initialTargetGpa?: number;
-  initialCourses?: CourseGradeEntry[];
+  /** The student's real courses for the term being simulated. */
+  courses?: GpaGoalCourse[];
+  termLabel?: string;
 }
 
-const DEFAULT_COURSES: CourseGradeEntry[] = [
-  {
-    courseId: 'c-1',
-    courseCode: 'CS 301',
-    title: 'Data Structures & Algorithms',
-    credits: 4,
-    grade: 'A',
-  },
-  { courseId: 'c-2', courseCode: 'MATH 240', title: 'Linear Algebra', credits: 4, grade: 'A-' },
-  {
-    courseId: 'c-3',
-    courseCode: 'PHYS 211',
-    title: 'University Physics I',
-    credits: 4,
-    grade: 'B+',
-  },
-  { courseId: 'c-4', courseCode: 'ENGL 102', title: 'Academic Writing', credits: 3, grade: 'A' },
-];
+interface RowOverride {
+  grade?: LetterGrade | null;
+  credits?: number;
+}
 
 export function GpaGoalRadial({
-  initialPriorGpa = 3.42,
-  initialPriorCredits = 45,
+  initialPriorGpa,
+  initialPriorCredits,
   initialTargetGpa = 3.6,
-  initialCourses = DEFAULT_COURSES,
+  courses = [],
+  termLabel,
 }: GpaGoalRadialProps) {
-  const [priorGpa, setPriorGpa] = useState<number>(initialPriorGpa);
-  const [priorCredits, setPriorCredits] = useState<number>(initialPriorCredits);
+  const [priorGpaText, setPriorGpaText] = useState<string>(
+    initialPriorGpa === undefined ? '' : String(initialPriorGpa),
+  );
+  const [priorCreditsText, setPriorCreditsText] = useState<string>(
+    initialPriorCredits === undefined ? '' : String(initialPriorCredits),
+  );
   const [targetGpa, setTargetGpa] = useState<number>(initialTargetGpa);
-  const [courses, setCourses] = useState<CourseGradeEntry[]>(initialCourses);
+  // What-if edits only. The rows themselves come from `courses` on every
+  // render, so grades and courses entered elsewhere show up here live.
+  const [overrides, setOverrides] = useState<Record<string, RowOverride>>({});
+
+  const rows = useMemo<GpaGoalCourse[]>(
+    () => courses.map((c) => ({ ...c, ...overrides[c.courseId] })),
+    [courses, overrides],
+  );
+
+  const priorGpaNum = Number(priorGpaText);
+  const priorCreditsNum = Number(priorCreditsText);
+  const hasPrior =
+    priorGpaText.trim() !== '' &&
+    priorCreditsText.trim() !== '' &&
+    Number.isFinite(priorGpaNum) &&
+    Number.isFinite(priorCreditsNum) &&
+    priorCreditsNum > 0;
 
   const goalResult = useMemo(() => {
     return computeGpaGoalTarget({
-      priorCumulativeGpa: priorGpa,
-      priorEarnedCredits: priorCredits,
-      currentCourses: courses,
+      priorCumulativeGpa: hasPrior ? priorGpaNum : 0,
+      priorEarnedCredits: hasPrior ? priorCreditsNum : 0,
+      currentCourses: rows,
       targetCumulativeGpa: targetGpa,
     });
-  }, [priorGpa, priorCredits, targetGpa, courses]);
+  }, [hasPrior, priorGpaNum, priorCreditsNum, rows, targetGpa]);
 
-  const handleGradeChange = (courseId: string, newGrade: LetterGrade) => {
-    setCourses((prev) =>
-      prev.map((c) => (c.courseId === courseId ? { ...c, grade: newGrade } : c)),
-    );
+  const hasGrades = goalResult.totalTermCredits > 0;
+  const noCourses = courses.length === 0;
+  const termGpaText = hasGrades ? goalResult.currentTermGpa.toFixed(2) : '—';
+  const cumGpaText = hasGrades ? goalResult.projectedCumulativeGpa.toFixed(2) : '—';
+  const advice = !hasGrades
+    ? noCourses
+      ? 'Add a course to start tracking your GPA.'
+      : 'Enter a grade on one of your courses, or pick a what-if grade below, to see where your GPA lands.'
+    : goalResult.advice;
+
+  const handleGradeChange = (courseId: string, newGrade: LetterGrade | null) => {
+    setOverrides((prev) => ({ ...prev, [courseId]: { ...prev[courseId], grade: newGrade } }));
   };
 
   const handleCreditsChange = (courseId: string, newCredits: number) => {
-    setCourses((prev) =>
-      prev.map((c) => (c.courseId === courseId ? { ...c, credits: Math.max(0, newCredits) } : c)),
-    );
+    setOverrides((prev) => ({
+      ...prev,
+      [courseId]: { ...prev[courseId], credits: Math.max(0, newCredits) },
+    }));
   };
 
   // 4.0-scale fractions for the dual ring gauge below.
-  const termGpaFraction = Math.min(1, Math.max(0, goalResult.currentTermGpa / 4.0));
-  const cumGpaFraction = Math.min(1, Math.max(0, goalResult.projectedCumulativeGpa / 4.0));
+  const termGpaFraction = hasGrades ? Math.min(1, Math.max(0, goalResult.currentTermGpa / 4.0)) : 0;
+  const cumGpaFraction = hasGrades
+    ? Math.min(1, Math.max(0, goalResult.projectedCumulativeGpa / 4.0))
+    : 0;
 
   // The cumulative ring carries the goal-tracking status as its color - the
   // term ring is just "how full is this term," the cumulative ring is
   // "are you on track," so it gets the semantic safe/warning/critical
   // treatment instead of an arbitrary second brand color.
-  const cumulativeLevel: RingGaugeLevel =
-    goalResult.status === 'unreachable'
+  const cumulativeLevel: RingGaugeLevel = !hasGrades
+    ? 'low'
+    : goalResult.status === 'unreachable'
       ? 'critical'
       : goalResult.status === 'at_risk'
         ? 'medium'
@@ -123,22 +144,26 @@ export function GpaGoalRadial({
           <span
             data-testid="gpa-status-badge"
             className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full border ${
-              goalResult.status === 'ahead'
-                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                : goalResult.status === 'on_track'
-                  ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
-                  : goalResult.status === 'at_risk'
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                    : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30'
+              !hasGrades
+                ? 'bg-muted text-muted-foreground border-border'
+                : goalResult.status === 'ahead'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                  : goalResult.status === 'on_track'
+                    ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
+                    : goalResult.status === 'at_risk'
+                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                      : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30'
             }`}
           >
-            {goalResult.status === 'ahead'
-              ? 'Ahead of Goal'
-              : goalResult.status === 'on_track'
-                ? 'On Track'
-                : goalResult.status === 'at_risk'
-                  ? 'At Risk'
-                  : 'Out of Reach'}
+            {!hasGrades
+              ? 'No grades yet'
+              : goalResult.status === 'ahead'
+                ? 'Ahead of Goal'
+                : goalResult.status === 'on_track'
+                  ? 'On Track'
+                  : goalResult.status === 'at_risk'
+                    ? 'At Risk'
+                    : 'Out of Reach'}
           </span>
         </div>
       </div>
@@ -157,7 +182,7 @@ export function GpaGoalRadial({
                 size={224}
                 radius={87}
                 strokeWidth={10}
-                aria-label={`Current term GPA: ${goalResult.currentTermGpa.toFixed(2)} of 4.0`}
+                aria-label={`Current term GPA: ${hasGrades ? `${termGpaText} of 4.0` : 'no grades yet'}`}
               />
             </div>
             {/* Inner ring: projected cumulative GPA, semantic - this is the
@@ -170,20 +195,17 @@ export function GpaGoalRadial({
                 size={168}
                 radius={65}
                 strokeWidth={8}
-                aria-label={`Projected cumulative GPA: ${goalResult.projectedCumulativeGpa.toFixed(2)} of 4.0`}
+                aria-label={`Projected cumulative GPA: ${hasGrades ? `${cumGpaText} of 4.0` : 'no grades yet'}`}
               >
                 <div className="flex flex-col items-center justify-center text-center">
                   <span className="text-3xl font-extrabold text-foreground tracking-tight">
-                    {goalResult.currentTermGpa.toFixed(2)}
+                    {termGpaText}
                   </span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-gradient-brand">
                     Term GPA
                   </span>
                   <span className="text-xs font-semibold text-muted-foreground mt-1">
-                    Cumul:{' '}
-                    <strong className={cumulativeTextClass}>
-                      {goalResult.projectedCumulativeGpa.toFixed(2)}
-                    </strong>
+                    Cumul: <strong className={cumulativeTextClass}>{cumGpaText}</strong>
                   </span>
                 </div>
               </RingGauge>
@@ -194,7 +216,7 @@ export function GpaGoalRadial({
           <div className="flex items-center gap-4 text-xs font-medium pt-2">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <span className="w-2.5 h-2.5 rounded-full bg-gradient-brand" />
-              <span>Term GPA ({goalResult.currentTermGpa.toFixed(2)})</span>
+              <span>Term GPA ({termGpaText})</span>
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <span
@@ -206,7 +228,7 @@ export function GpaGoalRadial({
                       : 'bg-load-low'
                 }`}
               />
-              <span>Projected Cumul ({goalResult.projectedCumulativeGpa.toFixed(2)})</span>
+              <span>Projected Cumul ({cumGpaText})</span>
             </div>
           </div>
 
@@ -228,7 +250,7 @@ export function GpaGoalRadial({
               </svg>
               <span>Goal Feasibility Advisor</span>
             </div>
-            <p className="text-muted-foreground">{goalResult.advice}</p>
+            <p className="text-muted-foreground">{advice}</p>
           </div>
         </Card>
 
@@ -248,8 +270,9 @@ export function GpaGoalRadial({
                 step="0.01"
                 min="0.0"
                 max="4.0"
-                value={priorGpa}
-                onChange={(e) => setPriorGpa(Number(e.target.value))}
+                value={priorGpaText}
+                placeholder="None yet"
+                onChange={(e) => setPriorGpaText(e.target.value)}
                 aria-label="Prior cumulative GPA"
                 className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -263,8 +286,9 @@ export function GpaGoalRadial({
                 type="number"
                 min="0"
                 max="200"
-                value={priorCredits}
-                onChange={(e) => setPriorCredits(Number(e.target.value))}
+                value={priorCreditsText}
+                placeholder="None yet"
+                onChange={(e) => setPriorCreditsText(e.target.value)}
                 aria-label="Prior earned credits"
                 className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -287,6 +311,11 @@ export function GpaGoalRadial({
             </div>
           </div>
 
+          <p className="-mt-2 text-[11px] text-muted-foreground">
+            Optional. Fill in both prior fields to include earlier terms; leave them blank if this
+            is your first term.
+          </p>
+
           {/* Interactive Target Slider */}
           <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -294,7 +323,7 @@ export function GpaGoalRadial({
               <span>
                 Needed Term GPA:{' '}
                 <strong className="text-foreground">
-                  {goalResult.targetTermGpaNeeded
+                  {goalResult.targetTermGpaNeeded !== null
                     ? goalResult.targetTermGpaNeeded.toFixed(2)
                     : 'N/A'}
                 </strong>
@@ -316,81 +345,120 @@ export function GpaGoalRadial({
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Current Term Enrolled Courses ({courses.length})
+                {termLabel ? `${termLabel} courses` : 'Current term courses'} ({courses.length})
               </span>
               <span className="text-xs font-mono text-muted-foreground">
                 {goalResult.totalTermCredits} Credits • {goalResult.totalTermQualityPoints} QP
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-border bg-muted/20">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/80 text-muted-foreground font-semibold border-b border-border">
-                  <tr>
-                    <th className="px-3.5 py-2.5">Course</th>
-                    <th className="px-3.5 py-2.5">Credits</th>
-                    <th className="px-3.5 py-2.5">Projected Grade</th>
-                    <th className="px-3.5 py-2.5 text-right">Quality Points</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {courses.map((course) => {
-                    const points = (GRADE_POINT_MAP[course.grade] || 0) * course.credits;
-                    return (
-                      <tr key={course.courseId} className="hover:bg-muted/40 transition-colors">
-                        <td className="px-3.5 py-2.5 font-medium text-foreground">
-                          <span className="font-bold text-indigo-600 dark:text-indigo-400 block">
-                            {course.courseCode}
-                          </span>
-                          <span className="text-muted-foreground text-[11px] truncate block max-w-[180px]">
-                            {course.title}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-2.5">
-                          <input
-                            type="number"
-                            min="0"
-                            max="10"
-                            value={course.credits}
-                            onChange={(e) =>
-                              handleCreditsChange(course.courseId, Number(e.target.value))
-                            }
-                            aria-label={`${course.courseCode} credits`}
-                            className="w-14 px-2 py-1 bg-background border border-border rounded-lg text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          />
-                        </td>
-                        <td className="px-3.5 py-2.5">
-                          <select
-                            value={course.grade}
-                            onChange={(e) =>
-                              handleGradeChange(course.courseId, e.target.value as LetterGrade)
-                            }
-                            aria-label={`${course.courseCode} grade`}
-                            className="px-2 py-1 bg-background border border-border rounded-lg text-foreground font-bold text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer min-h-[36px]"
-                          >
-                            <option value="A+">A+ (4.0)</option>
-                            <option value="A">A (4.0)</option>
-                            <option value="A-">A- (3.7)</option>
-                            <option value="B+">B+ (3.3)</option>
-                            <option value="B">B (3.0)</option>
-                            <option value="B-">B- (2.7)</option>
-                            <option value="C+">C+ (2.3)</option>
-                            <option value="C">C (2.0)</option>
-                            <option value="C-">C- (1.7)</option>
-                            <option value="D+">D+ (1.3)</option>
-                            <option value="D">D (1.0)</option>
-                            <option value="F">F (0.0)</option>
-                          </select>
-                        </td>
-                        <td className="px-3.5 py-2.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                          {points.toFixed(1)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {noCourses ? (
+              <div className="rounded-xl border border-border bg-muted/20">
+                <EmptyState
+                  icon={
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                      />
+                    </svg>
+                  }
+                  title="No courses to simulate yet"
+                  description="Add a course and enter some grades. Nothing here is estimated until you do."
+                />
+                <div className="pb-6 text-center">
+                  <Link href="/courses" className="text-sm font-semibold text-primary underline">
+                    Go to Courses
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-border bg-muted/20">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-muted/80 text-muted-foreground font-semibold border-b border-border">
+                    <tr>
+                      <th className="px-3.5 py-2.5">Course</th>
+                      <th className="px-3.5 py-2.5">Credits</th>
+                      <th className="px-3.5 py-2.5">What-if Grade</th>
+                      <th className="px-3.5 py-2.5 text-right">Quality Points</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {rows.map((course) => {
+                      const points =
+                        course.grade === null
+                          ? null
+                          : GRADE_POINT_MAP[course.grade] * course.credits;
+                      return (
+                        <tr key={course.courseId} className="hover:bg-muted/40 transition-colors">
+                          <td className="px-3.5 py-2.5 font-medium text-foreground">
+                            <span className="font-bold text-indigo-600 dark:text-indigo-400 block">
+                              {course.courseCode}
+                            </span>
+                            <span className="text-muted-foreground text-[11px] truncate block max-w-[180px]">
+                              {course.title}
+                            </span>
+                            <span className="text-muted-foreground text-[11px] block">
+                              {course.standingNote ?? 'No grades entered yet'}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-2.5">
+                            <input
+                              type="number"
+                              min="0"
+                              max="10"
+                              value={course.credits}
+                              onChange={(e) =>
+                                handleCreditsChange(course.courseId, Number(e.target.value))
+                              }
+                              aria-label={`${course.courseCode} credits`}
+                              className="w-14 px-2 py-1 bg-background border border-border rounded-lg text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            />
+                          </td>
+                          <td className="px-3.5 py-2.5">
+                            <select
+                              value={course.grade ?? ''}
+                              onChange={(e) =>
+                                handleGradeChange(
+                                  course.courseId,
+                                  e.target.value === '' ? null : (e.target.value as LetterGrade),
+                                )
+                              }
+                              aria-label={`${course.courseCode} grade`}
+                              className="px-2 py-1 bg-background border border-border rounded-lg text-foreground font-bold text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer min-h-[36px]"
+                            >
+                              <option value="">Not graded yet</option>
+                              <option value="A+">A+ (4.0)</option>
+                              <option value="A">A (4.0)</option>
+                              <option value="A-">A- (3.7)</option>
+                              <option value="B+">B+ (3.3)</option>
+                              <option value="B">B (3.0)</option>
+                              <option value="B-">B- (2.7)</option>
+                              <option value="C+">C+ (2.3)</option>
+                              <option value="C">C (2.0)</option>
+                              <option value="C-">C- (1.7)</option>
+                              <option value="D+">D+ (1.3)</option>
+                              <option value="D">D (1.0)</option>
+                              <option value="F">F (0.0)</option>
+                            </select>
+                          </td>
+                          <td className="px-3.5 py-2.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                            {points === null ? '\u2014' : points.toFixed(1)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </Card>
       </div>
