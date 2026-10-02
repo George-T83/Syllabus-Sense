@@ -1,16 +1,5 @@
 export type LetterGrade =
-  | 'A+'
-  | 'A'
-  | 'A-'
-  | 'B+'
-  | 'B'
-  | 'B-'
-  | 'C+'
-  | 'C'
-  | 'C-'
-  | 'D+'
-  | 'D'
-  | 'F';
+  'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'F';
 
 export const GRADE_POINT_MAP: Record<LetterGrade, number> = {
   'A+': 4.0,
@@ -32,7 +21,9 @@ export interface CourseGradeEntry {
   courseCode: string;
   title: string;
   credits: number;
-  grade: LetterGrade;
+  /** Null means "not graded yet" - the course is left out of every GPA
+   * calculation rather than assumed to be anything. */
+  grade: LetterGrade | null;
 }
 
 export interface GpaGoalResult {
@@ -80,6 +71,7 @@ export function calculateTermGpa(courses: CourseGradeEntry[]): {
   let totalCredits = 0;
 
   courses.forEach((c) => {
+    if (c.grade === null) return;
     const credits = Math.max(0, c.credits || 0);
     if (credits > 0) {
       const points = GRADE_POINT_MAP[c.grade] ?? 0;
@@ -110,8 +102,11 @@ export function computeGpaGoalTarget({
   currentCourses: CourseGradeEntry[];
   targetCumulativeGpa: number;
 }): GpaGoalResult {
-  const { termGpa, totalCredits: termCredits, qualityPoints: termQualityPoints } =
-    calculateTermGpa(currentCourses);
+  const {
+    termGpa,
+    totalCredits: termCredits,
+    qualityPoints: termQualityPoints,
+  } = calculateTermGpa(currentCourses);
 
   const priorPoints = priorCumulativeGpa * priorEarnedCredits;
   const newTotalCredits = priorEarnedCredits + termCredits;
@@ -150,7 +145,10 @@ export function computeGpaGoalTarget({
   }
 
   // Progress percentage toward 4.0 max
-  const progressPercentage = Math.min(100, Math.max(0, Math.round((projectedCumulativeGpa / 4.0) * 100)));
+  const progressPercentage = Math.min(
+    100,
+    Math.max(0, Math.round((projectedCumulativeGpa / 4.0) * 100)),
+  );
 
   return {
     currentTermGpa: termGpa,

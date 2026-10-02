@@ -15,22 +15,13 @@ export interface LatePenaltyAdvisorProps {
   policy?: LatePolicyConfig;
 }
 
-const DEFAULT_POLICY: LatePolicyConfig = {
-  type: 'slip_days_grace',
-  totalSlipDaysAllowed: 2,
-  dailyDeductionPercent: 10,
-  hardCutoffHours: 72,
-  rawPolicyText:
-    'Students are granted 2 free 24-hour slip days per semester. Subsequent late submissions incur a 10% penalty per day up to 72 hours, after which no credit is awarded.',
-};
-
-export function LatePenaltyAdvisor({
-  courseCode = 'CS 301',
-  assignmentTitle = 'Project 2: Graph Algorithms',
-  defaultRawScore = 95,
-  policy = DEFAULT_POLICY,
-}: LatePenaltyAdvisorProps) {
-  const [hoursLate, setHoursLate] = useState<number>(18);
+function LatePenaltyCalculator({
+  courseCode,
+  assignmentTitle,
+  defaultRawScore = 100,
+  policy,
+}: LatePenaltyAdvisorProps & { policy: LatePolicyConfig }) {
+  const [hoursLate, setHoursLate] = useState<number>(24);
   const [rawScore, setRawScore] = useState<number>(defaultRawScore);
   const [slipDaysUsedSoFar, setSlipDaysUsedSoFar] = useState<number>(0);
 
@@ -105,15 +96,18 @@ export function LatePenaltyAdvisor({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/30">
-              {courseCode}
-            </span>
+            {courseCode && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/30">
+                {courseCode}
+              </span>
+            )}
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               Late Submission Penalty & Grace Advisor
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {assignmentTitle} — Simulate late penalty decay and slip-day grace periods.
+            {assignmentTitle ? `${assignmentTitle} \u2014 ` : ''}Simulate late penalty decay and
+            slip-day grace periods.
           </p>
         </div>
 
@@ -190,7 +184,10 @@ export function LatePenaltyAdvisor({
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-muted-foreground">Slip Days Used Prior:</span>
                 <div className="flex items-center gap-1.5">
-                  {[0, 1, 2].map((num) => (
+                  {Array.from(
+                    { length: Math.min(policy.totalSlipDaysAllowed ?? 0, 6) + 1 },
+                    (_, num) => num,
+                  ).map((num) => (
                     <button
                       key={num}
                       type="button"
@@ -331,6 +328,121 @@ export function LatePenaltyAdvisor({
           <p className="font-mono leading-relaxed">&ldquo;{policy.rawPolicyText}&rdquo;</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function PolicyField({
+  id,
+  label,
+  hint,
+  value,
+  onChange,
+  max,
+  step,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  value: string;
+  onChange: (v: string) => void;
+  max: number;
+  step?: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-semibold text-muted-foreground mb-1">
+        {label}
+      </label>
+      <input
+        id={id}
+        type="number"
+        min="0"
+        max={max}
+        step={step}
+        value={value}
+        placeholder="Not set"
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
+
+/**
+ * Shows what a late hand-in would cost under a policy that actually exists.
+ * No course's late policy is stored today, so unless a caller passes one in
+ * (extracted from the syllabus), the student enters it here from their own
+ * syllabus. Nothing is assumed, and the calculator stays hidden until a
+ * penalty rate is given.
+ */
+export function LatePenaltyAdvisor({ policy: providedPolicy, ...rest }: LatePenaltyAdvisorProps) {
+  const [perDay, setPerDay] = useState('');
+  const [slipDays, setSlipDays] = useState('');
+  const [cutoffHours, setCutoffHours] = useState('');
+
+  const enteredPolicy = useMemo<LatePolicyConfig | null>(() => {
+    const pct = Number(perDay);
+    if (perDay.trim() === '' || !Number.isFinite(pct) || pct <= 0 || pct > 100) return null;
+    const slips = Math.floor(Number(slipDays));
+    const hasSlips = slipDays.trim() !== '' && Number.isFinite(slips) && slips > 0;
+    const cutoff = Number(cutoffHours);
+    const hasCutoff = cutoffHours.trim() !== '' && Number.isFinite(cutoff) && cutoff > 0;
+    return {
+      type: hasSlips ? 'slip_days_grace' : 'daily_fixed',
+      dailyDeductionPercent: pct,
+      totalSlipDaysAllowed: hasSlips ? slips : undefined,
+      hardCutoffHours: hasCutoff ? cutoff : undefined,
+    };
+  }, [perDay, slipDays, cutoffHours]);
+
+  const policy = providedPolicy ?? enteredPolicy;
+
+  return (
+    <div>
+      {!providedPolicy && (
+        <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 pb-0 sm:pb-0 lg:pb-0">
+          <Card className="p-6 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                Late policy
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Syllabus Sense does not have this course&apos;s late policy on file, so nothing is
+                assumed. Enter it from your syllabus to see what a late hand-in would cost.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <PolicyField
+                id="late-policy-per-day"
+                label="Penalty per day late (%)"
+                hint="Required to see results."
+                value={perDay}
+                onChange={setPerDay}
+                max={100}
+              />
+              <PolicyField
+                id="late-policy-slip-days"
+                label="Free slip days"
+                hint="Optional. Days you can be late at no cost."
+                value={slipDays}
+                onChange={setSlipDays}
+                max={30}
+              />
+              <PolicyField
+                id="late-policy-cutoff"
+                label="Zero credit after (hours)"
+                hint="Optional. Leave blank if work is accepted any time."
+                value={cutoffHours}
+                onChange={setCutoffHours}
+                max={2000}
+              />
+            </div>
+          </Card>
+        </div>
+      )}
+      {policy && <LatePenaltyCalculator {...rest} policy={policy} />}
     </div>
   );
 }

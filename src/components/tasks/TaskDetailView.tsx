@@ -687,7 +687,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
             <LatePenaltyAdvisor
               courseCode={course?.code}
               assignmentTitle={item.title}
-              defaultRawScore={95}
+              defaultRawScore={item.earnedScore ?? 100}
             />
           </div>
 

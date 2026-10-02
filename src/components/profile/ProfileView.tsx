@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useMemo, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs } from 'firebase/firestore';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { TaskRow } from '@/components/ui/TaskRow';
-import { useAppState } from '@/context/AppStateContext';
+import { useAppState, resolveActiveTerm } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { db } from '@/lib/firebase/client';
@@ -21,7 +21,7 @@ import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
 import { StudyStreakCard } from './StudyStreakCard';
-import { type LetterGrade } from '@/lib/gpa/gpaMath';
+import { buildGpaGoalCourses } from '@/lib/gpa/termCourses';
 import { LONG_DATE_YEAR_FORMATTER as dateFormatter } from '@/lib/dateFormatters';
 import { PageHeader } from '@/components/ui/PageHeader';
 
@@ -153,6 +153,18 @@ export function ProfileView() {
   // listener) rather than opening a second onSnapshot here - one realtime
   // subscription per account, shared by every view that reads a preference.
   const { preferences } = state;
+
+  // Same term scoping as the Courses page headline, so both start from the
+  // same GPA: the active term's courses, or every course when no term applies.
+  const gpaTerm = resolveActiveTerm(state.selectedTerm, state.courses);
+  const gpaGoalCourses = useMemo(
+    () =>
+      buildGpaGoalCourses(
+        gpaTerm ? state.courses.filter((c) => c.term === gpaTerm) : state.courses,
+        state.scheduleItems,
+      ),
+    [gpaTerm, state.courses, state.scheduleItems],
+  );
 
   // --- Account & Data: password change (email/password accounts only) ---
   const [changingPassword, setChangingPassword] = useState(false);
@@ -470,18 +482,7 @@ export function ProfileView() {
         </div>
       </Card>
 
-      <GpaGoalRadial
-        initialCourses={state.courses.map((c, idx) => {
-          const grades = ['A', 'A-', 'B+', 'A', 'B', 'A-', 'A', 'B+'];
-          return {
-            courseId: c.id,
-            courseCode: c.code,
-            title: c.title,
-            credits: c.code.includes('211') ? 4 : 3, // ECE 211 is 4 credits, others 3
-            grade: grades[idx % grades.length] as LetterGrade,
-          };
-        })}
-      />
+      <GpaGoalRadial courses={gpaGoalCourses} termLabel={gpaTerm ?? undefined} />
 
       {/* ---------------------------------------------------------------
           Appearance - visual/cosmetic controls only. Dark mode stays in
