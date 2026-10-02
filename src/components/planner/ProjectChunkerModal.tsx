@@ -31,79 +31,79 @@ export interface ProjectChunkerModalProps {
 
 const TYPE_CONFIG: Record<
   ChunkableType,
-  { label: string; icon: string; defaultHours: number; defaultTitle: string }
+  { label: string; icon: string; defaultHours: number; titleExample: string }
 > = {
   project: {
     label: 'Final Project / Capstone',
     icon: '🚀',
     defaultHours: 10,
-    defaultTitle: 'Senior Capstone Project',
+    titleExample: 'Senior Capstone Project',
   },
   exam: {
     label: 'Exam Study Plan',
     icon: '📝',
     defaultHours: 8,
-    defaultTitle: 'Midterm Exam 1 Prep',
+    titleExample: 'Midterm Exam 1 Prep',
   },
   quiz: {
     label: 'Quiz / Test Review',
     icon: '⚡',
     defaultHours: 3,
-    defaultTitle: 'Chapter Quiz Review',
+    titleExample: 'Chapter Quiz Review',
   },
   assignment: {
     label: 'Large Assignment / Lab',
     icon: '📚',
     defaultHours: 5,
-    defaultTitle: 'Lab Report & Data Analysis',
+    titleExample: 'Lab Report & Data Analysis',
   },
   paper: {
     label: 'Essay / Term Paper',
     icon: '📄',
     defaultHours: 7,
-    defaultTitle: 'Term Research Paper',
+    titleExample: 'Term Research Paper',
   },
   presentation: {
     label: 'Presentation / Slides',
     icon: '🎤',
     defaultHours: 6,
-    defaultTitle: 'Class Slide Presentation',
+    titleExample: 'Class Slide Presentation',
   },
   reading: {
     label: 'Textbook / Lit Reading',
     icon: '📖',
     defaultHours: 4,
-    defaultTitle: 'Chapters 4-6 Required Reading',
+    titleExample: 'Chapters 4-6 Required Reading',
   },
   coding: {
     label: 'Coding / Repository',
     icon: '💻',
     defaultHours: 12,
-    defaultTitle: 'Full-Stack Software Project',
+    titleExample: 'Full-Stack Software Project',
   },
   portfolio: {
     label: 'Design Portfolio',
     icon: '🎨',
     defaultHours: 8,
-    defaultTitle: 'Portfolio Case Study',
+    titleExample: 'Portfolio Case Study',
   },
   group: {
     label: 'Group Project',
     icon: '👥',
     defaultHours: 9,
-    defaultTitle: 'Group Capstone Project',
+    titleExample: 'Group Capstone Project',
   },
   flashcards: {
     label: 'Flashcard Mastery',
     icon: '🃏',
     defaultHours: 3,
-    defaultTitle: 'Key Definitions Deck',
+    titleExample: 'Key Definitions Deck',
   },
   case_study: {
     label: 'Case Study Analysis',
     icon: '🔬',
     defaultHours: 6,
-    defaultTitle: 'Business Case Study Audit',
+    titleExample: 'Business Case Study Audit',
   },
 };
 
@@ -120,17 +120,13 @@ export function ProjectChunkerModal({
   const { user } = useAuth();
 
   const [chunkType, setChunkType] = useState<ChunkableType>(initialTargetType);
-  const [projectTitle, setProjectTitle] = useState(
-    () => TYPE_CONFIG[initialTargetType]?.defaultTitle || 'Senior Capstone Project',
-  );
+  // Title and date start empty: a pre-filled sample ("Senior Capstone Project",
+  // today + 10 days) would be saved as the student's real task if left alone.
+  const [projectTitle, setProjectTitle] = useState('');
   const [totalHours, setTotalHours] = useState(
     () => TYPE_CONFIG[initialTargetType]?.defaultHours || 10,
   );
-  const [dueDateStr, setDueDateStr] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 10);
-    return d.toISOString().split('T')[0];
-  });
+  const [dueDateStr, setDueDateStr] = useState('');
   const [pace, setPace] = useState<'daily' | 'weekly'>('daily');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -144,13 +140,12 @@ export function ProjectChunkerModal({
     setChunkType(type);
     const cfg = TYPE_CONFIG[type];
     setTotalHours(cfg.defaultHours);
-    setProjectTitle(cfg.defaultTitle);
   };
 
-  const dueDateObj = useMemo(() => new Date(dueDateStr), [dueDateStr]);
+  const dueDateObj = useMemo(() => (dueDateStr ? new Date(dueDateStr) : null), [dueDateStr]);
 
   const previewChunks = useMemo(() => {
-    if (!projectTitle.trim() || totalHours <= 0) return [];
+    if (!projectTitle.trim() || !dueDateObj || totalHours <= 0) return [];
     return divideProjectIntoChunks({
       projectTitle: projectTitle.trim(),
       totalEstimatedHours: totalHours,
@@ -294,6 +289,7 @@ export function ProjectChunkerModal({
             <input
               type="text"
               value={projectTitle}
+              placeholder={`e.g. ${TYPE_CONFIG[chunkType].titleExample}`}
               onChange={(e) => setProjectTitle(e.target.value)}
               className="mt-1 w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
@@ -373,6 +369,12 @@ export function ProjectChunkerModal({
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Generated Bite-Sized Study Schedule ({previewChunks.length} Chunks)
             </h3>
+
+            {previewChunks.length === 0 && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Add a title and a target date to see your plan.
+              </p>
+            )}
 
             <div className="mt-3 max-h-60 space-y-2 overflow-y-auto pr-1">
               {previewChunks.map((chunk, idx) => (

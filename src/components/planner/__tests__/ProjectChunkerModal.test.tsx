@@ -53,7 +53,7 @@ const mockCourses: Course[] = [
   { id: 'c3', code: 'ENG 202', title: 'Technical Writing', color: 'bg-purple-500' },
 ];
 
-function renderModal(props: { open: boolean; onClose?: () => void }) {
+function renderModal(props: { open: boolean; onClose?: () => void; blank?: boolean }) {
   const onClose = props.onClose || vi.fn();
   const rendered = render(
     <AuthProvider>
@@ -70,6 +70,15 @@ function renderModal(props: { open: boolean; onClose?: () => void }) {
   const getDateInput = () =>
     rendered.container.querySelector('input[type="date"]') as HTMLInputElement;
   const getCourseSelect = () => rendered.container.querySelector('select') as HTMLSelectElement;
+
+  // The modal starts with an empty title and date (nothing is pre-filled that
+  // could be saved as a real task), so by default type what a student must.
+  if (props.open && !props.blank) {
+    fireEvent.change(getTitleInput(), { target: { value: 'Senior Capstone Project' } });
+    const due = new Date();
+    due.setDate(due.getDate() + 10);
+    fireEvent.change(getDateInput(), { target: { value: due.toISOString().split('T')[0] } });
+  }
 
   return {
     ...rendered,
@@ -107,33 +116,37 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
       expect(screen.getByText('Case Study Analysis')).toBeDefined();
     });
 
-    it('F1-2: selecting "Exam Study Plan" switches title and default hours to 8h', () => {
+    it('F1-2: selecting "Exam Study Plan" switches default hours to 8h', () => {
       const { getTitleInput, getHoursInput } = renderModal({ open: true });
       const examBtn = screen.getByRole('button', { name: /Exam Study Plan/i });
       fireEvent.click(examBtn);
 
-      expect(getTitleInput().value).toBe('Midterm Exam 1 Prep');
+      expect(getTitleInput().value).toBe('Senior Capstone Project'); // the student's own title is kept
+      expect(getTitleInput().placeholder).toContain('Midterm Exam 1 Prep');
       expect(getHoursInput().value).toBe('8');
     });
 
-    it('F1-3: selecting "Quiz / Test Review" switches title and default hours to 3h', () => {
+    it('F1-3: selecting "Quiz / Test Review" switches default hours to 3h', () => {
       const { getTitleInput, getHoursInput } = renderModal({ open: true });
       fireEvent.click(screen.getByRole('button', { name: /Quiz \/ Test Review/i }));
-      expect(getTitleInput().value).toBe('Chapter Quiz Review');
+      expect(getTitleInput().value).toBe('Senior Capstone Project'); // the student's own title is kept
+      expect(getTitleInput().placeholder).toContain('Chapter Quiz Review');
       expect(getHoursInput().value).toBe('3');
     });
 
-    it('F1-4: selecting "Large Assignment / Lab" switches title and default hours to 5h', () => {
+    it('F1-4: selecting "Large Assignment / Lab" switches default hours to 5h', () => {
       const { getTitleInput, getHoursInput } = renderModal({ open: true });
       fireEvent.click(screen.getByRole('button', { name: /Large Assignment \/ Lab/i }));
-      expect(getTitleInput().value).toBe('Lab Report & Data Analysis');
+      expect(getTitleInput().value).toBe('Senior Capstone Project'); // the student's own title is kept
+      expect(getTitleInput().placeholder).toContain('Lab Report & Data Analysis');
       expect(getHoursInput().value).toBe('5');
     });
 
-    it('F1-5: selecting "Essay / Term Paper" switches title and default hours to 7h', () => {
+    it('F1-5: selecting "Essay / Term Paper" switches default hours to 7h', () => {
       const { getTitleInput, getHoursInput } = renderModal({ open: true });
       fireEvent.click(screen.getByRole('button', { name: /Essay \/ Term Paper/i }));
-      expect(getTitleInput().value).toBe('Term Research Paper');
+      expect(getTitleInput().value).toBe('Senior Capstone Project'); // the student's own title is kept
+      expect(getTitleInput().placeholder).toContain('Term Research Paper');
       expect(getHoursInput().value).toBe('7');
     });
   });
@@ -440,7 +453,8 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
       const { getTitleInput } = renderModal({ open: true });
 
       fireEvent.click(screen.getByRole('button', { name: /Presentation \/ Slides/i }));
-      expect(getTitleInput().value).toBe('Class Slide Presentation');
+      expect(getTitleInput().value).toBe('Senior Capstone Project'); // the student's own title is kept
+      expect(getTitleInput().placeholder).toContain('Class Slide Presentation');
 
       fireEvent.click(screen.getByRole('button', { name: /Add Chunks to Task List/i }));
       await waitFor(() => {
@@ -456,7 +470,8 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
       const { getTitleInput } = renderModal({ open: true });
 
       fireEvent.click(screen.getByRole('button', { name: /Flashcard Mastery/i }));
-      expect(getTitleInput().value).toBe('Key Definitions Deck');
+      expect(getTitleInput().value).toBe('Senior Capstone Project'); // the student's own title is kept
+      expect(getTitleInput().placeholder).toContain('Key Definitions Deck');
 
       fireEvent.click(screen.getByRole('button', { name: /Add Chunks to Task List/i }));
       await waitFor(() => {
@@ -479,6 +494,28 @@ describe('ProjectChunkerModal Component Suite (Tier 1-4)', () => {
       });
       // Fallback course ID assigned
       expect(createSpy.mock.calls[0][1].courseId).toBe('c1');
+    });
+  });
+
+  describe('Nothing invented: title and date start empty', () => {
+    it('starts with an empty title and date and shows an example only as a placeholder', () => {
+      const { getTitleInput, getDateInput } = renderModal({ open: true, blank: true });
+      expect(getTitleInput().value).toBe('');
+      expect(getDateInput().value).toBe('');
+      expect(getTitleInput().placeholder).toMatch(/^e\.g\. /);
+      expect(screen.getByText(/Add a title and a target date to see your plan/i)).toBeDefined();
+    });
+
+    it('cannot save until the student supplies a title and a date', () => {
+      const { getTitleInput, getDateInput } = renderModal({ open: true, blank: true });
+      const save = () => screen.getByRole('button', { name: /Add Chunks to Task List/i });
+      expect((save() as HTMLButtonElement).disabled).toBe(true);
+
+      fireEvent.change(getTitleInput(), { target: { value: 'Bio lab report' } });
+      expect((save() as HTMLButtonElement).disabled).toBe(true);
+
+      fireEvent.change(getDateInput(), { target: { value: '2030-01-15' } });
+      expect((save() as HTMLButtonElement).disabled).toBe(false);
     });
   });
 });
