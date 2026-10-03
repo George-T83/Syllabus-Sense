@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardFooter } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { validateSyllabusFile } from '@/lib/validation/syllabusFile';
+import { syllabusContentType, validateSyllabusFile } from '@/lib/validation/syllabusFile';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { createContacts, updateContact } from '@/lib/firestore/contacts';
 import { courseFormSchema } from '@/lib/validation/course';
@@ -2373,7 +2373,9 @@ async function saveSyllabusPdf(userId: string, courseId: string, file: File) {
 
   const id = crypto.randomUUID();
   const storagePath = `users/${userId}/syllabi/${courseId}/${id}-${file.name}`;
-  const snapshot = await uploadBytes(ref(storage, storagePath), file);
+  const snapshot = await uploadBytes(ref(storage, storagePath), file, {
+    contentType: syllabusContentType(file),
+  });
   const downloadURL = await getDownloadURL(snapshot.ref);
   await setDoc(doc(db, 'users', userId, 'courses', courseId, 'syllabi', id), {
     id,
