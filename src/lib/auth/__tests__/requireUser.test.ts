@@ -28,39 +28,41 @@ describe('requireUserOutsideDemo', () => {
 
   it('lets a signed-out caller through outside production', async () => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', '');
     expect(await requireUserOutsideDemo(signedOut())).toEqual({ user: null, denied: false });
   });
 
   it('refuses a signed-out caller in production when the admin project is set', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', 'my-project');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'my-project');
     expect(await requireUserOutsideDemo(signedOut())).toEqual({ user: null, denied: true });
   });
 
   it('refuses a signed-out caller in production when the admin project is NOT set', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', '');
     expect(await requireUserOutsideDemo(signedOut())).toEqual({ user: null, denied: true });
   });
 
   it('refuses a caller with a token in production when the admin project is NOT set', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', '');
     expect((await requireUserOutsideDemo(signedIn())).denied).toBe(true);
     expect(mockVerifyToken).not.toHaveBeenCalled();
   });
 
   it('says why in the server log when the admin project is missing in production', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', '');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', '');
     await requireUserOutsideDemo(signedOut());
-    expect(console.error).toHaveBeenCalledWith(expect.stringMatching(/FIREBASE_ADMIN_PROJECT_ID/));
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringMatching(/NEXT_PUBLIC_FIREBASE_PROJECT_ID/),
+    );
   });
 
   it('accepts a verified caller in production', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', 'my-project');
+    vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'my-project');
     mockVerifyToken.mockResolvedValue({ uid: 'u1' });
     expect(await requireUserOutsideDemo(signedIn())).toEqual({
       user: { uid: 'u1' },

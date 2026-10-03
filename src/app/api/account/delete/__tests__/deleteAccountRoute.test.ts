@@ -46,7 +46,7 @@ function makeRequest() {
 describe('/api/account/delete route contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.FIREBASE_ADMIN_PROJECT_ID = 'test-project';
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'test-project';
     mockVerifyToken.mockResolvedValue({ uid: 'user-123', authTime: nowSeconds() });
     mockRecursiveDelete.mockResolvedValue(undefined);
     mockDeleteFiles.mockResolvedValue(undefined);
