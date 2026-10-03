@@ -6,6 +6,7 @@ import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropi
 import { buildAdvisorSystemPrompt, buildAdvisorTool } from '@/lib/ai/advisorTool';
 import { buildAdvisorContextBlock, type AdvisorContextInput } from '@/lib/advisor/buildContext';
 import { generateOfflineAdvisorReply } from '@/lib/advisor/offlineAdvisor';
+import { guardrailReply } from '@/lib/advisor/guardrails';
 import { advisorReplySchema } from '@/types/advisor';
 import type { DegreeCourse, DegreeProfile } from '@/types/degreeCompass';
 
@@ -48,6 +49,11 @@ export async function POST(req: NextRequest) {
   if (!body.message || typeof body.message !== 'string') {
     return NextResponse.json({ error: 'Missing message parameter.' }, { status: 400 });
   }
+
+  // Answered before the usage check on purpose: a student in distress must
+  // never get "daily limit reached", and none of this needs the model.
+  const guarded = guardrailReply(body.message);
+  if (guarded) return NextResponse.json(guarded);
 
   const usage = await checkAndIncrementAiUsage(user);
   if (!usage.allowed) {

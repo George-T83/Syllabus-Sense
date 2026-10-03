@@ -22,6 +22,11 @@ export interface AdvisorMessage {
   role: AdvisorRole;
   content: string;
   warning?: AdvisorWarning;
+  /**
+   * True when the reply came from the keyword fallback instead of the AI
+   * model, so the page can say so rather than let it pass as AI advice.
+   */
+  offline?: boolean;
   createdAt: string;
 }
 
@@ -33,6 +38,7 @@ export const advisorWarningSchema = z.object({
 export const advisorReplySchema = z.object({
   reply: z.string().min(1),
   highStakes: advisorWarningSchema.optional(),
+  offline: z.boolean().optional(),
 });
 
 export type AdvisorReply = z.infer<typeof advisorReplySchema>;

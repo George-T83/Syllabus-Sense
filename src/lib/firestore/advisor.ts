@@ -29,6 +29,7 @@ function requireDb() {
 export async function appendAdvisorMessage(userId: string, message: AdvisorMessage): Promise<void> {
   const record: AdvisorMessage = { ...message };
   if (!record.warning) delete record.warning;
+  if (!record.offline) delete record.offline;
   await setDoc(doc(requireDb(), 'users', userId, 'advisorMessages', record.id), record);
 }
 
