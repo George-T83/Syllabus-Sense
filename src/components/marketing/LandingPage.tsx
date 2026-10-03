@@ -207,7 +207,7 @@ function SyllabusMockup() {
         <div className="rounded-lg border border-border bg-background p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-semibold text-foreground">Final Project</span>
-            <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
+            <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
               High stakes - 25%
             </span>
           </div>
@@ -217,7 +217,7 @@ function SyllabusMockup() {
         <div className="rounded-lg border border-border bg-background p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-semibold text-foreground">Problem Set 6</span>
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
               10%
             </span>
           </div>
@@ -227,7 +227,7 @@ function SyllabusMockup() {
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-semibold text-foreground">This week&apos;s workload</span>
-            <span className="flex items-center gap-1 rounded-full bg-load-high/15 px-2 py-0.5 text-[11px] font-semibold text-load-high">
+            <span className="flex items-center gap-1 rounded-full bg-load-high/15 px-2 py-0.5 text-xs font-semibold text-load-high">
               <svg
                 className="h-3 w-3"
                 fill="none"
@@ -264,11 +264,11 @@ function SyllabusMockup() {
                     style={{ height: `${bar.h}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground">{bar.d}</span>
+                <span className="text-xs text-muted-foreground">{bar.d}</span>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             Recommended start date moved earlier to make room.
           </p>
         </div>

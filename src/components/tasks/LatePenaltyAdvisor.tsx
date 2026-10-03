@@ -151,7 +151,7 @@ function LatePenaltyCalculator({
               aria-label="Hours Late Slider"
               className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-lg"
             />
-            <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+            <div className="flex justify-between text-xs text-muted-foreground font-mono">
               <span>On Time (0h)</span>
               <span>24h (1d)</span>
               <span>48h (2d)</span>
@@ -203,7 +203,7 @@ function LatePenaltyCalculator({
                   ))}
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {result.slipDaysRemaining} slip days remaining after this assignment.
               </p>
             </div>
@@ -253,7 +253,7 @@ function LatePenaltyCalculator({
 
           {/* SVG Penalty Decay Curve Chart */}
           <div className="space-y-1 pt-2 border-t border-border">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Score Decay Curve (0h–96h)</span>
               <span>
                 Current: <strong className="text-foreground">{hoursLate}h</strong>
@@ -365,7 +365,7 @@ function PolicyField({
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
       />
-      <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }

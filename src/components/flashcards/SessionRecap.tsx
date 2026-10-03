@@ -104,7 +104,7 @@ export function SessionRecap({
   return (
     <div className="study-rise mx-auto my-auto w-full max-w-3xl space-y-5 pb-10">
       <header className="text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
           {stats.reviewed} {stats.reviewed === 1 ? 'card' : 'cards'} · {formatDuration(durationMs)}
         </p>
         <h2
@@ -167,7 +167,7 @@ export function SessionRecap({
           <div key={t.label} className="study-panel rounded-2xl p-4">
             <p className="text-xs text-muted-foreground">{t.label}</p>
             <p className="mt-1 text-2xl font-semibold text-foreground">{t.value}</p>
-            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t.note}</p>
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{t.note}</p>
           </div>
         ))}
       </section>

@@ -53,7 +53,7 @@ export function StudyStreakCard() {
         </div>
         <div className="shrink-0 text-right">
           <div className="text-2xl font-bold text-primary tabular-nums">{streak}</div>
-          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             day{streak === 1 ? '' : 's'}
           </div>
         </div>

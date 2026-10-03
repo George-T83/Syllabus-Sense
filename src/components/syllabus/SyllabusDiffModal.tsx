@@ -107,7 +107,7 @@ export function SyllabusDiffModal({
                 Syllabus Policy Revision Diff
               </h3>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${severityBadgeClass(
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${severityBadgeClass(
                   report.overallSeverity,
                 )}`}
               >
@@ -257,11 +257,11 @@ export function SyllabusDiffModal({
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="text-sm font-bold text-foreground">{change.title}</h4>
-                            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-muted text-primary border border-border">
+                            <span className="text-xs uppercase font-bold px-2 py-0.5 rounded-full bg-muted text-primary border border-border">
                               {change.section}
                             </span>
                             <span
-                              className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${severityBadgeClass(
+                              className={`text-xs uppercase font-bold px-2 py-0.5 rounded-full border ${severityBadgeClass(
                                 change.severity,
                               )}`}
                             >
@@ -274,10 +274,10 @@ export function SyllabusDiffModal({
                     </div>
 
                     {(change.oldSnippet || change.newSnippet) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono pt-1">
                         {change.oldSnippet && (
                           <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive">
-                            <span className="font-bold block text-[10px] uppercase tracking-wider text-destructive mb-1">
+                            <span className="font-bold block text-xs uppercase tracking-wider text-destructive mb-1">
                               Previous Version:
                             </span>
                             <span className="line-through">{change.oldSnippet}</span>
@@ -285,7 +285,7 @@ export function SyllabusDiffModal({
                         )}
                         {change.newSnippet && (
                           <div className="p-2.5 rounded-xl bg-load-low/10 border border-load-low/30 text-load-low">
-                            <span className="font-bold block text-[10px] uppercase tracking-wider text-load-low mb-1">
+                            <span className="font-bold block text-xs uppercase tracking-wider text-load-low mb-1">
                               Revised Version:
                             </span>
                             <span>{change.newSnippet}</span>
@@ -313,7 +313,7 @@ export function SyllabusDiffModal({
                         : 'text-muted-foreground hover:bg-muted/40'
                   }`}
                 >
-                  <span className="w-8 shrink-0 text-[10px] text-muted-foreground text-right select-none">
+                  <span className="w-8 shrink-0 text-xs text-muted-foreground text-right select-none">
                     {line.newLineNumber || line.oldLineNumber || ''}
                   </span>
                   <span className="w-4 shrink-0 font-bold select-none">

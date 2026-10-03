@@ -69,7 +69,7 @@ export function CategoryProgressBar({
       </div>
       <p
         className={cn(
-          'text-[11px]',
+          'text-xs',
           creditsLeft === 0
             ? 'text-load-low'
             : creditsUnplanned > 0

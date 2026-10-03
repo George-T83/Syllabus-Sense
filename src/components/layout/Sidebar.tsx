@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,7 @@ import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSm
 import { DAILY_SCHEDULING_CAPACITY_HOURS } from '@/lib/workload';
 import { loadSessions } from '@/lib/focus/pomodoroSessions';
 import { getSessionDateSet, computeCurrentStreak } from '@/lib/focus/studyStreak';
+import { usePillHidden } from '@/hooks/useDisplayPrefs';
 import { NavIcon, DegreeNavIcon } from './NavIcon';
 
 interface NavItem {
@@ -99,11 +100,9 @@ function SidebarFooterWidget() {
   const dashOffset = circumference * (1 - percent / 100);
 
   return (
-    // mb-20 (not the usual mb-4) - PomodoroTimer's floating pill sits fixed
-    // at bottom-6 left-6 on desktop (LayoutWrapper renders it unconditionally
-    // whenever signed in), directly over the sidebar's own bottom-left
-    // corner. Without this clearance this widget renders right behind it.
-    <div className="mx-4 mt-auto mb-20 flex items-center gap-3 rounded-2xl bg-accent/50 px-3 py-3">
+    // Decoration, not navigation: on a short window it would only take room
+    // the links need, so it shows from 900px of window height up.
+    <div className="mx-4 mb-4 hidden shrink-0 items-center gap-3 rounded-2xl bg-accent/50 px-3 py-3 [@media(min-height:900px)]:flex">
       <svg width="36" height="36" viewBox="0 0 36 36" className="shrink-0" aria-hidden="true">
         <circle
           cx="18"
@@ -137,7 +136,7 @@ function SidebarFooterWidget() {
           {percent}% today
         </span>
         {streak > 0 && (
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <span className="text-load-medium">
               <StreakFlameIcon />
             </span>
@@ -151,13 +150,49 @@ function SidebarFooterWidget() {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  // PomodoroTimer's floating pill sits fixed at the sidebar's bottom-left
+  // corner. While it shows, the sidebar keeps that corner clear so no link
+  // or widget ever renders behind it; once dismissed the room goes back.
+  const [focusPillHidden] = usePillHidden('focus');
+  const navRef = useRef<HTMLElement>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+
+  // On a short window the links scroll. Fade the bottom edge while there is
+  // more below, so the cut-off reads as "scroll" and not as "that's all".
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const update = () => setMoreBelow(nav.scrollTop + nav.clientHeight < nav.scrollHeight - 2);
+    update();
+    nav.addEventListener('scroll', update, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(nav);
+    return () => {
+      nav.removeEventListener('scroll', update);
+      observer?.disconnect();
+    };
+  }, []);
 
   return (
-    <aside className="hidden md:flex fixed top-20 bottom-0 left-0 z-[45] w-64 flex-col border-r border-border/40 bg-card/90 glass">
-      <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-6">
+    <aside
+      className={cn(
+        'hidden md:flex fixed top-20 bottom-0 left-0 z-[45] w-64 flex-col border-r border-border/40 bg-card/90 glass',
+        focusPillHidden ? 'pb-2' : 'pb-20',
+      )}
+    >
+      <nav
+        ref={navRef}
+        data-testid="sidebar-nav"
+        data-more-below={moreBelow}
+        className={cn(
+          'min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4',
+          moreBelow &&
+            '[mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]',
+        )}
+      >
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="space-y-1">
-            <p className="px-4 pb-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="px-4 pb-1 font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {group.label}
             </p>
             {group.items.map((item) => {
@@ -172,7 +207,7 @@ export default function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
+                    'flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                     isActive
                       ? 'bg-gradient-brand text-primary-foreground shadow-[0_8px_20px_-8px_rgba(91,61,245,0.6)]'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',

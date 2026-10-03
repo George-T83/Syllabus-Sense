@@ -160,14 +160,14 @@ export function ProfessorEmailDrafterModal({
           {/* Email preview */}
           <div className="p-5 space-y-3">
             <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Subject
               </span>
               <p className="mt-0.5 text-sm font-medium text-foreground">{subject}</p>
             </div>
 
             <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Body
               </span>
               <pre className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-foreground font-sans">
@@ -178,7 +178,7 @@ export function ProfessorEmailDrafterModal({
 
           {/* Actions */}
           <div className="flex items-center justify-between border-t border-border px-5 py-3">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Replace <span className="font-mono">[bracketed placeholders]</span> before sending.
             </p>
             <button

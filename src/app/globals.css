@@ -172,6 +172,17 @@
     overflow-x: hidden;
   }
 
+  /* Text size setting (Profile > Appearance). Every size in the app is a rem,
+     so scaling the root scales the text, the spacing and the chrome together
+     instead of just the words. Set before first paint by the script in
+     app/layout.tsx. */
+  html[data-text-size='large'] {
+    font-size: 112.5%;
+  }
+  html[data-text-size='larger'] {
+    font-size: 125%;
+  }
+
   body {
     overflow-x: hidden;
     background-color: hsl(var(--background));

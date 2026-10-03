@@ -287,7 +287,7 @@ export function NextClassHeroBanner({
               </span>
             )}
 
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-white/75 border border-white/20 capitalize">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/75 border border-white/20 capitalize">
               {course.modality || 'In-Person'}
             </span>
           </div>
@@ -356,7 +356,7 @@ export function NextClassHeroBanner({
                 className="text-white/60 hover:text-white p-1 rounded transition-colors cursor-pointer"
               >
                 {copied ? (
-                  <span className="text-[10px] text-load-low font-semibold">Copied!</span>
+                  <span className="text-xs text-load-low font-semibold">Copied!</span>
                 ) : (
                   <svg
                     className="w-3.5 h-3.5"

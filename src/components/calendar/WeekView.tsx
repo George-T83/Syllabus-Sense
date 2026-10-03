@@ -108,7 +108,7 @@ export function WeekView({
                   isSelected ? 'bg-primary/10' : 'hover:bg-accent',
                 )}
               >
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {dayHeaderFormatter.format(day)}
                 </span>
                 <span
@@ -122,7 +122,7 @@ export function WeekView({
                   {day.getDate()}
                 </span>
                 {dayItems.length > 0 && (
-                  <span className="text-[9px] font-medium text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {dayItems.length} due
                   </span>
                 )}
@@ -141,7 +141,7 @@ export function WeekView({
               {HOUR_LABELS.map((hour) => (
                 <div
                   key={hour}
-                  className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground"
+                  className="absolute right-1 -translate-y-1/2 text-xs text-muted-foreground"
                   style={{ top: (hour - START_HOUR) * HOUR_HEIGHT }}
                 >
                   {hourLabel(hour)}
@@ -188,7 +188,7 @@ export function WeekView({
                       <div
                         key={`${m.course.id}-${i}`}
                         className={cn(
-                          'absolute left-0.5 right-0.5 overflow-hidden rounded-md px-1 py-0.5 text-[10px] font-medium text-white shadow-sm',
+                          'absolute left-0.5 right-0.5 overflow-hidden rounded-md px-1 py-0.5 text-xs font-medium text-white shadow-sm',
                           swatch.className,
                         )}
                         style={{ top, height, ...swatch.style }}
@@ -237,7 +237,7 @@ export function WeekView({
                     key={item.id}
                     title={item.title}
                     className={cn(
-                      'flex items-center gap-0.5 truncate rounded px-1 py-0.5 text-[9px] font-medium text-white',
+                      'flex items-center gap-0.5 truncate rounded px-1 py-0.5 text-xs font-medium text-white',
                       courseOf(item)?.color || 'bg-primary',
                       item.completed && 'opacity-40 line-through',
                     )}
@@ -266,7 +266,7 @@ export function WeekView({
                   <button
                     type="button"
                     onClick={() => onSelectDay(day)}
-                    className="block w-full text-left text-[9px] font-semibold text-muted-foreground hover:text-primary hover:underline"
+                    className="block w-full text-left text-xs font-semibold text-muted-foreground hover:text-primary hover:underline"
                   >
                     +{items.length - 3} more due
                   </button>

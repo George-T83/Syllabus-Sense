@@ -131,7 +131,7 @@ export function DraftRefineChat({ draft, onApplyPatch, disabled }: DraftRefineCh
                 ? 'Set up this course with the assistant'
                 : 'Tell the assistant what to fix'}
             </span>
-            <span className="rounded-full bg-primary/20 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
+            <span className="rounded-full bg-primary/20 px-1.5 py-0.2 text-xs font-semibold text-primary">
               Beta
             </span>
           </div>
@@ -216,7 +216,7 @@ export function DraftRefineChat({ draft, onApplyPatch, disabled }: DraftRefineCh
           </svg>
         </button>
       </form>
-      <p className="px-3.5 pb-3 text-[11px] text-muted-foreground">
+      <p className="px-3.5 pb-3 text-xs text-muted-foreground">
         Only affects the fields above - schedule and contacts have their own review.
       </p>
     </div>

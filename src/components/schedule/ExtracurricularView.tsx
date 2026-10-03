@@ -624,7 +624,7 @@ export function ExtracurricularView({
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-base font-bold text-foreground">{act.title}</h3>
                           <span
-                            className={`px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider border ${cfg.bg} ${cfg.color} ${cfg.border}`}
+                            className={`px-2 py-0.5 text-xs font-semibold rounded-full uppercase tracking-wider border ${cfg.bg} ${cfg.color} ${cfg.border}`}
                           >
                             {cfg.label}
                           </span>
@@ -814,7 +814,7 @@ export function ExtracurricularView({
                               {m.title}
                             </span>
                           </button>
-                          <span className="text-[11px] text-muted-foreground shrink-0 font-mono">
+                          <span className="text-xs text-muted-foreground shrink-0 font-mono">
                             {m.dueDate}
                           </span>
                         </div>
@@ -875,7 +875,7 @@ export function ExtracurricularView({
                         >
                           {milestone.title}
                         </div>
-                        <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-1 mt-0.5">
+                        <div className="text-xs text-muted-foreground flex items-center justify-between gap-1 mt-0.5">
                           <span className={`${cfg.color}`}>{activity.title}</span>
                           <span className="font-mono text-muted-foreground">
                             {milestone.dueDate}

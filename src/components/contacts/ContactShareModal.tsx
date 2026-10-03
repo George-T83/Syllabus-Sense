@@ -144,7 +144,7 @@ export function ContactShareModal({
             <div className="rounded-2xl bg-muted/50 border border-border p-4 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <h4 className="text-base font-bold text-foreground">{contact.fullName}</h4>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/30">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/30">
                   {contact.role}
                 </span>
               </div>
@@ -247,7 +247,7 @@ export function ContactShareModal({
                     )}
                   </svg>
                 </div>
-                <p className="text-[11px] font-semibold text-slate-600 mt-2 text-center">
+                <p className="text-xs font-semibold text-slate-600 mt-2 text-center">
                   Scan with mobile camera to import contact to iOS or Android
                 </p>
               </div>
@@ -264,7 +264,7 @@ export function ContactShareModal({
                 </div>
                 <pre
                   data-testid="vcard-raw-preview"
-                  className="p-3.5 rounded-xl bg-muted/50 border border-border text-[11px] font-mono text-foreground/80 overflow-x-auto whitespace-pre-wrap max-h-48"
+                  className="p-3.5 rounded-xl bg-muted/50 border border-border text-xs font-mono text-foreground/80 overflow-x-auto whitespace-pre-wrap max-h-48"
                 >
                   {vcardText}
                 </pre>

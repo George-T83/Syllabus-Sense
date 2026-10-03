@@ -762,7 +762,7 @@ export function MonthCalendar() {
                     key={label}
                     role="columnheader"
                     aria-label={FULL_WEEKDAY_NAMES[idx]}
-                    className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground py-1"
+                    className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground py-1"
                   >
                     <span className="sm:hidden">{label.slice(0, 1)}</span>
                     <span className="hidden sm:inline">{label}</span>
@@ -832,7 +832,7 @@ export function MonthCalendar() {
                       >
                         <span
                           className={cn(
-                            'flex h-5 w-5 items-center justify-center rounded-full text-[10px] sm:h-6 sm:w-6 sm:text-xs',
+                            'flex h-5 w-5 items-center justify-center rounded-full text-xs sm:h-6 sm:w-6',
                             isToday
                               ? 'bg-gradient-brand font-bold text-white shadow-card'
                               : 'text-foreground',
@@ -864,7 +864,7 @@ export function MonthCalendar() {
                             <span
                               key={item.id}
                               className={cn(
-                                'flex w-full min-w-0 items-center gap-0.5 overflow-hidden rounded px-1 py-0.5 text-[9px] font-medium leading-tight text-white',
+                                'flex w-full min-w-0 items-center gap-0.5 overflow-hidden rounded px-1 py-0.5 text-xs font-medium leading-tight text-white',
                                 courseSwatch(courseOf(item)?.color).className,
                                 item.completed && 'opacity-40 line-through',
                               )}
@@ -892,7 +892,7 @@ export function MonthCalendar() {
                             </span>
                           ))}
                           {hiddenCount > 0 && (
-                            <span className="text-[9px] font-semibold leading-none text-muted-foreground">
+                            <span className="text-xs font-semibold leading-none text-muted-foreground">
                               +{hiddenCount} more
                             </span>
                           )}
@@ -1179,7 +1179,7 @@ function DayDetailCard({
                       </div>
                     </div>
                     {m.course.modality && (
-                      <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                      <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">
                         {m.course.modality}
                       </span>
                     )}
@@ -1256,7 +1256,7 @@ function DayDetailCard({
                               )
                             }
                             title="Add to Outlook"
-                            className="rounded-md p-1 text-[9px] font-bold text-muted-foreground hover:bg-accent hover:text-foreground"
+                            className="rounded-md p-1 text-xs font-bold text-muted-foreground hover:bg-accent hover:text-foreground"
                           >
                             O
                           </button>

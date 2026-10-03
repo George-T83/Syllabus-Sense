@@ -367,7 +367,7 @@ export function ContactsListView() {
               >
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                    'rounded-full px-2 py-0.5 text-xs font-semibold',
                     primary.role === 'professor'
                       ? 'bg-primary/10 text-primary'
                       : 'bg-accent text-muted-foreground',
@@ -396,7 +396,7 @@ export function ContactsListView() {
                 </div>
 
                 <div className="mt-3 space-y-2 border-t border-border pt-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {records.length === 1 ? 'Course' : 'Courses'}
                   </span>
                   <ul className="space-y-2">

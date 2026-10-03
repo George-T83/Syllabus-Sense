@@ -34,7 +34,7 @@ export function EmptyPageGuide({ title, lead, previews, actions }: EmptyPageGuid
 
       <div className="mt-5 flex flex-wrap items-center gap-2">{actions}</div>
 
-      <p className="mt-8 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+      <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
         What you&apos;ll see here
       </p>
       <ul className="mt-3 grid gap-3 sm:grid-cols-3">

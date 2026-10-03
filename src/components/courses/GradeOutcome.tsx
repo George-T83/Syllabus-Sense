@@ -207,7 +207,7 @@ export function GradeOutcomeDial({
         <span className="mt-1 font-display text-2xl tabular-nums text-foreground">
           {projected}%
         </span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           {letterGradeToGpaPoints(letter).toFixed(1)} GPA
         </span>
       </div>
@@ -279,7 +279,7 @@ export function RemainingScoreSlider({
       <div className="relative pb-6 pt-3">
         {goalScore !== null && (
           <span
-            className="absolute top-0 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wide text-foreground"
+            className="absolute top-0 -translate-x-1/2 text-xs font-bold uppercase tracking-wide text-foreground"
             style={{ left: `${goalScore}%` }}
             aria-hidden="true"
           >
@@ -301,7 +301,7 @@ export function RemainingScoreSlider({
         {breaks.map((b) => (
           <span
             key={b.score}
-            className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-[10px] tabular-nums text-muted-foreground"
+            className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-xs tabular-nums text-muted-foreground"
             style={{ left: `${b.score}%` }}
             aria-hidden="true"
           >

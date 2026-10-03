@@ -31,9 +31,7 @@ export function NowHeroCard({ hero, onMarkDone, onUploadSyllabus, onAddTask }: N
   if (hero.kind === 'clear') {
     return (
       <Card data-testid="now-hero" accent="left" className="rounded-2xl p-5 sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-          All clear
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">All clear</p>
         <h2 className="mt-1 font-display text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
           Nothing needs you right now
         </h2>
@@ -61,9 +59,7 @@ export function NowHeroCard({ hero, onMarkDone, onUploadSyllabus, onAddTask }: N
   if (hero.kind === 'cards') {
     return (
       <Card data-testid="now-hero" accent="left" className="rounded-2xl p-5 sm:p-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-          Review time
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Review time</p>
         <h2 className="mt-1 font-display text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
           Review {hero.dueCards} {hero.dueCards === 1 ? 'card' : 'cards'}
         </h2>
@@ -95,7 +91,7 @@ export function NowHeroCard({ hero, onMarkDone, onUploadSyllabus, onAddTask }: N
     >
       <p
         className={cn(
-          'text-[11px] font-semibold uppercase tracking-[0.2em]',
+          'text-xs font-semibold uppercase tracking-[0.2em]',
           urgent ? 'text-destructive' : 'text-primary',
         )}
       >

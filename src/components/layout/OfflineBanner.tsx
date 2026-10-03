@@ -84,7 +84,8 @@ export function OfflineBanner({
             />
           </svg>
           <div>
-            <span className="font-bold">Offline Mode:</span> You are currently offline. Changes are saved locally and will sync once reconnected.
+            <span className="font-bold">Offline Mode:</span> You are currently offline. Changes are
+            saved locally and will sync once reconnected.
           </div>
         </div>
 

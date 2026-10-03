@@ -60,7 +60,7 @@ function headlineFor(top: BriefingItem): { title: string; detail: string } {
 
 function Readiness({ readiness }: { readiness: NonNullable<BriefingItem['readiness']> }) {
   const base =
-    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors';
+    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold transition-colors';
   if (readiness.cards === 0) {
     return (
       <Link
@@ -106,7 +106,7 @@ function BriefingRow({ entry, rank }: { entry: BriefingItem; rank: number }) {
           {course && (
             <span
               className={cn(
-                'shrink-0 rounded-md border px-1.5 py-px text-[11px] font-semibold',
+                'shrink-0 rounded-md border px-1.5 py-px text-xs font-semibold',
                 tint.className,
               )}
               style={tint.style}
@@ -135,10 +135,10 @@ function BriefingRow({ entry, rank }: { entry: BriefingItem; rank: number }) {
             <p className="font-display text-lg leading-none tabular-nums text-foreground">
               {weight}%
             </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">of grade</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">of grade</p>
           </>
         ) : (
-          <p className="pt-0.5 text-[11px] text-muted-foreground">Weight not set</p>
+          <p className="pt-0.5 text-xs text-muted-foreground">Weight not set</p>
         )}
       </div>
     </li>
@@ -217,7 +217,7 @@ export function WeeklyBriefingCard({
     <Card className="rounded-2xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             What matters this week
           </p>
           <h2
