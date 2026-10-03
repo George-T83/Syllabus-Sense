@@ -7,6 +7,7 @@ import type { GpaGoalCourse } from '@/lib/gpa/termCourses';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RingGauge, type RingGaugeLevel } from '@/components/ui/RingGauge';
+import { AiNote } from '@/components/ui/AiNote';
 
 export interface GpaGoalRadialProps {
   /** Earlier-terms history. Optional: left blank, the simulator treats this
@@ -137,6 +138,10 @@ export function GpaGoalRadial({
             <p className="text-sm text-muted-foreground mt-0.5">
               Simulate term quality points and track progress toward your graduation GPA target.
             </p>
+            <AiNote className="mt-1.5">
+              An estimate from your entered scores and credit hours. Your school&apos;s GPA is the
+              official one.
+            </AiNote>
           </div>
         </div>
 

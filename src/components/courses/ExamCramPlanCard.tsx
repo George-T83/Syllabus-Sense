@@ -15,6 +15,8 @@ import {
 } from '@/lib/planner/cramPlan';
 import { generatedCramPlanSchema } from '@/types/cramPlan';
 import type { Course } from '@/types/schedule';
+import { AiNote } from '@/components/ui/AiNote';
+import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
 
 export function ExamCramPlanCard({ course }: { course: Course }) {
   const { user } = useAuth();
@@ -125,6 +127,12 @@ export function ExamCramPlanCard({ course }: { course: Course }) {
         <CardActionButton variant="solid" onClick={handleGenerate} disabled={generating}>
           {generating ? 'Generating…' : `Generate ${planDays}-Day Cram Plan`}
         </CardActionButton>
+      )}
+      {latestSyllabus && (
+        <AiNote>
+          The plan is written by AI from your syllabus, so check topics and dates against it.{' '}
+          <CheckSyllabusButton syllabus={latestSyllabus} />
+        </AiNote>
       )}
     </Card>
   );

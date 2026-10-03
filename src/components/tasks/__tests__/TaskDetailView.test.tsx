@@ -98,3 +98,16 @@ describe('TaskDetailView DL Semantics and Accessibility', () => {
     expect(screen.getByText('Back to tasks')).toBeDefined();
   });
 });
+
+describe('TaskDetailView AI-read data note', () => {
+  it('warns that a due date and weight read by AI can be wrong', () => {
+    renderTaskDetail({ ...mockItem, source: 'ai' }, mockCourse);
+    expect(screen.getByText(/Read from your syllabus by AI/)).toBeTruthy();
+    expect(screen.getByText(/due date and weight can be wrong/)).toBeTruthy();
+  });
+
+  it('says nothing about AI for a task the student entered', () => {
+    renderTaskDetail({ ...mockItem, source: 'manual' }, mockCourse);
+    expect(screen.queryByText(/Read from your syllabus by AI/)).toBeNull();
+  });
+});

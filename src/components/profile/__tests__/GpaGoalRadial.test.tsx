@@ -25,6 +25,12 @@ const COURSES: GpaGoalCourse[] = [
 ];
 
 describe('GpaGoalRadial', () => {
+  it('calls the number an estimate and names the official source', () => {
+    render(<GpaGoalRadial courses={COURSES} />);
+    expect(screen.getByText(/An estimate from your entered scores and credit hours/)).toBeDefined();
+    expect(screen.getByText(/school's GPA is the\s+official one/)).toBeDefined();
+  });
+
   it('renders two labelled rings and a status badge from real courses', () => {
     render(<GpaGoalRadial courses={COURSES} />);
 
