@@ -22,3 +22,9 @@ export function usePlatformKey(): string {
 
   return isMac ? '⌘' : 'Ctrl';
 }
+
+/** The platform's modifier labels: ⌘ and ⌥ on a Mac, Ctrl and Alt elsewhere. */
+export function usePlatform(): { mod: string; alt: string } {
+  const mod = usePlatformKey();
+  return { mod, alt: mod === '⌘' ? '⌥' : 'Alt' };
+}

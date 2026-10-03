@@ -13,13 +13,15 @@ import OfflineBanner from './OfflineBanner';
 import { SyllabusChatDrawer } from '@/components/syllabus/SyllabusChatDrawer';
 import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { PomodoroTimer } from '@/components/focus/PomodoroTimer';
-import { usePlatformKey } from '@/hooks/usePlatformKey';
+import { usePlatform } from '@/hooks/usePlatformKey';
+import { ShortcutsCheatSheet } from '@/components/common/ShortcutsCheatSheet';
+import { matchesShortcut } from '@/lib/shortcuts';
 import { FOCUS_TASK_EVENT, type FocusTaskEventDetail } from '@/lib/focus/focusTaskEvent';
 
-// The Copilot answers questions about a student's enrolled course syllabi -
+// The AI Advisor chat answers questions about a student's enrolled course syllabi -
 // it needs a course in scope to be coherent, and silently falls back to
 // `state.courses[0]` when there isn't one. Account/settings pages have no
-// course context at all, so the trigger, drawer, and its Cmd+K shortcut
+// course context at all, so the trigger, drawer, and its Alt+A shortcut
 // stay off those routes rather than floating over unrelated content.
 const COPILOT_EXCLUDED_ROUTES = ['/profile'];
 
@@ -30,10 +32,12 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // `openSignal` prop.
   const [pomodoroOpenSignal, setPomodoroOpenSignal] = useState(0);
   const [pomodoroTaskId, setPomodoroTaskId] = useState<string | undefined>(undefined);
-  const modKey = usePlatformKey();
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const { alt: altKey } = usePlatform();
 
   const handleCommandPaletteAction = (actionId: string) => {
     if (actionId === 'ai-copilot') setIsChatOpen(true);
+    if (actionId === 'shortcuts') setIsShortcutsOpen(true);
     if (actionId === 'pomodoro') {
       // A generic "start a session" request, distinct from a task-scoped
       // deep link below - clears any task left over from a previous
@@ -68,11 +72,12 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     }
   }, []);
 
-  // Global Cmd+K / Ctrl+K → open AI Copilot chat (only where the Copilot is available)
+  // Alt+A → open the AI Advisor chat (only where it is available). Cmd/Ctrl+K
+  // belongs to the command palette, which lists "Ask the AI Advisor" too.
   useEffect(() => {
     if (!copilotAvailable) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if (matchesShortcut(e, 'advisor')) {
         e.preventDefault();
         setIsChatOpen((prev) => !prev);
       }
@@ -80,6 +85,18 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [copilotAvailable]);
+
+  // "?" opens the shortcut cheat sheet (ignored while typing in a field).
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (matchesShortcut(e, 'shortcuts')) {
+        e.preventDefault();
+        setIsShortcutsOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Leaving a route where the Copilot isn't offered should also close it,
   // rather than leaving it open-but-invisible in the background.
@@ -103,12 +120,12 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             </div>
             <MobileTabBar />
 
-            {/* Global Floating AI Copilot Drawer Trigger - only on routes with
+            {/* Global Floating AI Advisor Drawer Trigger - only on routes with
                 course context; see COPILOT_EXCLUDED_ROUTES above. */}
             {copilotAvailable && (
               <FloatingActionPill
                 onClick={() => setIsChatOpen(true)}
-                ariaLabel="Open AI Syllabus Copilot Chat"
+                ariaLabel={`Open AI Advisor chat (${altKey}+A)`}
                 positionClassName="bottom-20 right-5 z-40 md:bottom-6 md:right-6"
                 colorClassName="border-indigo-400/30 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 shadow-[0_8px_25px_rgba(99,102,241,0.4)] hover:shadow-[0_12px_30px_rgba(99,102,241,0.6)] focus:ring-indigo-400"
                 icon={
@@ -126,12 +143,13 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     />
                   </svg>
                 }
-                label="AI Copilot"
-                shortcut={`${modKey}+K`}
+                label="AI Advisor"
+                shortcut={`${altKey}+A`}
               />
             )}
 
             <SyllabusChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+            <ShortcutsCheatSheet open={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
             <PomodoroTimer taskId={pomodoroTaskId} openSignal={pomodoroOpenSignal} />
           </div>
         </AppStateProvider>

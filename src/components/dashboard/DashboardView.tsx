@@ -244,7 +244,7 @@ export function DashboardView() {
               <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-h3 text-white font-bold">
-                    Got a syllabus? Let Claude set it up.
+                    Got a syllabus? Let the AI Advisor set it up.
                   </h2>
                   <p className="mt-1 text-body-sm text-white/80">
                     Upload the PDF or Word doc and get a course plus every assignment drafted for

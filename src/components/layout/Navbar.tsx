@@ -267,7 +267,7 @@ function NotificationBell({
 }
 
 export interface NavbarProps {
-  /** Forwarded to CommandPalette's onAction - handles actions (AI Copilot,
+  /** Forwarded to CommandPalette's onAction - handles actions (AI Advisor,
    * Pomodoro) whose state lives in LayoutWrapper, outside what Navbar or
    * CommandPalette can reach on their own. */
   onCommandPaletteAction?: (actionId: string) => void;
@@ -315,7 +315,7 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
         <div className="flex-1 flex justify-center min-w-0">
           <button
             onClick={() => setIsCommandPaletteOpen(true)}
-            aria-label={`Open command palette (${modKey}+P)`}
+            aria-label={`Open command palette (${modKey}+K)`}
             className="hidden md:inline-flex w-full max-w-[560px] items-center gap-2.5 rounded-full border border-primary/20 bg-accent/50 px-4 py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:bg-accent transition-all focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           >
             <span className="text-primary">
@@ -325,12 +325,12 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
               Ask anything — grades, deadlines, study plans…
             </span>
             <kbd className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[10px] font-mono">
-              {modKey}+P
+              {modKey}+K
             </kbd>
           </button>
           <button
             onClick={() => setIsCommandPaletteOpen(true)}
-            aria-label={`Search courses and tasks (${modKey}+P)`}
+            aria-label={`Search courses and tasks (${modKey}+K)`}
             className="md:hidden inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
           >
             <CompassSearchIcon />

@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       }
 
       const syllabusContext = [body.syllabusText, body.notes].filter(Boolean).join('\n\n');
-      const promptText = `You are the Syllabus Sense AI Study Copilot. You assist students by answering questions accurately based strictly on their syllabus.
+      const promptText = `You are the Syllabus Sense AI Advisor. You assist students by answering questions accurately based strictly on their syllabus.
 Never invent course policies, grade weights, office hours, dates, or requirements. If the syllabus content below doesn't answer the question, say it isn't in the syllabus on file and suggest asking the instructor - a guessed policy is worse than no answer, because the student will act on it.
 Course Code: ${body.courseCode || 'General Course'}
 Course Title: ${body.courseTitle || ''}

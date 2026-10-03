@@ -28,10 +28,10 @@ npm run build
 
 ### A. Intelligent Navigation & Power-User Tools
 
-- **Global Command Palette (`Cmd+P` / `Ctrl+P` | Item 34 & Item 50)**:
-  - Press `Cmd+P` (Mac) or `Ctrl+P` (Windows/Linux) anywhere in the application.
+- **Global Command Palette (`Cmd+K` / `Ctrl+K` | Item 34 & Item 50)**:
+  - Press `Cmd+K` (Mac) or `Ctrl+K` (Windows/Linux) anywhere in the application. `Ctrl+P` is left to the browser so printing works.
   - Fuzzy-search courses, quick jump to planner/calendar/tasks, or trigger instant actions like "Start Pomodoro Timer", "What-If Grade Simulator", or "Add New Task".
-  - `Cmd+K` / `Ctrl+K` is a separate shortcut that opens the AI Syllabus Copilot chat drawer directly, not the Command Palette.
+  - `Alt+A` (`Option+A` on a Mac) opens the AI Advisor chat drawer directly, and `?` shows every shortcut.
 
 - **Quick-Join Next Class Hero Banner (Item 44)**:
   - Located at the top of the Dashboard.

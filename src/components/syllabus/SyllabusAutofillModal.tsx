@@ -1092,12 +1092,12 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
               Syllabus Autofill
             </p>
             <h2 id="autofill-title" className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">
-              Let Claude read it, you decide what sticks
+              Let the AI Advisor read it, you decide what sticks
             </h2>
             <p className="mt-1.5 max-w-xl text-sm text-white/80">
               Grade weights, high-stakes deadlines, and easy-to-miss dates get buried in a long PDF
-              &mdash; Claude pulls them out so nothing slips by, and you approve every one before it
-              hits your calendar.
+              &mdash; the AI Advisor pulls them out so nothing slips by, and you approve every one
+              before it hits your calendar.
             </p>
             <div className="mt-5">
               <StepIndicator step={step === 'materializing' ? 'extracting' : step} />
@@ -1554,8 +1554,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Color, icon, and this file name are Claude&apos;s suggestions &mdash; every
-                      one is editable.
+                      Color, icon, and this file name are the AI Advisor&apos;s suggestions &mdash;
+                      every one is editable.
                     </p>
                   </div>
                 </section>
@@ -1661,7 +1661,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                           d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
                         />
                       </svg>
-                      Claude also caught
+                      The AI Advisor also caught
                     </h3>
                     {course.notes && (
                       <div className="space-y-1">
@@ -1739,7 +1739,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                         </svg>
                       }
                       title="No learning objectives yet"
-                      description="Claude didn't find any in this syllabus - add one, or skip this section."
+                      description="The AI Advisor didn't find any in this syllabus - add one, or skip this section."
                       action={{ label: '+ Add objective', onClick: startAddingObjective }}
                     />
                   ) : (
@@ -1871,7 +1871,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   {learningObjectivesLines.length > 0 && (
                     <p className="text-xs text-muted-foreground">
                       Uncheck &quot;Save to course&quot; to skip saving these for now without losing
-                      what Claude found.
+                      what the AI Advisor found.
                     </p>
                   )}
                 </section>
@@ -1993,7 +1993,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     style={{ animationDelay: '180ms' }}
                   >
                     <h3 className="text-sm font-semibold text-foreground">
-                      What Claude found
+                      What the AI Advisor found
                       <span className="ml-1.5 font-normal text-muted-foreground">
                         {approvedCount} of {items.length} approved
                       </span>
@@ -2019,7 +2019,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                             type="button"
                             onClick={handleRerun}
                             className="ml-1 flex items-center gap-1 rounded-full border border-dashed border-primary/40 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                            title="Not right? Discard this draft and ask Claude to re-read the file."
+                            title="Not right? Discard this draft and ask the AI Advisor to re-read the file."
                           >
                             <svg
                               className="h-3 w-3"
@@ -2331,7 +2331,7 @@ function dedupeSuggestedFileName(
 }
 
 /** Formats an ISO YYYY-MM-DD skipDate as a short human date (e.g. "Mar 9,
- * 2026") for the SY-3 "Claude also caught" callout, without pulling in a
+ * 2026") for the SY-3 "The AI Advisor also caught" callout, without pulling in a
  * date library for one label. Parsed as UTC noon rather than midnight so a
  * negative-offset timezone can't roll the displayed date back a day. */
 function formatIsoDate(iso: string): string {
