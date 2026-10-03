@@ -29,7 +29,7 @@ describe('stripAiAttribution', () => {
   });
 
   it('strips a Claude-Session trailer', () => {
-    const input = 'fix: x\n\nClaude-Session: https://claude.ai/code/session_01Abc';
+    const input = 'fix: x\n\nClaude-Session: https://claude.ai/code/session_01ExampleSessionIdOnly';
     expect(stripAiAttribution(input)).toBe('fix: x\n');
   });
 
@@ -47,7 +47,7 @@ describe('stripAiAttribution', () => {
       'clean up by hand.',
       '',
       'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>',
-      'Claude-Session: https://claude.ai/code/session_01JyqFdkw4BG6LoJNykh1HHR',
+      'Claude-Session: https://claude.ai/code/session_01ExampleSessionIdOnly',
       '',
     ].join('\n');
     const out = stripAiAttribution(input);
