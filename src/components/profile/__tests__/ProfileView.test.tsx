@@ -159,11 +159,19 @@ describe('ProfileView - data export section', () => {
     expect(text).toContain('Ada Lovelace');
   });
 
-  it('describes the full scope of what gets exported, including mood and grade scenarios', () => {
+  it('describes the full scope of what gets exported, including flashcards, the degree plan and the Advisor', () => {
     renderWithProviders();
 
-    expect(
-      screen.getByText(/mood check-in, grade scenario, syllabus, and preference/i),
-    ).toBeDefined();
+    const copy = screen.getByText(/Everything saved in your account/i).textContent ?? '';
+    for (const part of [
+      'mood check-ins',
+      'grade scenarios',
+      'flashcards',
+      'degree plan',
+      'Advisor',
+    ]) {
+      expect(copy).toContain(part);
+    }
+    expect(copy).toMatch(/uploaded syllabus files themselves are not in the file/i);
   });
 });

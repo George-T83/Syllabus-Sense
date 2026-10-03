@@ -177,10 +177,12 @@ function useUrgencyGroups() {
  * metric, not an account-wide one, and only meaningfully changes once a
  * session actually completes. */
 function useStudyStreak(): number {
+  const { user } = useAuth();
+  const userId = user?.uid;
   const [streak, setStreak] = useState(0);
   useEffect(() => {
-    setStreak(computeCurrentStreak(getSessionDateSet(loadSessions())));
-  }, []);
+    setStreak(computeCurrentStreak(getSessionDateSet(loadSessions(userId))));
+  }, [userId]);
   return streak;
 }
 

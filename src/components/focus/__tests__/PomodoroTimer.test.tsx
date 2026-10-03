@@ -5,6 +5,10 @@ import { PomodoroTimer, formatTime } from '../PomodoroTimer';
 import { AppStateProvider, AppState } from '@/context/AppStateContext';
 import type { ScheduleItem } from '@/types/schedule';
 
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({ user: { uid: 'u1' } }),
+}));
+
 const mockTask: ScheduleItem = {
   id: 'task-1',
   courseId: 'course-1',
