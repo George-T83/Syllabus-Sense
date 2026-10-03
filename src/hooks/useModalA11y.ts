@@ -9,7 +9,8 @@ const FOCUSABLE_SELECTOR =
  * Wires Escape-to-close, body scroll locking, and a hardened focus trap for modal dialogs:
  * - Locks body scroll (overflow: hidden) while open and restores previous overflow on close
  * - Sets tabIndex={-1} on the modal container if not already present
- * - Moves initial focus to the first focusable element or container
+ * - Moves initial focus to the element marked `data-autofocus` if there is one, else the first
+ *   focusable element, else the container
  * - Prevents tabbing outside the dialog boundary (Shift+Tab from first/container cycles to last, Tab from last cycles to first)
  * - Restores focus to the trigger element when closed
  * - Cleanly dismisses on Escape key
@@ -49,9 +50,14 @@ export function useModalA11y<T extends HTMLElement>(open: boolean, onClose: () =
       );
     };
 
-    // 3. Initial focus: focus first focusable child, or container
+    // 3. Initial focus: an explicitly marked element wins (e.g. the one action
+    // that moves a dead-end dialog forward); otherwise the first focusable
+    // child, or the container.
     const focusables = getFocusables();
-    if (focusables.length > 0) {
+    const preferred = container?.querySelector<HTMLElement>('[data-autofocus]');
+    if (preferred) {
+      preferred.focus();
+    } else if (focusables.length > 0) {
       focusables[0].focus();
     } else if (container) {
       container.focus();
