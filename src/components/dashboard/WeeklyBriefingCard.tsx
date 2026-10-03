@@ -146,6 +146,9 @@ function BriefingRow({ entry, rank }: { entry: BriefingItem; rank: number }) {
 }
 
 export interface WeeklyBriefingCardProps {
+  /** The "Do this now" hero above already names the top item, so this card
+   * trades its own headline for a plain title and just lists the week. */
+  heroShown?: boolean;
   /** The selected term's schedule items. */
   scheduleItems: ScheduleItem[];
   courses: Course[];
@@ -159,6 +162,7 @@ export interface WeeklyBriefingCardProps {
  * Dismissing it hides it until the following week's Monday.
  */
 export function WeeklyBriefingCard({
+  heroShown = false,
   scheduleItems,
   courses,
   flashcards,
@@ -182,7 +186,9 @@ export function WeeklyBriefingCard({
   if (dismissed || briefing.ranked.length === 0) return null;
 
   const top = briefing.ranked[0];
-  const { title, detail } = headlineFor(top);
+  const { title, detail } = heroShown
+    ? { title: 'Everything due this week', detail: 'Biggest grade stakes first.' }
+    : headlineFor(top);
   const visible = briefing.ranked.slice(0, VISIBLE_ROWS);
   const more = briefing.ranked.length - visible.length;
 
@@ -220,7 +226,7 @@ export function WeeklyBriefingCard({
           >
             {title}
           </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{detail}</p>
+          {detail && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{detail}</p>}
         </div>
         <button
           type="button"

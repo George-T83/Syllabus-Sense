@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { CardActionButton } from '@/components/ui/CardAction';
+import { CardActionButton, SyllabusIcon } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { SectionIcon } from '@/components/ui/SectionIcon';
@@ -18,7 +18,9 @@ import { createScheduleItem, updateScheduleItem } from '@/lib/firestore/schedule
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
+import { NowHeroCard } from '@/components/dashboard/NowHeroCard';
 import { WeeklyBriefingCard } from '@/components/dashboard/WeeklyBriefingCard';
+import { pickNowHero } from '@/lib/dashboard/nowHero';
 import { dueInstant, isOverdue, parseDayKey } from '@/lib/calendar/dates';
 import {
   GettingStartedCard,
@@ -129,6 +131,14 @@ export function DashboardView() {
     () => scheduleItems.filter((item) => semesterCourseIds.has(item.courseId)),
     [scheduleItems, semesterCourseIds],
   );
+  // One dominant call to action: the single most urgent thing, or - with
+  // nothing to do - the syllabus upload. Hidden while the setup checklist is
+  // already leading with that same upload.
+  const nowHero = useMemo(
+    () => pickNowHero(termScheduleItems, semesterCourses, state.flashcards),
+    [termScheduleItems, semesterCourses, state.flashcards],
+  );
+  const showHero = !dataLoading && !isNewStudent && !checklistLeadsWithUpload;
 
   const pendingTasks = termScheduleItems.filter((item) => !item.completed);
   const noDeadlines = termScheduleItems.length === 0;
@@ -229,51 +239,41 @@ export function DashboardView() {
   return (
     <>
       <div className="max-w-5xl space-y-6 sm:space-y-8">
-        <header>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            {currentTerm || courses[0]?.term || 'Welcome'}
-          </p>
-          <h1 className="mt-1.5 font-display text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
-            {greeting}, <span className="text-gradient-brand">{firstName}</span>
-          </h1>
+        <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              {currentTerm || courses[0]?.term || 'Welcome'}
+            </p>
+            <h1 className="mt-1.5 font-display text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
+              {greeting}, <span className="text-gradient-brand">{firstName}</span>
+            </h1>
+          </div>
+          {showHero && nowHero.kind !== 'clear' && (
+            <CardActionButton
+              variant="ghost"
+              onClick={() => setAutofillOpen(true)}
+              className="hidden sm:inline-flex"
+            >
+              <SyllabusIcon />
+              Autofill from Syllabus
+            </CardActionButton>
+          )}
         </header>
 
-        {!isNewStudent && !checklistLeadsWithUpload && (
-          <>
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-brand p-6 text-white shadow-card">
-              <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-h3 text-white font-bold">
-                    Got a syllabus? Let the AI Advisor set it up.
-                  </h2>
-                  <p className="mt-1 text-body-sm text-white/80">
-                    Upload the PDF or Word doc and get a course plus every assignment drafted for
-                    you to review.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAutofillOpen(true)}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-4 py-2 text-label text-[#5b3df5] shadow-sm transition-transform hover:scale-[1.02]"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  Autofill from Syllabus
-                </button>
-              </div>
-            </div>
-          </>
+        {showHero && (
+          <NowHeroCard
+            hero={nowHero}
+            onMarkDone={
+              user
+                ? (id) => {
+                    const target = scheduleItems.find((i) => i.id === id);
+                    if (target) void handleToggleComplete(target);
+                  }
+                : undefined
+            }
+            onUploadSyllabus={() => setAutofillOpen(true)}
+            onAddTask={() => setAddTaskOpen(true)}
+          />
         )}
 
         <GettingStartedCard
@@ -291,6 +291,7 @@ export function DashboardView() {
         <AdvisorInsightCard />
 
         <WeeklyBriefingCard
+          heroShown={showHero && (nowHero.kind === 'urgent' || nowHero.kind === 'next')}
           scheduleItems={termScheduleItems}
           courses={semesterCourses}
           flashcards={state.flashcards}
