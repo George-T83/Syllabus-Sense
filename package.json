@@ -26,6 +26,7 @@
     "@alloc/quick-lru": "^5.2.0",
     "@anthropic-ai/sdk": "^0.117.1",
     "@types/nodemailer": "^8.0.1",
+    "dompurify": "^3.4.16",
     "firebase": "^12.17.1",
     "firebase-admin": "^14.2.0",
     "mammoth": "^1.12.1",
