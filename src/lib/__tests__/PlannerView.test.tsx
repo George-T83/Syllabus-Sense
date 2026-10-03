@@ -180,4 +180,47 @@ describe('PlannerView', () => {
     fireEvent.change(screen.getByDisplayValue('All Types'), { target: { value: 'quiz' } });
     expect(screen.getByText('No tasks match these filters')).toBeDefined();
   });
+
+  it('puts the task list before the planning insights, not after them', () => {
+    renderPlanner();
+    const list = screen.getByTestId('tasks-list-card');
+    const planning = document.getElementById('planning');
+    expect(planning).not.toBeNull();
+    // DOCUMENT_POSITION_FOLLOWING: the planning section comes after the list.
+    expect(
+      list.compareDocumentPosition(planning as Node) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // ...and so does everything that used to sit above it.
+    const insights = ["Today's Load", 'Planning'].map((t) => screen.getAllByText(t)[0]);
+    for (const el of insights) {
+      expect(list.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it('keeps the planning section reachable from a link at the top of the list', () => {
+    renderPlanner();
+    const link = within(screen.getByTestId('tasks-list-card')).getByRole('link', {
+      name: 'What to start today',
+    });
+    expect(link.getAttribute('href')).toBe('#planning');
+    expect(document.querySelector('#planning h2')?.textContent).toBe('Planning');
+  });
+
+  it('collapses the filters behind a button and says how many are active', () => {
+    renderPlanner();
+    const toggle = screen.getByRole('button', { name: /Filter & sort/ });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-controls')).toBe('task-filters');
+    expect(toggle.textContent).not.toMatch(/active/);
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.change(screen.getByDisplayValue('All Statuses'), { target: { value: 'pending' } });
+    fireEvent.change(screen.getByDisplayValue('Group: Due Date'), { target: { value: 'course' } });
+    expect(toggle.textContent).toMatch(/2 active/);
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  });
 });
