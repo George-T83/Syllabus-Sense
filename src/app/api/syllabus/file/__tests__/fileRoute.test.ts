@@ -29,7 +29,7 @@ const AUTH = { authorization: 'Bearer good-token' };
 describe('/api/syllabus/file', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'test-project';
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'test-project';
     mockVerifyToken.mockResolvedValue({ uid: 'u1' });
     mockExists.mockResolvedValue([true]);
     mockDownload.mockResolvedValue([PDF_BYTES]);

@@ -28,7 +28,7 @@ import { POST } from '@/app/api/syllabus/extract/route';
 describe('/api/syllabus/extract route contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'test-project';
+    process.env.FIREBASE_ADMIN_PROJECT_ID = 'test-project';
     mockVerifyToken.mockResolvedValue({ uid: 'user-123' });
   });
 
