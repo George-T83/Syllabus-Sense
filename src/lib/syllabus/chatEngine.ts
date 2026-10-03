@@ -176,6 +176,6 @@ export function generateOfflineSyllabusAnswer(body: ChatRequestBody): {
 
   const reply = text
     ? `I couldn't find anything about ${about} in the ${code} syllabus on file, so I won't guess. It may not be covered - ${body.instructor ? `${body.instructor} is` : 'your instructor is'} the one to ask.`
-    : `I can't answer that without guessing: there's no syllabus text saved for ${code} yet, and the AI assistant isn't available right now. Upload the syllabus on the course page and ask again, or check it directly.`;
+    : `I can't answer that without guessing: there's no syllabus text saved for ${code} yet, and the AI Advisor isn't available right now. Upload the syllabus on the course page and ask again, or check it directly.`;
   return { reply, citations: [], suggestions };
 }

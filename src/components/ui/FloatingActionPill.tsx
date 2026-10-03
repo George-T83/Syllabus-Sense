@@ -25,7 +25,7 @@ export interface FloatingActionPillProps {
   showActiveDot?: boolean;
 }
 
-/** The floating pill-shaped trigger pattern shared by the AI Copilot and
+/** The floating pill-shaped trigger pattern shared by the AI Advisor and
  * Focus Timer buttons - previously two near-identical hand-copied buttons
  * differing only in color, position, icon, and label. */
 export function FloatingActionPill({

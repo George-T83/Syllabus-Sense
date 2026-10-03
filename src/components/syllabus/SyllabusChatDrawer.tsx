@@ -90,7 +90,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
     {
       id: 'welcome-msg',
       sender: 'assistant',
-      text: "Hi! I'm your **AI Syllabus & Study Copilot**. Ask me anything about your enrolled course syllabi — such as grading breakdowns, late penalties, exam schedules, or professor office hours!",
+      text: "Hi! I'm your **AI Advisor**. Ask me anything about your enrolled course syllabi — such as grading breakdowns, late penalties, exam schedules, or professor office hours!",
       timestamp: formatTimestamp(),
     },
   ]);
@@ -321,7 +321,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={mode === 'syllabus' ? 'AI Syllabus Chat & Study Copilot' : 'AI Advisor'}
+      aria-label="AI Advisor"
       className="fixed inset-0 z-50 overflow-hidden bg-background/60 backdrop-blur-sm transition-opacity"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -352,7 +352,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
               </div>
               <div>
                 <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-1.5">
-                  {mode === 'syllabus' ? 'AI Syllabus Copilot' : 'AI Advisor'}
+                  AI Advisor
                   <span className="rounded-full bg-primary/20 text-primary px-1.5 py-0.2 text-[10px] font-semibold">
                     Beta
                   </span>
@@ -390,7 +390,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
               )}
               <button
                 onClick={onClose}
-                aria-label="Close AI Copilot drawer"
+                aria-label="Close AI Advisor drawer"
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <svg
@@ -411,7 +411,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
               persisted Firestore history as the dedicated /advisor page. */}
           <div
             role="tablist"
-            aria-label="AI Copilot mode"
+            aria-label="AI Advisor mode"
             className="flex gap-1 border-b border-border/30 bg-muted/10 px-3 py-2"
           >
             <button
@@ -672,7 +672,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             <button
               type="submit"
               disabled={!inputQuery.trim() || (mode === 'syllabus' ? isLoading : advisorSending)}
-              aria-label="Send query to AI Copilot"
+              aria-label="Send query to AI Advisor"
               className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 shadow-sm"
             >
               <svg

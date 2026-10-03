@@ -8,7 +8,7 @@ export const AI_MODELS = {
   /** Primary model for structured multi-part syllabus extraction */
   SYLLABUS_EXTRACTION: process.env.SYLLABUS_EXTRACTION_MODEL || 'claude-sonnet-5',
 
-  /** Model for interactive AI Copilot chat & contextual Q&A */
+  /** Model for interactive AI Advisor chat & contextual Q&A */
   SYLLABUS_CHAT: process.env.SYLLABUS_CHAT_MODEL || 'claude-sonnet-5',
 
   /** Model for fast course summarization & note synthesis */
