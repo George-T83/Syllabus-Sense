@@ -22,6 +22,7 @@ import { GradeOutcomeDial, RemainingScoreSlider } from '@/components/courses/Gra
 import { useGradeScenarios } from '@/lib/firestore/useGradeScenarios';
 import { saveGradeScenario, deleteGradeScenario } from '@/lib/firestore/gradeScenarios';
 import type { ScheduleItem } from '@/types/schedule';
+import { AiNote } from '@/components/ui/AiNote';
 
 export interface GradeCalculatorModalProps {
   isOpen: boolean;
@@ -480,6 +481,10 @@ export function GradeCalculatorModal({
                   target={targetPercentage}
                   locked={floorCeiling.isLocked}
                 />
+                <AiNote className="mt-3">
+                  A projection from the weights and scores shown here, not a prediction. Your
+                  instructor&apos;s gradebook is the official grade.
+                </AiNote>
                 {!floorCeiling.isLocked && (
                   <div className="mt-4 space-y-3">
                     <RemainingScoreSlider

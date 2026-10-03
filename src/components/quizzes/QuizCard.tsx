@@ -12,6 +12,8 @@ import { createQuiz, deleteQuiz } from '@/lib/firestore/quizzes';
 import { generatedQuizQuestionsSchema } from '@/types/quiz';
 import type { Quiz } from '@/types/quiz';
 import type { Course } from '@/types/schedule';
+import { AiNote } from '@/components/ui/AiNote';
+import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
 
 export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Quiz) => void }) {
   const { user } = useAuth();
@@ -164,6 +166,12 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
             </button>
           ))}
       </div>
+      {(quiz || latestSyllabus) && (
+        <AiNote className="mt-3">
+          Questions are written by AI from your syllabus and can be wrong.{' '}
+          <CheckSyllabusButton syllabus={latestSyllabus} />
+        </AiNote>
+      )}
     </Card>
   );
 }

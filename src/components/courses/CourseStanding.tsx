@@ -1,11 +1,16 @@
 import { CardActionButton } from '@/components/ui/CardAction';
 import { courseStanding } from '@/lib/academic/gradeMath';
+import { AiNote } from '@/components/ui/AiNote';
+import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
 import type { ScheduleItem } from '@/types/schedule';
+import type { SyllabusUpload } from '@/types/syllabus';
 
 export interface CourseStandingStripProps {
   /** The course's schedule items. */
   items: ScheduleItem[];
   onOpenCalculator: () => void;
+  /** The course's syllabus, so "Check the syllabus" can open it. */
+  syllabus?: SyllabusUpload | null;
 }
 
 /**
@@ -15,7 +20,11 @@ export interface CourseStandingStripProps {
  * news. Before any scores are in, it says how to get one; a course with no
  * grade weights at all shows nothing.
  */
-export function CourseStandingStrip({ items, onOpenCalculator }: CourseStandingStripProps) {
+export function CourseStandingStrip({
+  items,
+  onOpenCalculator,
+  syllabus,
+}: CourseStandingStripProps) {
   const standing = courseStanding(items);
   const hasWeights = items.some((i) => typeof i.gradeWeight === 'number' && i.gradeWeight > 0);
   if (!standing && !hasWeights) return null;
@@ -29,6 +38,11 @@ export function CourseStandingStrip({ items, onOpenCalculator }: CourseStandingS
   }
 
   const decided = Math.min(100, standing.decidedWeight);
+  // Weights an AI read out of the syllabus can be misread, and the grade is
+  // only as good as they are.
+  const weightsFromAi = items.some(
+    (i) => i.source === 'ai' && typeof i.gradeWeight === 'number' && i.gradeWeight > 0,
+  );
   const ahead = Math.max(0, Math.round((100 - decided) * 10) / 10);
 
   return (
@@ -59,6 +73,20 @@ export function CourseStandingStrip({ items, onOpenCalculator }: CourseStandingS
           What do I need?
         </CardActionButton>
       )}
+      <AiNote className="basis-full">
+        {weightsFromAi ? (
+          <>
+            An estimate. The weights were read from your syllabus by AI and can be wrong, and your
+            instructor&apos;s gradebook is the official grade.{' '}
+            <CheckSyllabusButton syllabus={syllabus} />
+          </>
+        ) : (
+          <>
+            An estimate from the scores and weights you entered. Your instructor&apos;s gradebook is
+            the official grade.
+          </>
+        )}
+      </AiNote>
     </div>
   );
 }

@@ -51,5 +51,6 @@ describe('CoursesListView GPA stat', () => {
     expect(screen.getByText('GPA')).toBeDefined();
     expect(screen.getByText('3.70')).toBeDefined();
     expect(screen.getByText(/From 1 of 2 courses with grades entered/)).toBeDefined();
+    expect(screen.getByText(/An estimate, not your official GPA/)).toBeDefined();
   });
 });

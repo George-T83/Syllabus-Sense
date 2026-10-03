@@ -753,6 +753,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             <CourseStandingStrip
               items={items}
               onOpenCalculator={() => setGradeCalculatorOpen(true)}
+              syllabus={currentPrimarySyllabus}
             />
 
             {(course.meetingTimes?.length || course.modality || rmpUrl) && (
