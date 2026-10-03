@@ -11,6 +11,7 @@ import {
 import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
 import { storage, db, auth } from '@/lib/firebase/client';
 import { fileToBase64 } from '@/lib/utils';
+import { syllabusContentType } from '@/lib/validation/syllabusFile';
 import type { SyllabusUpload } from '@/types/syllabus';
 
 /** Best-effort, non-blocking: a student's upload should never fail because
@@ -62,7 +63,9 @@ export function useUploadSyllabus(userId: string, courseId: string) {
 
         const id = crypto.randomUUID();
         const storagePath = `users/${userId}/syllabi/${courseId}/${id}-${file.name}`;
-        const task = uploadBytesResumable(ref(storageInstance, storagePath), file);
+        const task = uploadBytesResumable(ref(storageInstance, storagePath), file, {
+          contentType: syllabusContentType(file),
+        });
         taskRef.current = task;
         setState({ status: 'uploading', progress: 0, error: null });
 

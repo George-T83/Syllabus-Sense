@@ -9,6 +9,19 @@ interface TestModalProps {
   hasInputs?: boolean;
 }
 
+function AutofocusModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const modalRef = useModalA11y<HTMLDivElement>(open, onClose);
+  if (!open) return null;
+  return (
+    <div data-testid="modal-container" ref={modalRef}>
+      <button data-testid="cancel-btn">Cancel</button>
+      <button data-testid="primary-btn" data-autofocus>
+        Do the thing
+      </button>
+    </div>
+  );
+}
+
 function TestModal({ open, onClose, hasInputs = true }: TestModalProps) {
   const modalRef = useModalA11y<HTMLDivElement>(open, onClose);
 
@@ -148,5 +161,15 @@ describe('useModalA11y', () => {
     expect(document.activeElement).toBe(trigger);
 
     document.body.removeChild(trigger);
+  });
+
+  it('focuses the element marked data-autofocus instead of the first focusable one', () => {
+    render(<AutofocusModal open={true} onClose={vi.fn()} />);
+    expect(document.activeElement).toBe(screen.getByTestId('primary-btn'));
+  });
+
+  it('still focuses the first focusable element when nothing is marked', () => {
+    render(<TestModal open={true} onClose={vi.fn()} />);
+    expect(document.activeElement).toBe(screen.getByTestId('first-btn'));
   });
 });

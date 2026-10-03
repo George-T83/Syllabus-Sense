@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { adminStorage } from '@/lib/firebase/adminStorage';
+import { buildServedFileHeaders, detectServedFileKind } from '@/lib/syllabus/servedFile';
 
 export const runtime = 'nodejs';
 
@@ -21,9 +22,15 @@ export const runtime = 'nodejs';
  *    the caller's `name` param, so what the user sees/downloads is always
  *    their own clean filename.
  *
- * Requires a valid Firebase ID token whose uid matches the requested path's
- * `users/{uid}/...` prefix - real per-user authorization, not just an
- * unguessable-but-unauthenticated token embedded in a URL.
+ * Requires a valid Firebase ID token, sent in the Authorization header and
+ * never in the URL (a URL ends up in browser history, server logs and
+ * Referer headers), whose uid matches the requested path's `users/{uid}/...`
+ * prefix - real per-user authorization, not just an unguessable-but-
+ * unauthenticated token embedded in a URL.
+ *
+ * This route is same-origin with the app, so what it serves must never be
+ * able to run script there. The Content-Type stored on the Storage object is
+ * whatever the uploader declared and is not trusted; see `servedFile.ts`.
  */
 export async function GET(req: NextRequest) {
   const path = req.nextUrl.searchParams.get('path');
@@ -33,13 +40,7 @@ export async function GET(req: NextRequest) {
   }
 
   const authHeader = req.headers.get('authorization');
-  // A direct <a href> navigation (Open in new tab / Download) can't attach
-  // an Authorization header, so it falls back to a `token` query param -
-  // same trust model as Firebase's own download-token URLs, which this
-  // route replaces.
-  const token = authHeader?.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : req.nextUrl.searchParams.get('token');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
   if (!token || !projectId) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -66,16 +67,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'File not found.' }, { status: 404 });
     }
 
-    const [metadata] = await file.getMetadata();
     const [bytes] = await file.download();
-    const disposition =
+    const kind = detectServedFileKind(bytes, name);
+    const requested =
       req.nextUrl.searchParams.get('disposition') === 'attachment' ? 'attachment' : 'inline';
 
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
-        'Content-Type': metadata.contentType ?? 'application/octet-stream',
+        ...buildServedFileHeaders(kind, name, requested),
         'Content-Length': String(bytes.length),
-        'Content-Disposition': `${disposition}; filename="${encodeURIComponent(name)}"`,
         'Cache-Control': 'private, max-age=300',
       },
     });

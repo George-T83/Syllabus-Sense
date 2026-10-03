@@ -24,3 +24,14 @@ export function validateSyllabusFile(file: File): FileValidationResult {
   }
   return { valid: true };
 }
+
+const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+/** The contentType to store on the Storage object. Browsers sometimes leave
+ * `file.type` blank for a .docx, and Storage rules only accept the two known
+ * types, so the type is derived from the (already validated) file name when
+ * the browser didn't supply one. */
+export function syllabusContentType(file: File): string {
+  if (ACCEPTED_TYPES.has(file.type)) return file.type;
+  return /\.docx$/i.test(file.name) ? DOCX_TYPE : 'application/pdf';
+}
