@@ -5,6 +5,10 @@ import Sidebar from '@/components/layout/Sidebar';
 import { SidebarProvider } from '@/components/layout/SidebarContext';
 import { AppStateProvider } from '@/context/AppStateContext';
 
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({ user: { uid: 'u1' } }),
+}));
+
 // Mock next/navigation
 const mockUsePathname = vi.fn();
 vi.mock('next/navigation', () => ({

@@ -34,6 +34,8 @@ vi.mock('@/lib/firebase/adminStorage', () => ({
 
 import { POST } from '@/app/api/account/delete/route';
 
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+
 function makeRequest() {
   return new NextRequest('http://localhost:3000/api/account/delete', {
     method: 'POST',
@@ -45,7 +47,7 @@ describe('/api/account/delete route contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.FIREBASE_ADMIN_PROJECT_ID = 'test-project';
-    mockVerifyToken.mockResolvedValue({ uid: 'user-123' });
+    mockVerifyToken.mockResolvedValue({ uid: 'user-123', authTime: nowSeconds() });
     mockRecursiveDelete.mockResolvedValue(undefined);
     mockDeleteFiles.mockResolvedValue(undefined);
   });
@@ -78,13 +80,39 @@ describe('/api/account/delete route contract', () => {
     expect(mockDeleteFiles).not.toHaveBeenCalled();
   });
 
-  it('still reports success if Storage cleanup fails after Firestore data is already gone', async () => {
+  it('reports a failure, not success, if Storage cleanup fails', async () => {
     mockDeleteFiles.mockRejectedValue(new Error('storage is down'));
 
     const res = await POST(makeRequest());
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json).toEqual({ success: true });
+    expect(json.code).toBe('storage-cleanup-failed');
+    expect(json.error).toMatch(/uploaded files/i);
+  });
+
+  it('refuses, and deletes nothing, when the sign-in is more than 5 minutes old', async () => {
+    mockVerifyToken.mockResolvedValue({ uid: 'user-123', authTime: nowSeconds() - 6 * 60 });
+
+    const res = await POST(makeRequest());
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe('recent-login-required');
+    expect(mockRecursiveDelete).not.toHaveBeenCalled();
+    expect(mockDeleteFiles).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the token does not say when the user signed in', async () => {
+    mockVerifyToken.mockResolvedValue({ uid: 'user-123' });
+
+    const res = await POST(makeRequest());
+
+    expect(res.status).toBe(403);
+    expect(mockRecursiveDelete).not.toHaveBeenCalled();
+  });
+
+  it('accepts a sign-in from a minute ago', async () => {
+    mockVerifyToken.mockResolvedValue({ uid: 'user-123', authTime: nowSeconds() - 60 });
+    expect((await POST(makeRequest())).status).toBe(200);
   });
 });
