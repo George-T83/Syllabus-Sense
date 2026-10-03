@@ -51,6 +51,19 @@ describe('verifyFirebaseIdToken (emulator branch)', () => {
     }
   });
 
+  it('returns when the user last signed in, so callers can require a recent sign-in', async () => {
+    const token = fakeToken({
+      iss: `https://securetoken.google.com/${PROJECT_ID}`,
+      aud: PROJECT_ID,
+      sub: 'user-1',
+      auth_time: 1_790_000_000,
+    });
+    await expect(verifyFirebaseIdToken(token, PROJECT_ID)).resolves.toMatchObject({
+      uid: 'user-1',
+      authTime: 1_790_000_000,
+    });
+  });
+
   it('accepts a well-formed emulator token and extracts uid/email', async () => {
     const token = fakeToken({
       iss: `https://securetoken.google.com/${PROJECT_ID}`,

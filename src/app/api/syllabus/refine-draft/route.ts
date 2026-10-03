@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireUser } from '@/lib/auth/requireUser';
+import { requireUserOutsideDemo } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import {
@@ -42,11 +42,9 @@ export async function POST(req: NextRequest) {
   const message = body.message.trim().slice(0, MAX_MESSAGE_CHARS);
   const history = Array.isArray(body.history) ? body.history.slice(-MAX_HISTORY_MESSAGES) : [];
 
-  // Optional authentication check (graceful for demo/dev), same pattern as
-  // this route's siblings in api/syllabus/*.
-  const user = await requireUser(req);
-  const isProd = process.env.NODE_ENV === 'production';
-  if (isProd && !user && process.env.FIREBASE_ADMIN_PROJECT_ID) {
+  // Signed-out calls are only allowed outside production (local dev, demos).
+  const { user, denied } = await requireUserOutsideDemo(req);
+  if (denied) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
   if (user) {

@@ -13,13 +13,24 @@ export function generateOfflineAdvisorReply(
   message: string,
   input: AdvisorContextInput,
 ): AdvisorReply {
+  return { ...answer(message, input), offline: true };
+}
+
+// Whole-word matches: plain substring tests treated "backdrop" as a drop
+// question and "space" as a pace question.
+const DROP =
+  /\b(?:drop(?:s|ped|ping)?|withdraw(?:s|n|al|als|ing)?|withdrew)\b(?!-?\s?(?:down|box))/;
+const ON_TRACK = /\b(?:track|graduat\w*|pace|on time)\b/;
+const NEXT_TERM = /\b(?:next (?:semester|term)|take next|what should i take)\b/;
+
+function answer(message: string, input: AdvisorContextInput): AdvisorReply {
   const q = message.toLowerCase();
   const { degreeProfile, degreeCourses } = input;
 
   // A drop/withdraw question is flagged high-stakes unconditionally - this
   // engine has no registrar data (add/drop deadlines, prerequisite chains),
   // so it can never rule out the risk, only warn about it.
-  if (q.includes('drop') || q.includes('withdraw')) {
+  if (DROP.test(q)) {
     return {
       reply:
         "Dropping or withdrawing from a course can affect your full-time status, a prerequisite chain, or your graduation timeline - I don't have access to your official enrollment, add/drop deadlines, or your program's specific prerequisite rules, so I can't confirm what this would actually do. Check with your academic advisor before making the change.",
@@ -47,7 +58,7 @@ export function generateOfflineAdvisorReply(
     degreeCourses.filter((c) => c.status === 'completed').map((c) => c.term),
   ).size;
 
-  if (q.includes('track') || q.includes('graduat') || q.includes('pace') || q.includes('on time')) {
+  if (ON_TRACK.test(q)) {
     const perTerm = completedTerms > 0 ? earnedCredits / completedTerms : 0;
     const termsRemaining =
       perTerm > 0 ? Math.ceil((overall.creditsRequired - earnedCredits) / perTerm) : null;
@@ -62,12 +73,7 @@ export function generateOfflineAdvisorReply(
     return { reply: paceLine + projectionLine };
   }
 
-  if (
-    q.includes('next semester') ||
-    q.includes('next term') ||
-    q.includes('take next') ||
-    q.includes('what should i take')
-  ) {
+  if (NEXT_TERM.test(q)) {
     const categoryProgress = computeCategoryProgress(degreeProfile.categories, degreeCourses)
       .filter((c) => c.creditsRemaining > 0)
       .sort((a, b) => b.creditsRemaining - a.creditsRemaining);
@@ -88,6 +94,6 @@ export function generateOfflineAdvisorReply(
   }
 
   return {
-    reply: `You've completed ${earnedCredits} of ${overall.creditsRequired} credits (${pct}%) toward ${degreeProfile.majorName}. Ask me things like "what should I take next" or "am I on track to graduate" and I'll reason over your saved Degree Compass plan.`,
+    reply: `I can't answer that one without the AI, which isn't available right now. What I can tell you: you've completed ${earnedCredits} of ${overall.creditsRequired} credits (${pct}%) toward ${degreeProfile.majorName}. In this mode I only understand questions like "what should I take next", "am I on track to graduate" and "should I drop a course".`,
   };
 }

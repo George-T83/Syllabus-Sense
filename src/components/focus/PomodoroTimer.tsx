@@ -6,6 +6,7 @@ import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
 import { saveSession } from '@/lib/focus/pomodoroSessions';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { useAppState } from '@/context/AppStateContext';
+import { useAuth } from '@/context/AuthContext';
 
 const WORK_DURATION = 25 * 60; // 25 minutes
 const BREAK_DURATION = 5 * 60; //  5 minutes
@@ -104,6 +105,9 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
+  const { user } = useAuth();
+  const userId = user?.uid;
+
   const tick = useCallback(() => {
     setRemaining((prev) => {
       if (prev <= 1) {
@@ -113,7 +117,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
 
         if (!isBreak && sessionStartRef.current) {
           // Save work session
-          saveSession({
+          saveSession(userId, {
             startedAt: sessionStartRef.current.toISOString(),
             duration: WORK_DURATION,
             taskId,
@@ -126,7 +130,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
       }
       return prev - 1;
     });
-  }, [isBreak, taskId]);
+  }, [isBreak, taskId, userId]);
 
   useEffect(() => {
     if (running) {

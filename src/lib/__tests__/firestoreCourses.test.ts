@@ -166,55 +166,105 @@ describe('Firestore courses service', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_CONTACT', payload: relatedContact });
   });
 
-  it('deleteCourse batch-deletes the course, related schedule items, and related contacts', async () => {
+  const snap = (...refs: string[]) => ({
+    docs: refs.map((r) => ({ ref: r, data: () => ({}) })),
+  });
+
+  it('deleteCourse deletes related schedule items and contacts, then the course document last', async () => {
     const dispatch = vi.fn();
     await deleteCourse('u1', course, [relatedItem], dispatch, [relatedContact]);
 
     expect(dispatch).toHaveBeenCalledWith({ type: 'REMOVE_COURSE', payload: course.id });
-    expect(batchDeleteMock).toHaveBeenCalledTimes(3); // course + 1 item + 1 contact
-    expect(batchCommitMock).toHaveBeenCalledTimes(1);
+    expect(batchDeleteMock).toHaveBeenCalledTimes(3); // 1 item + 1 contact + the course
+    expect(batchDeleteMock).toHaveBeenLastCalledWith(
+      expect.stringMatching(/users\/u1\/courses\/c1$/),
+    );
+    expect(batchCommitMock).toHaveBeenCalledTimes(2); // children, then the course
   });
 
   it('deleteCourse cascades to delete syllabus upload documents and storage files', async () => {
     const dispatch = vi.fn();
     getDocsMock.mockResolvedValueOnce({
-      docs: [
-        {
-          id: 's1',
-          ref: 'users/u1/courses/c1/syllabi/s1',
-          data: () => mockSyllabus,
-        },
-      ],
+      docs: [{ id: 's1', ref: 'users/u1/courses/c1/syllabi/s1', data: () => mockSyllabus }],
     });
 
-    await deleteCourse('u1', course, [relatedItem], dispatch, [relatedContact]);
+    const result = await deleteCourse('u1', course, [relatedItem], dispatch, [relatedContact]);
 
-    expect(dispatch).toHaveBeenCalledWith({ type: 'REMOVE_COURSE', payload: course.id });
-    expect(batchDeleteMock).toHaveBeenCalledTimes(4); // course + 1 item + 1 contact + 1 syllabus
+    expect(batchDeleteMock).toHaveBeenCalledTimes(4); // item + contact + syllabus + the course
+    expect(batchDeleteMock).toHaveBeenCalledWith('users/u1/courses/c1/syllabi/s1');
     expect(deleteObjectMock).toHaveBeenCalledWith(
       expect.objectContaining({ path: mockSyllabus.storagePath }),
     );
-    expect(batchCommitMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ failedFiles: 0 });
   });
 
-  it('deleteCourse tolerates storage deletion errors when file is already removed', async () => {
-    const dispatch = vi.fn();
-    deleteObjectMock.mockRejectedValueOnce(new Error('storage/object-not-found'));
+  it("deleteCourse also deletes the course's grade scenarios, flashcards, quizzes, attempts and sources", async () => {
+    getDocsMock
+      .mockResolvedValueOnce(snap()) // syllabi
+      .mockResolvedValueOnce(snap('scenario-ref')) // gradeScenarios
+      .mockResolvedValueOnce(snap('card-ref-1', 'card-ref-2')) // flashcards
+      .mockResolvedValueOnce(snap('quiz-ref')) // quizzes
+      .mockResolvedValueOnce(snap('attempt-ref')) // quizAttempts
+      .mockResolvedValueOnce(snap('source-ref')); // sources
+
+    await deleteCourse('u1', course, [], vi.fn());
+
+    for (const ref of [
+      'scenario-ref',
+      'card-ref-1',
+      'card-ref-2',
+      'quiz-ref',
+      'attempt-ref',
+      'source-ref',
+    ]) {
+      expect(batchDeleteMock).toHaveBeenCalledWith(ref);
+    }
+    const scopedFor = (name: string) =>
+      getDocsMock.mock.calls.some(
+        ([q]) =>
+          Array.isArray(q) &&
+          String(q[0]).endsWith(`users/u1/${name}`) &&
+          q.some((c: unknown) => Array.isArray(c) && c.join() === 'courseId,==,c1'),
+      );
+    ['flashcards', 'quizzes', 'quizAttempts', 'sources'].forEach((name) =>
+      expect(scopedFor(name)).toBe(true),
+    );
+  });
+
+  it('deleteCourse splits a large cascade into batches under the Firestore limit', async () => {
+    const many = Array.from({ length: 450 }, (_, i) => ({ ...relatedItem, id: `i${i}` }));
+    await deleteCourse('u1', course, many, vi.fn());
+    // 450 children -> 2 batches, plus the course document on its own.
+    expect(batchCommitMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('deleteCourse treats an already-missing file as success', async () => {
+    deleteObjectMock.mockRejectedValueOnce(
+      Object.assign(new Error('gone'), { code: 'storage/object-not-found' }),
+    );
     getDocsMock.mockResolvedValueOnce({
-      docs: [
-        {
-          id: 's1',
-          ref: 'users/u1/courses/c1/syllabi/s1',
-          data: () => mockSyllabus,
-        },
-      ],
+      docs: [{ id: 's1', ref: 'users/u1/courses/c1/syllabi/s1', data: () => mockSyllabus }],
     });
 
-    await expect(
-      deleteCourse('u1', course, [relatedItem], dispatch, [relatedContact]),
-    ).resolves.not.toThrow();
+    const result = await deleteCourse('u1', course, [], vi.fn());
 
-    expect(batchCommitMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ failedFiles: 0 });
+  });
+
+  it('deleteCourse reports files it could not delete, and still deletes the records', async () => {
+    deleteObjectMock.mockRejectedValueOnce(
+      Object.assign(new Error('denied'), { code: 'storage/unauthorized' }),
+    );
+    getDocsMock.mockResolvedValueOnce({
+      docs: [{ id: 's1', ref: 'users/u1/courses/c1/syllabi/s1', data: () => mockSyllabus }],
+    });
+
+    const result = await deleteCourse('u1', course, [], vi.fn());
+
+    expect(result).toEqual({ failedFiles: 1 });
+    expect(batchDeleteMock).toHaveBeenLastCalledWith(
+      expect.stringMatching(/users\/u1\/courses\/c1$/),
+    );
   });
 
   it('deleteCourse rolls back by re-adding the course, items, and contacts on failure', async () => {

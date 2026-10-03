@@ -13,6 +13,7 @@ import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from './AdvisorWarningCard';
 import { cn } from '@/lib/utils';
 import { isOverdue } from '@/lib/calendar/dates';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 const WELCOME_MESSAGE =
   "Hi — I'm your AI Advisor. I can reason over your Degree Compass plan, your courses, and your tasks - not just one syllabus. Ask me what to take next, whether you're on track, or what a change would mean for your plan.";
@@ -32,6 +33,12 @@ function ChatBubble({ message }: { message: AdvisorMessage }) {
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
         {message.warning && <AdvisorWarningCard warning={message.warning} />}
+        {message.offline && (
+          <p className="text-caption text-muted-foreground">
+            Offline answer: worked out from your saved Degree Compass data by simple rules, not by
+            AI. It only understands a few questions.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -115,22 +122,21 @@ export function AdvisorView() {
           overdueTaskCount,
         }),
       });
+      if (!response.ok) throw await aiRequestErrorFrom(response);
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? 'The Advisor request failed.');
 
       const assistantMessage: AdvisorMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: body.reply,
         ...(body.highStakes ? { warning: body.highStakes } : {}),
+        ...(body.offline ? { offline: true } : {}),
         createdAt: new Date().toISOString(),
       };
       await appendAdvisorMessage(user.uid, assistantMessage);
     } catch (err) {
-      showError(
-        "Couldn't reach the Advisor",
-        err instanceof Error ? err.message : 'Try again in a moment.',
-      );
+      console.error('[AdvisorView] advisor request failed', err);
+      showError("The Advisor couldn't answer", describeAiFailure(err).message);
     } finally {
       setSending(false);
     }

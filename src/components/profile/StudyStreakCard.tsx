@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { useAuth } from '@/context/AuthContext';
 import { loadSessions } from '@/lib/focus/pomodoroSessions';
 import {
   getSessionDateSet,
@@ -24,11 +25,13 @@ export function StudyStreakCard() {
   // (PomodoroTimer) - read once on mount rather than trying to keep this in
   // sync live, since the streak only meaningfully changes once a session
   // actually completes and the page is revisited.
+  const { user } = useAuth();
+  const userId = user?.uid;
   const [dateSet, setDateSet] = useState<Set<string> | null>(null);
 
   useEffect(() => {
-    setDateSet(getSessionDateSet(loadSessions()));
-  }, []);
+    setDateSet(getSessionDateSet(loadSessions(userId)));
+  }, [userId]);
 
   if (!dateSet) return null;
 

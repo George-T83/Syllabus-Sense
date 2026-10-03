@@ -10,6 +10,7 @@ import {
   type RefineChatMessage,
   type RefineDraftFields,
 } from '@/lib/syllabus/refineDraft';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 /**
  * Lets a student finalize a course by talking to the assistant instead of
@@ -73,7 +74,7 @@ export function DraftRefineChat({ draft, onApplyPatch, disabled }: DraftRefineCh
         },
         body: JSON.stringify({ draft, message, history: historyRef.current }),
       });
-      if (!res.ok) throw new Error(`Refine API error: ${res.statusText}`);
+      if (!res.ok) throw await aiRequestErrorFrom(res);
 
       const data: { reply?: string; patch?: DraftPatch } = await res.json();
       const reply = data.reply || 'Done.';
@@ -101,7 +102,7 @@ export function DraftRefineChat({ draft, onApplyPatch, disabled }: DraftRefineCh
         {
           id: `a-err-${Date.now()}`,
           role: 'assistant',
-          text: "I couldn't reach the server, so nothing changed. Try again, or edit the fields above directly.",
+          text: `${describeAiFailure(err).message} Nothing changed. You can also edit the fields above directly.`,
         },
       ]);
     } finally {

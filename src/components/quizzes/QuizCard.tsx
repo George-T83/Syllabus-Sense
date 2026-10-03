@@ -14,6 +14,7 @@ import type { Quiz } from '@/types/quiz';
 import type { Course } from '@/types/schedule';
 import { AiNote } from '@/components/ui/AiNote';
 import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Quiz) => void }) {
   const { user } = useAuth();
@@ -52,8 +53,8 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
           fileName: latestSyllabus.fileName,
         }),
       });
+      if (!response.ok) throw await aiRequestErrorFrom(response);
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? 'Quiz generation failed.');
 
       const generated = generatedQuizQuestionsSchema.parse(body.questions);
       const newQuiz: Quiz = {
@@ -69,7 +70,8 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
       await createQuiz(user.uid, newQuiz, dispatch);
       showSuccess('Quiz generated', `${generated.length} questions ready for ${course.code}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      console.error('[AI request] failed', err);
+      setError(describeAiFailure(err).message);
     } finally {
       setGenerating(false);
     }
