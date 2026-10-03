@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerProjectId } from '@/lib/firebase/serverProjectId';
 import { verifyFirebaseIdToken } from '@/lib/auth/verifyFirebaseIdToken';
 import { adminStorage } from '@/lib/firebase/adminStorage';
 import { buildServedFileHeaders, detectServedFileKind } from '@/lib/syllabus/servedFile';
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
 
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  const projectId = getServerProjectId();
   if (!token || !projectId) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
