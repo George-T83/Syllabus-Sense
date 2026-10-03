@@ -17,6 +17,7 @@ import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from '@/components/advisor/AdvisorWarningCard';
 import { cn } from '@/lib/utils';
 import { isOverdue } from '@/lib/calendar/dates';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 function formatTimestamp(): string {
   return TIME_FORMATTER.format(new Date());
@@ -189,9 +190,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
           }),
         });
 
-        if (!res.ok) {
-          throw new Error(`Chat API error: ${res.statusText}`);
-        }
+        if (!res.ok) throw await aiRequestErrorFrom(res);
 
         const data = await res.json();
         const assistantMessage: ChatMessage = {
@@ -213,7 +212,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             sender: 'assistant',
             // Say only what's true: the answer didn't arrive. This used to
             // invent "course standards" and cite them as a course overview.
-            text: `I couldn't reach the server, so I don't have an answer${selectedCourse?.code ? ` about ${selectedCourse.code}` : ''} right now. Try again in a moment, or check the syllabus on the course page.`,
+            text: `${describeAiFailure(err).message} I don't have an answer${selectedCourse?.code ? ` about ${selectedCourse.code}` : ''} right now. You can check the syllabus on the course page.`,
             timestamp: formatTimestamp(),
           },
         ]);
@@ -263,8 +262,8 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             overdueTaskCount,
           }),
         });
+        if (!response.ok) throw await aiRequestErrorFrom(response);
         const body = await response.json();
-        if (!response.ok) throw new Error(body.error ?? 'The Advisor request failed.');
 
         const assistantMessage: AdvisorMessage = {
           id: crypto.randomUUID(),
@@ -275,10 +274,8 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
         };
         await appendAdvisorMessage(user.uid, assistantMessage);
       } catch (err) {
-        showError(
-          "Couldn't reach the Advisor",
-          err instanceof Error ? err.message : 'Try again in a moment.',
-        );
+        console.error('[SyllabusChatDrawer] advisor request failed', err);
+        showError("The Advisor couldn't answer", describeAiFailure(err).message);
       } finally {
         setAdvisorSending(false);
       }
