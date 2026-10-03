@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import Link from 'next/link';
 import {
   Card,
   CardHeader,
@@ -186,8 +187,11 @@ export function TaskFormModal({
   };
 
   return (
+    // The overlay scrolls and the dialog centres itself with auto margins, so a
+    // dialog taller than the screen (a phone, or a short window) can be
+    // scrolled to its save button instead of being clipped top and bottom.
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-[60] flex overflow-y-auto bg-black/40 px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="task-form-title"
@@ -196,7 +200,7 @@ export function TaskFormModal({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="relative w-full max-w-md outline-none"
+        className="relative m-auto w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <Card accent="none" opaque>
@@ -481,19 +485,33 @@ export function TaskFormModal({
                   >
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={submitting || courses.length === 0}
-                    className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
-                  >
-                    {submitting
-                      ? 'Saving...'
-                      : initialItem
-                        ? 'Save Changes'
-                        : repeatEnabled
-                          ? `Add ${recurringPreview.length} Tasks`
-                          : 'Add Task'}
-                  </button>
+                  {courses.length === 0 ? (
+                    // Nothing can be saved without a course, so offer the way
+                    // forward instead of a permanently disabled button, and
+                    // put focus on it.
+                    <Link
+                      href="/courses?new=1"
+                      data-autofocus
+                      onClick={onClose}
+                      className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                    >
+                      Add a course
+                    </Link>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      {submitting
+                        ? 'Saving...'
+                        : initialItem
+                          ? 'Save Changes'
+                          : repeatEnabled
+                            ? `Add ${recurringPreview.length} Tasks`
+                            : 'Add Task'}
+                    </button>
+                  )}
                 </CardFooter>
               </form>
             </>

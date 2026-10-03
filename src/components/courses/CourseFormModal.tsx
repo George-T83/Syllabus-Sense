@@ -200,8 +200,11 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
   };
 
   return (
+    // The overlay scrolls and the dialog centres itself with auto margins, so a
+    // dialog taller than the screen (a phone, or a short window) can be
+    // scrolled to its save button instead of being clipped top and bottom.
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-[60] flex overflow-y-auto bg-black/40 px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="course-form-title"
@@ -210,7 +213,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="relative w-full max-w-md outline-none"
+        className="relative m-auto w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <Card accent="none" opaque>
