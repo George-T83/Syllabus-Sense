@@ -23,15 +23,22 @@ let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
 export interface VerifiedFirebaseToken {
   uid: string;
   email?: string;
+  /** Unix seconds of the user's last actual sign-in (not of token refresh). */
+  authTime?: number;
 }
 
-function subjectFromPayload(payload: { sub?: string; email?: unknown }): VerifiedFirebaseToken {
+function subjectFromPayload(payload: {
+  sub?: string;
+  email?: unknown;
+  auth_time?: unknown;
+}): VerifiedFirebaseToken {
   if (typeof payload.sub !== 'string' || !payload.sub) {
     throw new Error('Token payload is missing a subject (uid).');
   }
   return {
     uid: payload.sub,
     ...(typeof payload.email === 'string' ? { email: payload.email } : {}),
+    ...(typeof payload.auth_time === 'number' ? { authTime: payload.auth_time } : {}),
   };
 }
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAppState } from '@/context/AppStateContext';
+import { useAuth } from '@/context/AuthContext';
 import { computeSmartPlan, getLocalReferenceDate } from '@/lib/planner/computeSmartPlan';
 import { DAILY_SCHEDULING_CAPACITY_HOURS } from '@/lib/workload';
 import { loadSessions } from '@/lib/focus/pomodoroSessions';
@@ -75,13 +76,15 @@ function StreakFlameIcon() {
  * data source either way. */
 function SidebarFooterWidget() {
   const { state } = useAppState();
+  const { user } = useAuth();
+  const userId = user?.uid;
   const [mounted, setMounted] = useState(false);
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     setMounted(true);
-    setStreak(computeCurrentStreak(getSessionDateSet(loadSessions())));
-  }, []);
+    setStreak(computeCurrentStreak(getSessionDateSet(loadSessions(userId))));
+  }, [userId]);
 
   const percent = useMemo(() => {
     const referenceDate = getLocalReferenceDate();

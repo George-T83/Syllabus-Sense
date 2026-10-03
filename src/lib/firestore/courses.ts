@@ -249,10 +249,29 @@ export async function updateCourse(
   }
 }
 
+export interface DeleteCourseResult {
+  /** Uploaded files that could not be removed from Storage. */
+  failedFiles: number;
+}
+
+/** Firestore batches are capped at 500 writes; stay well under it. */
+const DELETE_CHUNK_SIZE = 400;
+
+/** Subcollections and collections whose documents belong to one course. */
+const COURSE_SUBCOLLECTIONS = ['syllabi', 'gradeScenarios'] as const;
+const COURSE_SCOPED_COLLECTIONS = ['flashcards', 'quizzes', 'quizAttempts', 'sources'] as const;
+
 /**
- * Deletes a course, every schedule item, every contact, and every syllabus upload
- * that belongs to it in a single Firestore batch and cleans up Firebase Storage files,
- * matching the cascading behavior already baked into the local REMOVE_COURSE reducer case.
+ * Deletes a course and everything that belongs to it: its schedule items and
+ * contacts, its syllabus records and uploaded files, its saved grade
+ * scenarios, and its flashcards, quizzes, quiz attempts and sources. Before,
+ * the last four were left behind in Firestore (the local reducer hid them,
+ * so they only showed up in an export or after a reload), and a failed file
+ * delete was swallowed.
+ *
+ * Children go first and the course document last, so a failure partway leaves
+ * the course in place to retry rather than orphaned records with no course.
+ * Returns how many uploaded files could not be deleted so the caller can say so.
  */
 export async function deleteCourse(
   userId: string,
@@ -260,35 +279,56 @@ export async function deleteCourse(
   relatedItems: ScheduleItem[],
   dispatch: React.Dispatch<AppAction>,
   relatedContacts: Contact[] = [],
-): Promise<void> {
+): Promise<DeleteCourseResult> {
   dispatch({ type: 'REMOVE_COURSE', payload: course.id });
   pendingCourseDeletions.add(course.id);
   try {
     const database = requireDb();
-    const batch = writeBatch(database);
-    batch.delete(doc(database, 'users', userId, 'courses', course.id));
-    relatedItems.forEach((item) => {
-      batch.delete(doc(database, 'users', userId, 'scheduleItems', item.id));
-    });
-    relatedContacts.forEach((contact) => {
-      batch.delete(doc(database, 'users', userId, 'contacts', contact.id));
-    });
+    const refs = [
+      ...relatedItems.map((item) => doc(database, 'users', userId, 'scheduleItems', item.id)),
+      ...relatedContacts.map((contact) => doc(database, 'users', userId, 'contacts', contact.id)),
+    ];
 
-    // Query and cascade delete all syllabus upload records in the subcollection
-    const syllabiSnap = await getDocs(
-      collection(database, 'users', userId, 'courses', course.id, 'syllabi'),
+    const subSnaps = await Promise.all(
+      COURSE_SUBCOLLECTIONS.map((name) =>
+        getDocs(collection(database, 'users', userId, 'courses', course.id, name)),
+      ),
     );
-    const storagePromises: Promise<void>[] = [];
-    syllabiSnap.docs.forEach((syllabusDoc) => {
-      batch.delete(syllabusDoc.ref);
-      const data = syllabusDoc.data() as Partial<SyllabusUpload>;
-      if (storage && data?.storagePath) {
-        storagePromises.push(deleteObject(ref(storage, data.storagePath)).catch(() => {}));
-      }
-    });
+    const scopedSnaps = await Promise.all(
+      COURSE_SCOPED_COLLECTIONS.map((name) =>
+        getDocs(
+          query(collection(database, 'users', userId, name), where('courseId', '==', course.id)),
+        ),
+      ),
+    );
+    [...subSnaps, ...scopedSnaps].forEach((snap) => snap.docs.forEach((d) => refs.push(d.ref)));
 
-    await batch.commit();
-    await Promise.all(storagePromises);
+    const syllabiSnap = subSnaps[0];
+    const uploads = syllabiSnap.docs
+      .map((d) => (d.data() as Partial<SyllabusUpload>).storagePath)
+      .filter((path): path is string => Boolean(path));
+    const results = await Promise.all(
+      uploads.map((path) =>
+        storage
+          ? deleteObject(ref(storage, path)).then(
+              () => true,
+              // A file that is already gone is the outcome we want.
+              (err: { code?: string }) => err?.code === 'storage/object-not-found',
+            )
+          : Promise.resolve(false),
+      ),
+    );
+    const failedFiles = results.filter((ok) => !ok).length;
+
+    for (let i = 0; i < refs.length; i += DELETE_CHUNK_SIZE) {
+      const batch = writeBatch(database);
+      refs.slice(i, i + DELETE_CHUNK_SIZE).forEach((r) => batch.delete(r));
+      await batch.commit();
+    }
+    const last = writeBatch(database);
+    last.delete(doc(database, 'users', userId, 'courses', course.id));
+    await last.commit();
+    return { failedFiles };
   } catch (err) {
     dispatch({ type: 'ADD_COURSE', payload: course });
     relatedItems.forEach((item) => dispatch({ type: 'ADD_SCHEDULE_ITEM', payload: item }));
