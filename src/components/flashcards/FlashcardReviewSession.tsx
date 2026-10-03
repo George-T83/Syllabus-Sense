@@ -140,7 +140,7 @@ function examChip(exam: UpcomingExam | null) {
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="hidden rounded-md border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-foreground/60 sm:inline-block">
+    <kbd className="hidden rounded-md border border-foreground/15 bg-foreground/5 px-1.5 py-0.5 font-mono text-xs font-medium text-foreground/60 sm:inline-block">
       {children}
     </kbd>
   );
@@ -520,7 +520,7 @@ export function FlashcardReviewSession({
           {!done && (
             <div className="ml-auto flex items-center gap-4 sm:gap-6">
               <div className="text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Points
                 </p>
                 <p
@@ -531,7 +531,7 @@ export function FlashcardReviewSession({
                 </p>
               </div>
               <div className="w-28">
-                <p className="flex items-center justify-between gap-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="flex items-center justify-between gap-2 whitespace-nowrap text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <span>{inZone ? 'In the zone' : 'Combo'}</span>
                   <span
                     className={cn(
@@ -568,11 +568,11 @@ export function FlashcardReviewSession({
                     strokeWidth={5}
                     aria-label={`Exam readiness ${pct(ctx.readiness)}`}
                   >
-                    <span className="text-[11px] font-bold tabular-nums text-foreground">
+                    <span className="text-xs font-bold tabular-nums text-foreground">
                       {pct(ctx.readiness)}
                     </span>
                   </RingGauge>
-                  <p className="hidden text-[10px] font-semibold uppercase leading-tight tracking-[0.16em] text-muted-foreground lg:block">
+                  <p className="hidden text-xs font-semibold uppercase leading-tight tracking-[0.16em] text-muted-foreground lg:block">
                     Exam
                     <br />
                     readiness
@@ -681,7 +681,7 @@ export function FlashcardReviewSession({
                                   inZone && 'spin-border study-zone',
                                 )}
                               >
-                                <div className="relative z-10 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                <div className="relative z-10 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                                   <span>{ctx?.code ?? 'Flashcard'}</span>
                                   <span className="inline-flex items-center gap-1.5 normal-case tracking-normal">
                                     <span
@@ -776,7 +776,7 @@ export function FlashcardReviewSession({
                                 )}
                                 <p
                                   className={cn(
-                                    'relative z-10 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-opacity',
+                                    'relative z-10 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-opacity',
                                     dragX !== 0 && 'opacity-0',
                                   )}
                                 >
@@ -831,7 +831,7 @@ export function FlashcardReviewSession({
                           )}
                         >
                           <span className="text-sm font-semibold">{label}</span>
-                          <span className="flex items-center gap-1.5 text-[11px] opacity-70">
+                          <span className="flex items-center gap-1.5 text-xs opacity-70">
                             {intervalShort(next)}
                             <Kbd>{key}</Kbd>
                           </span>

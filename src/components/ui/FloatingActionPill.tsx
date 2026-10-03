@@ -23,6 +23,11 @@ export interface FloatingActionPillProps {
   shortcutClassName?: string;
   /** The pulsing "live" dot every current instance shows. */
   showActiveDot?: boolean;
+  /** Adds a small close button that hides the pill. The caller owns where
+   * that choice is stored and how the pill comes back. */
+  onDismiss?: () => void;
+  /** Accessible name for the close button, e.g. "Hide the AI Advisor button". */
+  dismissLabel?: string;
 }
 
 /** The floating pill-shaped trigger pattern shared by the AI Advisor and
@@ -40,36 +45,59 @@ export function FloatingActionPill({
   shortcut,
   shortcutClassName,
   showActiveDot = true,
+  onDismiss,
+  dismissLabel,
 }: FloatingActionPillProps) {
   return (
-    <button
-      onClick={onClick}
-      aria-label={ariaLabel}
-      title={title}
-      className={cn(
-        'fixed flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2',
-        positionClassName,
-        colorClassName,
-      )}
-    >
-      {showActiveDot && (
-        <div className="relative flex h-2 w-2 items-center justify-center">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-        </div>
-      )}
-      {icon}
-      <span className={cn('font-bold tracking-wide', labelClassName)}>{label}</span>
-      {shortcut && (
-        <span
-          className={cn(
-            'hidden rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-mono text-white/90 sm:inline-block',
-            shortcutClassName,
-          )}
+    <div className={cn('fixed', positionClassName)}>
+      <button
+        onClick={onClick}
+        aria-label={ariaLabel}
+        title={title}
+        className={cn(
+          'flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2',
+          colorClassName,
+        )}
+      >
+        {showActiveDot && (
+          <div className="relative flex h-2 w-2 items-center justify-center">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </div>
+        )}
+        {icon}
+        <span className={cn('font-bold tracking-wide', labelClassName)}>{label}</span>
+        {shortcut && (
+          <span
+            className={cn(
+              'hidden rounded-full bg-white/20 px-2 py-0.5 text-xs font-mono text-white/90 sm:inline-block',
+              shortcutClassName,
+            )}
+          >
+            {shortcut}
+          </span>
+        )}
+      </button>
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label={dismissLabel ?? 'Hide this button'}
+          title={dismissLabel ?? 'Hide this button'}
+          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          {shortcut}
-        </span>
+          <svg
+            className="h-3 w-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       )}
-    </button>
+    </div>
   );
 }

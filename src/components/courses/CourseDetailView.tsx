@@ -711,7 +711,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                   {course.code.slice(0, 1)}
                 </span>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                     {course.code}
                   </p>
                   <h1 className="mt-1 font-display text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
@@ -733,7 +733,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                       className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30"
                       title="Not enough tracked tasks yet for a meaningful progress ring"
                     >
-                      <span className="text-[11px] font-semibold text-muted-foreground">
+                      <span className="text-xs font-semibold text-muted-foreground">
                         {completedCount}/{items.length}
                       </span>
                     </div>
@@ -749,7 +749,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                       <span className="text-xs font-bold text-foreground">{progressPct}%</span>
                     </RingGauge>
                   )}
-                  <span className="max-w-[88px] text-center text-[10px] leading-tight text-muted-foreground">
+                  <span className="max-w-[88px] text-center text-xs leading-tight text-muted-foreground">
                     {completedCount} of {items.length} tracked task{items.length === 1 ? '' : 's'}{' '}
                     done
                   </span>
@@ -985,7 +985,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={cn(
-                              'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                              'rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide',
                               contact.role === 'professor'
                                 ? 'bg-primary/10 text-primary'
                                 : 'bg-accent text-muted-foreground',
@@ -1517,12 +1517,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                             TaskRow's existing `trailing` slot; TaskRow itself
                             is untouched. */}
                         {item.gradeWeight != null && item.gradeWeight > 0 && (
-                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
                             {item.gradeWeight}% grade
                           </span>
                         )}
                         {overdue && (
-                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
                             Overdue
                           </span>
                         )}

@@ -324,7 +324,7 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
             <span className="truncate flex-1 text-left">
               Ask anything — grades, deadlines, study plans…
             </span>
-            <kbd className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[10px] font-mono">
+            <kbd className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-xs font-mono">
               {modKey}+K
             </kbd>
           </button>
@@ -354,7 +354,7 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
               <StreakFlameIcon />
             </span>
             <span className="font-mono text-xs font-bold text-load-medium">{streak}</span>
-            <span className="text-[11px] text-load-medium/80">day streak</span>
+            <span className="text-xs text-load-medium/80">day streak</span>
           </div>
         )}
 

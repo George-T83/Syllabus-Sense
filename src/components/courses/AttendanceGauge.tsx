@@ -174,7 +174,7 @@ export function AttendanceGauge({
                     <span className="text-base font-medium text-muted-foreground">/{limit}</span>
                   )}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Unexcused
                 </span>
               </div>
@@ -269,7 +269,7 @@ export function AttendanceGauge({
                   {penaltyDescription && (
                     <p className="leading-relaxed text-muted-foreground">{penaltyDescription}</p>
                   )}
-                  <p className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+                  <p className="border-t border-border pt-2 text-xs text-muted-foreground">
                     From your syllabus, as you entered it.
                   </p>
                 </div>
@@ -362,7 +362,7 @@ export function AttendanceGauge({
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${
                             rec.type === 'excused'
                               ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30'
                               : 'bg-load-critical/10 text-load-critical border-load-critical/30'
@@ -372,9 +372,7 @@ export function AttendanceGauge({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-foreground/80">{rec.reason || '—'}</td>
-                      <td className="px-4 py-3 text-muted-foreground text-[11px]">
-                        {rec.note || '—'}
-                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{rec.note || '—'}</td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleDeleteAbsence(rec.id)}

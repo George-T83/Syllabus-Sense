@@ -383,16 +383,14 @@ export function ProjectChunkerModal({
                   className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 p-3 text-xs"
                 >
                   <div className="space-y-0.5 min-w-0 pr-2">
-                    <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    <span className="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                       {chunk.phase}
                     </span>
                     <p className="font-semibold text-foreground truncate">{chunk.title}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Target Date: {chunk.targetDate}
-                    </p>
+                    <p className="text-xs text-muted-foreground">Target Date: {chunk.targetDate}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="rounded-lg bg-accent px-2.5 py-1 text-[11px] font-bold text-foreground">
+                    <span className="rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-foreground">
                       ⏱ {chunk.durationMinutes} mins
                     </span>
                   </div>

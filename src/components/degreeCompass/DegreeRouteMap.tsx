@@ -145,9 +145,7 @@ export function DegreeRouteMap({ categories, courses }: DegreeRouteMapProps) {
 
   return (
     <Card className="rounded-2xl p-5 sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-        Your route
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Your route</p>
       <h2 className="mt-1 font-display text-2xl font-medium tracking-tight text-foreground">
         {headline}
       </h2>
@@ -188,7 +186,7 @@ export function DegreeRouteMap({ categories, courses }: DegreeRouteMapProps) {
                 <Dot kind={stop.kind} />
                 <div className="min-w-0 pt-1 sm:px-1.5 sm:pt-2">
                   {stop.kind === 'current' && (
-                    <span className="mb-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                    <span className="mb-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-primary">
                       You are here
                     </span>
                   )}
@@ -205,7 +203,7 @@ export function DegreeRouteMap({ categories, courses }: DegreeRouteMapProps) {
                   </p>
                   <p className="text-xs text-muted-foreground">{stop.detail}</p>
                   {stop.running && (
-                    <p className="text-[11px] tabular-nums text-muted-foreground">{stop.running}</p>
+                    <p className="text-xs tabular-nums text-muted-foreground">{stop.running}</p>
                   )}
                 </div>
               </li>

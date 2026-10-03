@@ -202,7 +202,7 @@ export function CoursesListView() {
             plainly how many courses it's actually built from. */}
         {gpaSummary && (
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-primary/5 px-3 py-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               {effectiveTermFilter === 'all' ? 'GPA' : `${effectiveTermFilter} GPA`}
             </span>
             <span className="font-display text-lg font-medium tabular-nums text-foreground">
@@ -364,7 +364,7 @@ export function CoursesListView() {
                             once (CO-2). */}
                         <span
                           className={cn(
-                            'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                            'rounded-full px-2 py-0.5 text-xs font-medium',
                             course.term
                               ? 'bg-accent text-muted-foreground'
                               : 'bg-accent/60 italic text-muted-foreground/70',
@@ -373,17 +373,17 @@ export function CoursesListView() {
                           {course.term || 'No term set'}
                         </span>
                         {meetingDays && (
-                          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-muted-foreground">
                             {meetingDays}
                           </span>
                         )}
                         {course.modality && (
-                          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">
                             {course.modality}
                           </span>
                         )}
                         {overdueCount > 0 && (
-                          <span className="ml-auto rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                          <span className="ml-auto rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
                             {overdueCount} overdue
                           </span>
                         )}

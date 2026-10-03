@@ -192,7 +192,7 @@ export function MoodRecapView() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={{ stroke: 'hsl(var(--border))' }}
                 tickLine={false}
                 minTickGap={24}
@@ -253,7 +253,7 @@ export function MoodRecapView() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={{ stroke: 'hsl(var(--border))' }}
                 tickLine={false}
               />
@@ -315,7 +315,7 @@ export function MoodRecapView() {
           <div className="flex min-w-full justify-center">
             <div className="flex gap-2" style={{ height: '10rem' }}>
               <div
-                className="grid shrink-0 pt-4 text-[10px] text-muted-foreground"
+                className="grid shrink-0 pt-4 text-xs text-muted-foreground"
                 style={{ gridTemplateRows: 'repeat(7, 1fr)' }}
               >
                 {Array.from({ length: 7 }, (_, row) => (
@@ -343,7 +343,7 @@ export function MoodRecapView() {
                 {monthLabels.map(({ label, columnIndex }) => (
                   <span
                     key={`${label}-${columnIndex}`}
-                    className="absolute top-0 text-[10px] font-medium text-muted-foreground"
+                    className="absolute top-0 text-xs font-medium text-muted-foreground"
                     style={{ left: `${(columnIndex / columnCount) * 100}%` }}
                   >
                     {label}
@@ -372,7 +372,7 @@ export function MoodRecapView() {
             </div>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+        <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
           <span>Rough</span>
           {MOOD_OPTIONS.map((o) => (
             <span
@@ -388,7 +388,7 @@ export function MoodRecapView() {
         <div className="grid gap-4 sm:grid-cols-2">
           {best && (
             <Card className="rounded-2xl border-load-low/30 bg-load-low/5 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-load-low">
+              <p className="text-xs font-semibold uppercase tracking-wide text-load-low">
                 Your best day
               </p>
               <p className="mt-1 text-3xl">{getMoodOption(best.mood as MoodValue).emoji}</p>
@@ -399,7 +399,7 @@ export function MoodRecapView() {
           )}
           {worst && (
             <Card className="rounded-2xl border-load-critical/30 bg-load-critical/5 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-load-critical">
+              <p className="text-xs font-semibold uppercase tracking-wide text-load-critical">
                 Your toughest day
               </p>
               <p className="mt-1 text-3xl">{getMoodOption(worst.mood as MoodValue).emoji}</p>

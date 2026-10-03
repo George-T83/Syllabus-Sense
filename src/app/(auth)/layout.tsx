@@ -131,7 +131,7 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
                     </span>
                     <div>
                       <div className="text-xs font-semibold text-foreground">{pillar.title}</div>
-                      <div className="text-[11px] text-muted-foreground">{pillar.description}</div>
+                      <div className="text-xs text-muted-foreground">{pillar.description}</div>
                     </div>
                   </li>
                 ))}

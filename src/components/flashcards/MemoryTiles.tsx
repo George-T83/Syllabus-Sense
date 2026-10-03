@@ -168,7 +168,7 @@ export function MemoryTiles({ cards, examTitle, today }: MemoryTilesProps) {
         )}
       </div>
 
-      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
         {TIER_ORDER.map((tier) => (
           <li key={tier} className="inline-flex items-center gap-1.5">
             <span

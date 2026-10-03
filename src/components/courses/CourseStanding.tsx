@@ -48,7 +48,7 @@ export function CourseStandingStrip({
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border pt-4">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
           Current grade
         </p>
         <p className="mt-0.5 flex items-baseline gap-2">

@@ -201,7 +201,7 @@ export function DocumentViewerModal({ syllabus, onClose }: DocumentViewerModalPr
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <span
               className={cn(
-                'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[9px] font-bold text-white',
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white',
                 kind === 'pdf' ? 'bg-red-500' : 'bg-blue-500',
               )}
             >

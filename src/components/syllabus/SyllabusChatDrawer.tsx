@@ -353,7 +353,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
               <div>
                 <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-1.5">
                   AI Advisor
-                  <span className="rounded-full bg-primary/20 text-primary px-1.5 py-0.2 text-[10px] font-semibold">
+                  <span className="rounded-full bg-primary/20 text-primary px-1.5 py-0.2 text-xs font-semibold">
                     Beta
                   </span>
                 </h2>
@@ -523,7 +523,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
                           {msg.citations.map((cite, i) => (
                             <span
                               key={i}
-                              className="inline-flex items-center gap-1 rounded bg-card/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border/40"
+                              className="inline-flex items-center gap-1 rounded bg-card/60 px-1.5 py-0.5 text-xs font-mono text-muted-foreground border border-border/40"
                             >
                               {cite}
                             </span>
@@ -542,7 +542,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
                     </div>
 
                     {/* Message meta & copy button */}
-                    <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground px-1">
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground px-1">
                       <span>{msg.timestamp}</span>
                       {!isUser && (
                         <button
@@ -593,7 +593,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             <div className="px-3 py-1.5 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5 truncate">
                 <span className="font-medium text-foreground truncate">{uploadedFile.name}</span>
-                <span className="text-[10px] text-muted-foreground font-semibold px-1.5 py-0.5 rounded bg-muted/70">
+                <span className="text-xs text-muted-foreground font-semibold px-1.5 py-0.5 rounded bg-muted/70">
                   Context Added
                 </span>
               </div>
@@ -745,7 +745,7 @@ function SuggestedChunksCard({
         <div className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
           <span>Suggested Project Chunks ({chunks.length})</span>
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono">
+        <span className="text-xs text-muted-foreground font-mono">
           {chunks.reduce((acc, curr) => acc + curr.estimatedHours, 0)} hrs total
         </span>
       </div>
@@ -759,16 +759,14 @@ function SuggestedChunksCard({
             <div className="space-y-0.5">
               <div className="font-semibold text-foreground">{chunk.title}</div>
               {chunk.notes && (
-                <div className="text-[10px] text-muted-foreground leading-normal">
-                  {chunk.notes}
-                </div>
+                <div className="text-xs text-muted-foreground leading-normal">{chunk.notes}</div>
               )}
             </div>
             <div className="text-right shrink-0 ml-3">
-              <div className="font-mono text-[10px] font-semibold text-primary">
+              <div className="font-mono text-xs font-semibold text-primary">
                 {chunk.estimatedHours}h
               </div>
-              <div className="text-[9px] text-muted-foreground">{chunk.dueDate}</div>
+              <div className="text-xs text-muted-foreground">{chunk.dueDate}</div>
             </div>
           </div>
         ))}

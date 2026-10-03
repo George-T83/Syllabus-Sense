@@ -25,6 +25,7 @@ import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
 import { StudyStreakCard } from './StudyStreakCard';
+import { DisplaySettings } from './DisplaySettings';
 import { buildGpaGoalCourses } from '@/lib/gpa/termCourses';
 import { LONG_DATE_YEAR_FORMATTER as dateFormatter } from '@/lib/dateFormatters';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -431,7 +432,7 @@ export function ProfileView() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">{user.email}</span>
                 {institution && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                     {institution}
                   </span>
                 )}
@@ -480,15 +481,15 @@ export function ProfileView() {
           <div className="mt-6 grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-center">
               <div className="text-xl font-bold text-primary">{state.courses.length}</div>
-              <div className="text-[10px] font-medium text-muted-foreground">Courses</div>
+              <div className="text-xs font-medium text-muted-foreground">Courses</div>
             </div>
             <div className="rounded-xl border border-load-medium/30 bg-load-medium/10 p-3 text-center">
               <div className="text-xl font-bold text-load-medium">{pendingCount}</div>
-              <div className="text-[10px] font-medium text-muted-foreground">Pending</div>
+              <div className="text-xs font-medium text-muted-foreground">Pending</div>
             </div>
             <div className="rounded-xl border border-load-low/30 bg-load-low/10 p-3 text-center">
               <div className="text-xl font-bold text-load-low">{completedCount}</div>
-              <div className="text-[10px] font-medium text-muted-foreground">Done</div>
+              <div className="text-xs font-medium text-muted-foreground">Done</div>
             </div>
           </div>
 
@@ -599,6 +600,10 @@ export function ProfileView() {
               />
             ))}
           </div>
+        </div>
+
+        <div className="mt-5">
+          <DisplaySettings />
         </div>
       </Card>
 
@@ -717,7 +722,7 @@ export function ProfileView() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-foreground">{row.label}</span>
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Coming soon
                   </span>
                 </div>
@@ -733,7 +738,7 @@ export function ProfileView() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-foreground">Canvas sync</span>
-                <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Coming soon
                 </span>
               </div>

@@ -30,7 +30,7 @@ function FileTypeIcon({ fileName }: { fileName: string }) {
   const isPdf = fileName.toLowerCase().endsWith('.pdf');
   return (
     <span
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold text-white ${isPdf ? 'bg-red-500' : 'bg-blue-500'}`}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white ${isPdf ? 'bg-red-500' : 'bg-blue-500'}`}
     >
       {isPdf ? 'PDF' : 'DOC'}
     </span>
@@ -96,7 +96,7 @@ export function SyllabusList({ userId, courseId }: SyllabusListProps) {
                 {syllabus.fileName}
               </button>
               {syllabus.id === primaryId && (
-                <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary">
                   Primary
                 </span>
               )}

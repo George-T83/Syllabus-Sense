@@ -94,6 +94,12 @@ export default function RootLayout({
                   document.documentElement.classList.remove('dark');
                 }
               } catch (e) {}
+              try {
+                var textSize = localStorage.getItem('syllabus-sense-text-size');
+                if (textSize === 'large' || textSize === 'larger') {
+                  document.documentElement.setAttribute('data-text-size', textSize);
+                }
+              } catch (e) {}
             `,
           }}
         />

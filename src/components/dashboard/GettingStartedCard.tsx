@@ -161,7 +161,7 @@ export function GettingStartedCard({
     <Card className="rounded-2xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Get set up
           </p>
           <h2 className="mt-1 font-display text-2xl font-medium tracking-tight text-foreground">

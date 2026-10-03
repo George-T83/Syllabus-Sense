@@ -80,7 +80,7 @@ export function SemesterHeatmapCard() {
         <div className="flex min-w-full justify-center">
           <div className="flex gap-2" style={{ height: '10rem' }}>
             <div
-              className="grid shrink-0 pt-4 text-[10px] text-muted-foreground"
+              className="grid shrink-0 pt-4 text-xs text-muted-foreground"
               style={{ gridTemplateRows: 'repeat(7, 1fr)' }}
             >
               {Array.from({ length: 7 }, (_, row) => (
@@ -108,7 +108,7 @@ export function SemesterHeatmapCard() {
               {monthLabels.map(({ label, columnIndex }) => (
                 <span
                   key={`${label}-${columnIndex}`}
-                  className="absolute top-0 text-[10px] font-medium text-muted-foreground"
+                  className="absolute top-0 text-xs font-medium text-muted-foreground"
                   style={{ left: `${(columnIndex / columnCount) * 100}%` }}
                 >
                   {label}
@@ -137,7 +137,7 @@ export function SemesterHeatmapCard() {
           </div>
         </div>
 
-        <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
           <span>Click a day to open it in Calendar</span>
           <div className="flex shrink-0 items-center gap-1.5">
             <span>Less</span>

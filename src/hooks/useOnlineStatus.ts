@@ -19,7 +19,9 @@ export function useOnlineStatus(reconnectNoticeDurationMs: number = 4000): Onlin
   });
 
   const [wasOffline, setWasOffline] = useState<boolean>(false);
-  const [lastOnlineAt, setLastOnlineAt] = useState<Date | null>(() => (isOnline ? new Date() : null));
+  const [lastOnlineAt, setLastOnlineAt] = useState<Date | null>(() =>
+    isOnline ? new Date() : null,
+  );
   const [reconnectCount, setReconnectCount] = useState<number>(0);
 
   const checkConnection = useCallback(async (): Promise<boolean> => {

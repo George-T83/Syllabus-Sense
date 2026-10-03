@@ -518,7 +518,7 @@ export function GradeCalculatorModal({
                 )}
                 <dl className="mt-5 grid grid-cols-1 gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
                   <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       Current standing
                     </dt>
                     <dd className="mt-0.5 text-sm text-foreground">
@@ -526,14 +526,14 @@ export function GradeCalculatorModal({
                         {currentGrade.currentPercentage}%
                       </span>{' '}
                       · {currentGrade.letterGrade}
-                      <span className="block text-[11px] text-muted-foreground">
+                      <span className="block text-xs text-muted-foreground">
                         {currentGrade.totalCompletedWeight}% of the grade in
                       </span>
                     </dd>
                   </div>
                   {!floorCeiling.isLocked && (
                     <div>
-                      <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         Guaranteed range
                       </dt>
                       <dd className="mt-0.5 text-sm text-foreground">
@@ -544,7 +544,7 @@ export function GradeCalculatorModal({
                         <span className="font-semibold tabular-nums">
                           {floorCeiling.ceilingPercentage}%
                         </span>
-                        <span className="block text-[11px] text-muted-foreground">
+                        <span className="block text-xs text-muted-foreground">
                           {floorCeiling.floorLetterGrade} if you score 0%,{' '}
                           {floorCeiling.ceilingLetterGrade} if you score 100%
                         </span>
@@ -552,7 +552,7 @@ export function GradeCalculatorModal({
                     </div>
                   )}
                   <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       Needed for {finalExamTarget.targetGrade}
                     </dt>
                     <dd
@@ -644,7 +644,7 @@ export function GradeCalculatorModal({
                       {categories.map((cat, idx) => (
                         <span
                           key={cat.id || idx}
-                          className="flex items-center gap-1 text-[11px] text-muted-foreground"
+                          className="flex items-center gap-1 text-xs text-muted-foreground"
                         >
                           <span
                             className={`h-2 w-2 rounded-full ${CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length]}`}
@@ -652,7 +652,7 @@ export function GradeCalculatorModal({
                           {cat.name}
                         </span>
                       ))}
-                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <span className="h-2 w-2 rounded-full bg-border" />
                         Final Exam
                       </span>
@@ -762,7 +762,7 @@ export function GradeCalculatorModal({
                   {/* Final Exam Category Row */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 shadow-sm">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-bold">
+                      <span className="rounded-md bg-primary/20 text-primary px-1.5 py-0.5 text-xs font-bold">
                         FINAL
                       </span>
                       <span className="text-xs font-bold text-foreground">
@@ -874,7 +874,7 @@ export function GradeCalculatorModal({
                     </div>
                   );
                 })}
-                <p className="pt-1 text-[11px] text-muted-foreground">
+                <p className="pt-1 text-xs text-muted-foreground">
                   Courses with no graded work yet are excluded from the GPA above rather than
                   guessed at.
                 </p>

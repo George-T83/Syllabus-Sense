@@ -230,7 +230,7 @@ export function DashboardView() {
     <>
       <div className="max-w-5xl space-y-6 sm:space-y-8">
         <header>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             {currentTerm || courses[0]?.term || 'Welcome'}
           </p>
           <h1 className="mt-1.5 font-display text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
@@ -381,7 +381,7 @@ export function DashboardView() {
                             // half the horizontal footprint.
                             <div className="flex flex-col items-end gap-0.5">
                               {overdue && (
-                                <span className="whitespace-nowrap rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                                <span className="whitespace-nowrap rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
                                   Overdue
                                 </span>
                               )}
@@ -515,19 +515,19 @@ export function DashboardView() {
                           <div className="text-base font-bold text-primary">
                             {semesterCourses.length}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">Courses</div>
+                          <div className="text-xs text-muted-foreground">Courses</div>
                         </div>
                         <div>
                           <div className="text-base font-bold text-load-medium">
                             {pendingTasks.length}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">Pending</div>
+                          <div className="text-xs text-muted-foreground">Pending</div>
                         </div>
                         <div>
                           <div className="text-base font-bold text-load-low">
                             {completedTasksCount}
                           </div>
-                          <div className="text-[10px] text-muted-foreground">Done</div>
+                          <div className="text-xs text-muted-foreground">Done</div>
                         </div>
                       </div>
                     </div>
@@ -561,7 +561,7 @@ export function DashboardView() {
                         hasLoad ? WORKLOAD_CHIP_CLASS[level] : 'border-border bg-accent/40',
                       )}
                     >
-                      <span className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[10px]">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         {forecastDayFormatter.format(day)}
                       </span>
                       <span className="text-sm font-bold text-foreground sm:text-lg">
@@ -569,7 +569,7 @@ export function DashboardView() {
                       </span>
                       <span
                         className={cn(
-                          'text-[8px] font-semibold sm:text-[10px]',
+                          'text-xs font-semibold',
                           hasLoad ? WORKLOAD_TEXT_CLASS[level] : 'text-muted-foreground',
                         )}
                       >
@@ -641,13 +641,13 @@ export function DashboardView() {
                             // warning, and load-high (amber) instead of
                             // load-critical (red) keeps it out of destructive-
                             // red territory entirely.
-                            <span className="rounded-full bg-load-high/10 px-2 py-0.5 text-[10px] font-semibold text-load-high">
+                            <span className="rounded-full bg-load-high/10 px-2 py-0.5 text-xs font-semibold text-load-high">
                               Tight · start today
                             </span>
                           ) : (
                             <span
                               className={cn(
-                                'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                'rounded-full px-2 py-0.5 text-xs font-semibold',
                                 startsToday
                                   ? 'bg-load-high/10 text-load-high'
                                   : 'bg-accent text-muted-foreground',

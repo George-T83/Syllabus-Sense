@@ -7,11 +7,13 @@ import { AppStateProvider } from '@/context/AppStateContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import { cn } from '@/lib/utils';
 import MobileTabBar from './MobileTabBar';
 import FirestoreSync from './FirestoreSync';
 import OfflineBanner from './OfflineBanner';
 import { SyllabusChatDrawer } from '@/components/syllabus/SyllabusChatDrawer';
 import { FloatingActionPill } from '@/components/ui/FloatingActionPill';
+import { usePillHidden } from '@/hooks/useDisplayPrefs';
 import { PomodoroTimer } from '@/components/focus/PomodoroTimer';
 import { usePlatform } from '@/hooks/usePlatformKey';
 import { ShortcutsCheatSheet } from '@/components/common/ShortcutsCheatSheet';
@@ -34,6 +36,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const [pomodoroTaskId, setPomodoroTaskId] = useState<string | undefined>(undefined);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const { alt: altKey } = usePlatform();
+  const [advisorPillHidden, setAdvisorPillHidden] = usePillHidden('advisor');
+  const [focusPillHidden] = usePillHidden('focus');
 
   const handleCommandPaletteAction = (actionId: string) => {
     if (actionId === 'ai-copilot') setIsChatOpen(true);
@@ -64,6 +68,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const copilotAvailable = !COPILOT_EXCLUDED_ROUTES.some(
     (route) => pathname === route || pathname?.startsWith(`${route}/`),
   );
+
+  // Room at the foot of the page for whichever floating buttons are showing,
+  // so the last line of content is never stuck underneath one.
+  const pillsShowing = (copilotAvailable && !advisorPillHidden) || !focusPillHidden;
 
   useEffect(() => {
     // URL flag to open chat drawer directly for screenshot capture / deep linking
@@ -114,7 +122,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             <Navbar onCommandPaletteAction={handleCommandPaletteAction} />
             <div className="flex flex-1 pt-20">
               <Sidebar />
-              <main className="min-w-0 flex-1 p-6 pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)] md:pl-72 md:p-8 md:pb-8 max-w-7xl transition-all duration-300">
+              <main
+                className={cn(
+                  'min-w-0 flex-1 p-6 md:pl-72 md:p-8 md:pb-8 max-w-7xl transition-all duration-300',
+                  pillsShowing
+                    ? 'pb-[calc(9rem+env(safe-area-inset-bottom))]'
+                    : 'pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]',
+                )}
+              >
                 {children}
               </main>
             </div>
@@ -122,7 +137,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
             {/* Global Floating AI Advisor Drawer Trigger - only on routes with
                 course context; see COPILOT_EXCLUDED_ROUTES above. */}
-            {copilotAvailable && (
+            {copilotAvailable && !advisorPillHidden && (
               <FloatingActionPill
                 onClick={() => setIsChatOpen(true)}
                 ariaLabel={`Open AI Advisor chat (${altKey}+A)`}
@@ -145,6 +160,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 }
                 label="AI Advisor"
                 shortcut={`${altKey}+A`}
+                onDismiss={() => setAdvisorPillHidden(true)}
+                dismissLabel={`Hide the AI Advisor button (${altKey}+A still opens it; Profile > Appearance brings it back)`}
               />
             )}
 

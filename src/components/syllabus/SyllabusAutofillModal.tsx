@@ -1667,7 +1667,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                       <div className="space-y-1">
                         <label
                           htmlFor="autofill-course-notes"
-                          className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                         >
                           Fine print
                         </label>
@@ -1682,7 +1682,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     )}
                     {course.skipDates.length > 0 && (
                       <div className="space-y-1">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           No class on
                         </span>
                         <div className="flex flex-wrap gap-1.5">
@@ -1944,13 +1944,13 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                                         className="grid grid-cols-2 gap-2 rounded-md bg-card px-2 py-1.5"
                                       >
                                         <div>
-                                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                          <div className="text-xs uppercase tracking-wide text-muted-foreground">
                                             {CONTACT_FIELD_LABELS[f]} &mdash; existing
                                           </div>
                                           <div className="text-foreground">{match[f] || '—'}</div>
                                         </div>
                                         <div>
-                                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                          <div className="text-xs uppercase tracking-wide text-muted-foreground">
                                             {CONTACT_FIELD_LABELS[f]} &mdash; extracted
                                           </div>
                                           <div className="text-foreground">
@@ -2274,7 +2274,7 @@ function StepIndicator({ step }: { step: Step }) {
           <div className="flex shrink-0 items-center gap-1.5">
             <span
               className={cn(
-                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors',
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors',
                 i < currentIndex
                   ? 'bg-white text-[#5b3df5]'
                   : i === currentIndex

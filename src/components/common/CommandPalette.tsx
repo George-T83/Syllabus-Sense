@@ -546,12 +546,12 @@ export function CommandPalette({
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] uppercase font-semibold text-muted-foreground/60 tracking-wider">
+                    <span className="text-xs uppercase font-semibold text-muted-foreground/60 tracking-wider">
                       {command.category}
                     </span>
                     {command.badge && (
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
                           command.badgeVariant === 'urgent'
                             ? 'bg-destructive/20 text-destructive'
                             : command.badgeVariant === 'primary'
@@ -570,7 +570,7 @@ export function CommandPalette({
         </div>
 
         {/* Footer info */}
-        <div className="flex items-center justify-between border-t border-border/30 bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border/30 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <span>
               <kbd className="font-mono bg-muted px-1 rounded">↑↓</kbd> Navigate

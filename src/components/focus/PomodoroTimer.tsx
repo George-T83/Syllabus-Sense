@@ -9,6 +9,7 @@ import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { usePlatform } from '@/hooks/usePlatformKey';
 import { matchesShortcut } from '@/lib/shortcuts';
+import { usePillHidden } from '@/hooks/useDisplayPrefs';
 
 const WORK_DURATION = 25 * 60; // 25 minutes
 const BREAK_DURATION = 5 * 60; //  5 minutes
@@ -109,6 +110,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
 
   const { user } = useAuth();
   const { alt } = usePlatform();
+  const [pillHidden, setPillHidden] = usePillHidden('focus');
   const userId = user?.uid;
 
   const tick = useCallback(() => {
@@ -174,6 +176,10 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
     : (WORK_DURATION - remaining) / WORK_DURATION;
 
   if (!visible) {
+    // A dismissed pill stays dismissed - except while a session is running,
+    // when it is the only way back to the countdown, so it shows (without a
+    // close button) until the session ends.
+    if (pillHidden && !running) return null;
     return (
       <FloatingActionPill
         onClick={() => setVisible(true)}
@@ -200,6 +206,8 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
         labelClassName="text-white dark:text-amber-300"
         shortcut={`${alt}+P`}
         shortcutClassName="dark:bg-amber-500/20 dark:text-amber-300"
+        onDismiss={running ? undefined : () => setPillHidden(true)}
+        dismissLabel={`Hide the Focus Timer button (${alt}+P still opens it; Profile > Appearance brings it back)`}
       />
     );
   }
@@ -309,7 +317,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
 
         {/* Session counter */}
         {sessionCount > 0 && (
-          <p className="text-center text-[10px] text-muted-foreground">
+          <p className="text-center text-xs text-muted-foreground">
             {sessionCount} session{sessionCount !== 1 ? 's' : ''} today
           </p>
         )}

@@ -108,7 +108,7 @@ export function ForgettingCurveChart({ points, targetLabel }: ForgettingCurveCha
               x={PAD.left - 8}
               y={y(v) + 4}
               textAnchor="end"
-              className="fill-muted-foreground text-[10px] tabular-nums"
+              className="fill-muted-foreground text-xs tabular-nums"
             >
               {pct(v)}
             </text>
@@ -177,14 +177,14 @@ export function ForgettingCurveChart({ points, targetLabel }: ForgettingCurveCha
           </g>
         ))}
 
-        <text x={PAD.left} y={H - 8} className="fill-muted-foreground text-[10px]">
+        <text x={PAD.left} y={H - 8} className="fill-muted-foreground text-xs">
           Today
         </text>
         <text
           x={x(span)}
           y={H - 8}
           textAnchor="middle"
-          className="fill-foreground text-[10px] font-semibold"
+          className="fill-foreground text-xs font-semibold"
         >
           {targetLabel} · {shortDate(last.date)}
         </text>

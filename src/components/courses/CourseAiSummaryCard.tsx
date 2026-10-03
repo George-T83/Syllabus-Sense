@@ -181,7 +181,7 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
               <ul className="space-y-2">
                 {summary.importantNotes.map((note, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
-                    <span className="mt-0.5 shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span className="mt-0.5 shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {CATEGORY_LABEL[note.category]}
                     </span>
                     <span className="leading-relaxed">{note.note}</span>

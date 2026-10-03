@@ -144,7 +144,7 @@ export function WorkloadOverviewDashboard({
       <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Daily &amp; Weekly Workload Center
             </span>
             {breakdown.rolledOverCount > 0 && (
@@ -214,7 +214,7 @@ export function WorkloadOverviewDashboard({
             </div>
             <span
               className={cn(
-                'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold capitalize',
+                'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold capitalize',
                 WORKLOAD_BADGE_CLASS[INTENSITY_TO_LEVEL[activeDay.intensity]],
               )}
             >
@@ -273,7 +273,7 @@ export function WorkloadOverviewDashboard({
                             {item.title}
                           </span>
                         </div>
-                        <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                        <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                           {item.durationMinutes}m
                         </span>
                       </div>
@@ -286,7 +286,7 @@ export function WorkloadOverviewDashboard({
                        * this card's narrow column and forced a second, horizontal
                        * scrollbar on the already vertically-scrolling list. */}
                       {!item.completed && (
-                        <div className="flex flex-col gap-1.5 border-t border-border/30 pt-1.5 text-[10px] text-muted-foreground">
+                        <div className="flex flex-col gap-1.5 border-t border-border/30 pt-1.5 text-xs text-muted-foreground">
                           <span>Move to another day:</span>
                           <div className="flex flex-wrap items-center gap-1.5">
                             <div className="flex items-center gap-0.5">
@@ -294,7 +294,7 @@ export function WorkloadOverviewDashboard({
                                 type="button"
                                 title="Shift back 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, -1)}
-                                className="rounded border border-border px-1 py-0.5 text-[9px] font-semibold hover:bg-accent"
+                                className="rounded border border-border px-1 py-0.5 text-xs font-semibold hover:bg-accent"
                               >
                                 -1d
                               </button>
@@ -304,7 +304,7 @@ export function WorkloadOverviewDashboard({
                                 onClick={() =>
                                   handleShiftTaskDate(item.id, breakdown.today.dateStr)
                                 }
-                                className="rounded border border-border px-1 py-0.5 text-[9px] font-semibold hover:bg-accent"
+                                className="rounded border border-border px-1 py-0.5 text-xs font-semibold hover:bg-accent"
                               >
                                 Today
                               </button>
@@ -312,7 +312,7 @@ export function WorkloadOverviewDashboard({
                                 type="button"
                                 title="Shift ahead 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, 1)}
-                                className="rounded border border-border px-1 py-0.5 text-[9px] font-semibold hover:bg-accent"
+                                className="rounded border border-border px-1 py-0.5 text-xs font-semibold hover:bg-accent"
                               >
                                 +1d
                               </button>
@@ -322,7 +322,7 @@ export function WorkloadOverviewDashboard({
                               aria-label={`Shift date for ${item.title}`}
                               value={activeDay.dateStr}
                               onChange={(e) => handleShiftTaskDate(item.id, e.target.value)}
-                              className="min-w-0 rounded border border-border bg-input px-1.5 py-0.5 text-[10px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="min-w-0 rounded border border-border bg-input px-1.5 py-0.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </div>
                         </div>
@@ -368,7 +368,7 @@ export function WorkloadOverviewDashboard({
                   >
                     <span className="text-xs font-bold text-foreground">
                       {day.dayName}
-                      <span className="block text-[10px] font-medium text-muted-foreground">
+                      <span className="block text-xs font-medium text-muted-foreground">
                         {day.formattedDate}
                       </span>
                     </span>
@@ -381,12 +381,12 @@ export function WorkloadOverviewDashboard({
                     <span className="text-right text-sm font-bold tabular-nums text-foreground sm:text-left">
                       {hrs}h
                     </span>
-                    <span className="hidden whitespace-nowrap text-[11px] text-muted-foreground sm:block">
+                    <span className="hidden whitespace-nowrap text-xs text-muted-foreground sm:block">
                       {day.items.length} {day.items.length === 1 ? 'item' : 'items'}
                     </span>
                     <span
                       className={cn(
-                        'hidden text-right text-[10px] font-bold uppercase tracking-wide sm:block',
+                        'hidden text-right text-xs font-bold uppercase tracking-wide sm:block',
                         WORKLOAD_TEXT_CLASS[level],
                       )}
                     >

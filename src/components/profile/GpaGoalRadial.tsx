@@ -206,7 +206,7 @@ export function GpaGoalRadial({
                   <span className="text-3xl font-extrabold text-foreground tracking-tight">
                     {termGpaText}
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-gradient-brand">
+                  <span className="text-xs font-bold uppercase tracking-widest text-gradient-brand">
                     Term GPA
                   </span>
                   <span className="text-xs font-semibold text-muted-foreground mt-1">
@@ -316,7 +316,7 @@ export function GpaGoalRadial({
             </div>
           </div>
 
-          <p className="-mt-2 text-[11px] text-muted-foreground">
+          <p className="-mt-2 text-xs text-muted-foreground">
             Optional. Fill in both prior fields to include earlier terms; leave them blank if this
             is your first term.
           </p>
@@ -407,10 +407,10 @@ export function GpaGoalRadial({
                             <span className="font-bold text-indigo-600 dark:text-indigo-400 block">
                               {course.courseCode}
                             </span>
-                            <span className="text-muted-foreground text-[11px] truncate block max-w-[180px]">
+                            <span className="text-muted-foreground text-xs truncate block max-w-[180px]">
                               {course.title}
                             </span>
-                            <span className="text-muted-foreground text-[11px] block">
+                            <span className="text-muted-foreground text-xs block">
                               {course.standingNote ?? 'No grades entered yet'}
                             </span>
                           </td>

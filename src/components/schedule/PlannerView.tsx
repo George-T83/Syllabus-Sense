@@ -271,13 +271,13 @@ function PlannedTaskRow({
       trailing={
         <div className="flex flex-col items-end gap-1 text-right">
           {overdue ? (
-            <span className="whitespace-nowrap rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+            <span className="whitespace-nowrap rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
               Overdue
             </span>
           ) : overloaded ? (
             <span
               className={cn(
-                'whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                'whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold',
                 WORKLOAD_BADGE_CLASS.critical,
               )}
             >
@@ -285,12 +285,12 @@ function PlannedTaskRow({
             </span>
           ) : (
             tight && (
-              <span className="whitespace-nowrap rounded-full bg-load-high/10 px-2 py-0.5 text-[10px] font-semibold text-load-high">
+              <span className="whitespace-nowrap rounded-full bg-load-high/10 px-2 py-0.5 text-xs font-semibold text-load-high">
                 Tight
               </span>
             )
           )}
-          <span className="whitespace-nowrap text-[11px] text-muted-foreground">
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
             Start {startLabel}
           </span>
           <span className="whitespace-nowrap text-xs text-muted-foreground">Due {dueLabel}</span>
@@ -624,7 +624,7 @@ export function PlannerView() {
         trailing={
           <>
             {overdue && (
-              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
                 Overdue
               </span>
             )}
@@ -969,16 +969,14 @@ export function PlannerView() {
                           )
                         )}
                         <h3 className="text-xs font-semibold text-foreground">{group.label}</h3>
-                        <span className="text-[11px] text-muted-foreground">
-                          {group.items.length}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{group.items.length}</span>
                       </div>
                     )}
                     {group.monthSubGroups ? (
                       <div className="space-y-4">
                         {group.monthSubGroups.map((sub) => (
                           <div key={sub.key}>
-                            <h4 className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <h4 className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                               {sub.label}
                             </h4>
                             <ExpandableItemList items={sub.items} renderItem={renderTaskRow} />
@@ -1108,7 +1106,7 @@ export function PlannerView() {
             >
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
                     !
                   </span>
                   <h2 className="text-sm font-semibold text-destructive">

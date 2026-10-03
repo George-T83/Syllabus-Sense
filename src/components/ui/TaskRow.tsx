@@ -31,7 +31,7 @@ function GradeWeightPill({ gradeWeight }: { gradeWeight: number | undefined }) {
   if (gradeWeight === undefined || gradeWeight < GRADE_WEIGHT_BADGE_THRESHOLD) return null;
   return (
     <span
-      className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary"
+      className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-bold leading-none text-primary"
       title={`Worth ${gradeWeight}% of your grade`}
     >
       {gradeWeight}%
@@ -183,7 +183,7 @@ function ProgressStrip({ percent, className }: { percent: number; className?: st
   return (
     <div className={cn('mt-1.5 flex items-center gap-2', className)}>
       <ProgressBar percent={percent} className="max-w-32" />
-      <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+      <span className="shrink-0 text-xs font-semibold text-muted-foreground">
         {Math.round(percent)}%
       </span>
     </div>
