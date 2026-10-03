@@ -13,6 +13,7 @@ import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from './AdvisorWarningCard';
 import { cn } from '@/lib/utils';
 import { isOverdue } from '@/lib/calendar/dates';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 const WELCOME_MESSAGE =
   "Hi — I'm your AI Advisor. I can reason over your Degree Compass plan, your courses, and your tasks - not just one syllabus. Ask me what to take next, whether you're on track, or what a change would mean for your plan.";
@@ -121,8 +122,8 @@ export function AdvisorView() {
           overdueTaskCount,
         }),
       });
+      if (!response.ok) throw await aiRequestErrorFrom(response);
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? 'The Advisor request failed.');
 
       const assistantMessage: AdvisorMessage = {
         id: crypto.randomUUID(),
@@ -134,10 +135,8 @@ export function AdvisorView() {
       };
       await appendAdvisorMessage(user.uid, assistantMessage);
     } catch (err) {
-      showError(
-        "Couldn't reach the Advisor",
-        err instanceof Error ? err.message : 'Try again in a moment.',
-      );
+      console.error('[AdvisorView] advisor request failed', err);
+      showError("The Advisor couldn't answer", describeAiFailure(err).message);
     } finally {
       setSending(false);
     }

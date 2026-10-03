@@ -10,6 +10,7 @@ import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
 import { updateCourse } from '@/lib/firestore/courses';
 import { courseSummarySchema, type CourseSummaryNote } from '@/types/courseSummary';
 import type { Course } from '@/types/schedule';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 const CATEGORY_LABEL: Record<CourseSummaryNote['category'], string> = {
   attendance: 'Attendance',
@@ -57,8 +58,8 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
           fileName: primarySyllabus.fileName,
         }),
       });
+      if (!response.ok) throw await aiRequestErrorFrom(response);
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? 'Summarization failed.');
 
       const parsed = courseSummarySchema.parse(body.result);
       await updateCourse(
@@ -75,7 +76,8 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
         dispatch,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      console.error('[AI request] failed', err);
+      setError(describeAiFailure(err).message);
     } finally {
       setGenerating(false);
     }
