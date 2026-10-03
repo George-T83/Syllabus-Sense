@@ -203,3 +203,21 @@ describe('firestore.rules: default-deny catch-all', () => {
     await assertFails(getDoc(doc(intruderDb, `users/${OWNER_UID}/unknownSubcollection/doc-1`)));
   });
 });
+
+describe('firestore.rules: AI budget counters are server-only', () => {
+  const day = '2026-10-02';
+
+  it('stops a signed-in client from reading or resetting the global AI budget', async () => {
+    await seed(`aiBudget/${day}`, { count: 999 });
+    const ownerDb = testEnv.authenticatedContext(OWNER_UID).firestore();
+    await assertFails(getDoc(doc(ownerDb, `aiBudget/${day}`)));
+    await assertFails(setDoc(doc(ownerDb, `aiBudget/${day}`), { count: 0 }));
+    await assertFails(deleteDoc(doc(ownerDb, `aiBudget/${day}`)));
+  });
+
+  it('stops a user from resetting their own daily AI usage count', async () => {
+    await seed(`users/${OWNER_UID}/aiUsage/${day}`, { count: 60 });
+    const ownerDb = testEnv.authenticatedContext(OWNER_UID).firestore();
+    await assertFails(setDoc(doc(ownerDb, `users/${OWNER_UID}/aiUsage/${day}`), { count: 0 }));
+  });
+});

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BODY_LIMITS, bodyErrorResponse, readJsonBody } from '@/lib/http/readJsonBody';
 import { requireUser } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
+import { aiUsageDeniedResponse } from '@/lib/ai/usageResponse';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import {
   buildRefinePrompt,
@@ -27,9 +29,9 @@ const MAX_HISTORY_MESSAGES = 12;
 export async function POST(req: NextRequest) {
   let body: RefineDraftRequestBody;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    body = await readJsonBody(req, BODY_LIMITS.text);
+  } catch (err) {
+    return bodyErrorResponse(err, 'Invalid JSON body.');
   }
 
   if (!body.message || typeof body.message !== 'string' || !body.message.trim()) {
@@ -49,16 +51,11 @@ export async function POST(req: NextRequest) {
   if (isProd && !user && process.env.FIREBASE_ADMIN_PROJECT_ID) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
-  if (user) {
-    const usage = await checkAndIncrementAiUsage(user);
-    if (!usage.allowed) {
-      return NextResponse.json(
-        {
-          error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.`,
-        },
-        { status: 429 },
-      );
-    }
+  // An unauthenticated demo/dev call has no identity to cap per user, but it
+  // still counts against the global daily AI budget.
+  const usage = await checkAndIncrementAiUsage(user);
+  if (!usage.allowed) {
+    return aiUsageDeniedResponse(usage);
   }
 
   // getAnthropicClient throws without a key - check first, so a missing key

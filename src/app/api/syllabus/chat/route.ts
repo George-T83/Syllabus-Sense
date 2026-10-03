@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BODY_LIMITS, bodyErrorResponse, readJsonBody } from '@/lib/http/readJsonBody';
 import type Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
+import { aiUsageDeniedResponse } from '@/lib/ai/usageResponse';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { generateOfflineSyllabusAnswer, type ChatRequestBody } from '@/lib/syllabus/chatEngine';
 
@@ -22,9 +24,9 @@ function detectFileKind(fileBase64: string): 'pdf' | 'docx' | null {
 export async function POST(req: NextRequest) {
   let body: ChatRequestBody;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    body = await readJsonBody(req, BODY_LIMITS.file);
+  } catch (err) {
+    return bodyErrorResponse(err, 'Invalid JSON body.');
   }
 
   if (!body.message || typeof body.message !== 'string') {
@@ -43,19 +45,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 
-  // Unauthenticated demo/dev calls have no stable identity to cap by, and
-  // that path is only reachable outside prod or without an admin project
-  // configured in the first place - only meter identified callers.
-  if (user) {
-    const usage = await checkAndIncrementAiUsage(user);
-    if (!usage.allowed) {
-      return NextResponse.json(
-        {
-          error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.`,
-        },
-        { status: 429 },
-      );
-    }
+  // An unauthenticated demo/dev call has no identity to cap per user, but it
+  // still counts against the global daily AI budget.
+  const usage = await checkAndIncrementAiUsage(user);
+  if (!usage.allowed) {
+    return aiUsageDeniedResponse(usage);
   }
 
   // Rough size check on the base64 payload (base64 is ~4/3 the byte size) -

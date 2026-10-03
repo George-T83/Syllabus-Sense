@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BODY_LIMITS, bodyErrorResponse, readJsonBody } from '@/lib/http/readJsonBody';
 import { requireUser } from '@/lib/auth/requireUser';
 import { detectSyllabusFileKind, extractRawSyllabusText } from '@/lib/syllabus/extractRawText';
 
@@ -22,9 +23,9 @@ export async function POST(req: NextRequest) {
 
   let body: { fileBase64?: string };
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+    body = await readJsonBody(req, BODY_LIMITS.file);
+  } catch (err) {
+    return bodyErrorResponse(err, 'Invalid request body.');
   }
 
   const { fileBase64 } = body;

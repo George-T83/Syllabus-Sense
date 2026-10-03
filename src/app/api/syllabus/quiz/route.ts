@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BODY_LIMITS, bodyErrorResponse, readJsonBody } from '@/lib/http/readJsonBody';
 import type Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
+import { aiUsageDeniedResponse } from '@/lib/ai/usageResponse';
 import { adminStorage } from '@/lib/firebase/adminStorage';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { QUIZ_SYSTEM_PROMPT, QUIZ_TOOL } from '@/lib/ai/quizTool';
@@ -25,17 +27,14 @@ export async function POST(req: NextRequest) {
 
   const usage = await checkAndIncrementAiUsage(user);
   if (!usage.allowed) {
-    return NextResponse.json(
-      { error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.` },
-      { status: 429 },
-    );
+    return aiUsageDeniedResponse(usage);
   }
 
   let body: { storagePath?: string; fileName?: string };
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+    body = await readJsonBody(req, BODY_LIMITS.small);
+  } catch (err) {
+    return bodyErrorResponse(err, 'Invalid request body.');
   }
 
   const { storagePath, fileName } = body;
