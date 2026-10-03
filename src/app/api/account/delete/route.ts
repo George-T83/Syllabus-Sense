@@ -7,6 +7,14 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 /**
+ * Deleting an account must follow a recent sign-in. Firebase refuses the
+ * final deleteUser call for an older session, and by then this route has
+ * already wiped the data, leaving a signed-in account with nothing in it.
+ * Checking here, before anything is deleted, keeps the two halves together.
+ */
+const MAX_SIGN_IN_AGE_SECONDS = 5 * 60;
+
+/**
  * Deletes everything under `users/{uid}` - every course (and its nested
  * syllabi/gradeScenarios), schedule items, contacts, sources, flashcards,
  * quizzes, quiz attempts, mood entries, and the daily AI-usage counters -
@@ -35,6 +43,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (user.authTime === undefined || nowSeconds - user.authTime > MAX_SIGN_IN_AGE_SECONDS) {
+    return NextResponse.json(
+      {
+        error: 'For your security, please sign in again before deleting your account.',
+        code: 'recent-login-required',
+      },
+      { status: 403 },
+    );
+  }
+
   try {
     await adminDb.recursiveDelete(adminDb.doc(`users/${user.uid}`));
   } catch (err) {
@@ -46,11 +65,20 @@ export async function POST(req: NextRequest) {
     try {
       await adminStorage.bucket().deleteFiles({ prefix: `users/${user.uid}/` });
     } catch (err) {
-      // Firestore data is already gone at this point - log and continue
-      // rather than leaving the user stuck mid-deletion. Storage cleanup
-      // failing here means some uploaded files may be orphaned; that's a
-      // lesser harm than blocking account deletion entirely.
+      // Uploaded files are the student's own documents, so leaving them
+      // behind while telling the student the account is gone would be
+      // untrue. Fail instead: nothing else is deleted yet, and running this
+      // again is safe (the Firestore delete finds nothing and the file
+      // delete retries).
       console.error('Failed to delete Storage files for account deletion:', err);
+      return NextResponse.json(
+        {
+          error:
+            "Your data was removed, but some uploaded files couldn't be deleted. Your account is still open; please try deleting it again.",
+          code: 'storage-cleanup-failed',
+        },
+        { status: 500 },
+      );
     }
   }
 

@@ -13,10 +13,12 @@ import {
   updatePassword,
   deleteUser,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   EmailAuthProvider,
   User,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
+import { clearSessions } from '@/lib/focus/pomodoroSessions';
 
 interface AuthContextType {
   user: User | null;
@@ -48,11 +50,12 @@ interface AuthContextType {
    * `deleteUser`. Also a "sensitive" operation subject to the same
    * recent-login requirement as `changePassword` - `currentPassword` is
    * required for email/password accounts (re-authenticated the same way)
-   * and optional/unused for Google-auth accounts, where `deleteUser` alone
-   * succeeds if the session is fresh enough or otherwise surfaces
-   * `auth/requires-recent-login` for the caller to handle. Data deletion
-   * always runs first: if it fails, the Auth account is left untouched so
-   * the user isn't locked out mid-deletion with orphaned data either way.
+   * and Google accounts are re-authenticated through the Google popup, so
+   * the sign-in is always fresh before anything is deleted (the server
+   * refuses an older one rather than wiping the data and then failing to
+   * delete the login). Data deletion runs before the Auth account: if it
+   * fails, the Auth account is left untouched so the user isn't locked out
+   * mid-deletion with orphaned data either way.
    */
   deleteAccount: (currentPassword?: string) => Promise<boolean>;
   clearError: () => void;
@@ -206,12 +209,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentPassword && current.email) {
         const credential = EmailAuthProvider.credential(current.email, currentPassword);
         await reauthenticateWithCredential(current, credential);
+      } else if (current.providerData.some((p) => p.providerId === 'google.com')) {
+        await reauthenticateWithPopup(current, new GoogleAuthProvider());
       }
 
       // Delete all Firestore/Storage data before the Auth account - if this
       // fails, the account stays intact rather than being deleted with the
       // data left behind (the original bug this replaces).
-      const token = await current.getIdToken();
+      // Force a refresh so the token carries the sign-in that just happened.
+      const token = await current.getIdToken(true);
       const response = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -221,7 +227,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(body.error ?? 'Failed to delete your data. Try again.');
       }
 
+      const uid = current.uid;
       await deleteUser(current);
+      // Local-only study sessions belong to the account that was just deleted.
+      clearSessions(uid);
     });
 
   const clearError = () => setError(null);
