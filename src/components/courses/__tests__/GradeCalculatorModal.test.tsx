@@ -107,6 +107,12 @@ describe('GradeCalculatorModal (Item 36)', () => {
     expect(screen.getByLabelText(/If you average/)).toBeDefined();
   });
 
+  it('sits above the mobile tab bar so its Done button is never covered', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
+    // The tab bar is z-50; every other dialog in the app is z-[60].
+    expect(screen.getByRole('dialog').className).toContain('z-[60]');
+  });
+
   it('switches between Course Target Solver and Semester GPA Impact tabs', () => {
     renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
 
