@@ -4,7 +4,7 @@
 // that throws if `window` is defined (firebase-admin must never load in
 // client code), so this needs the real Node environment instead of the
 // project's default jsdom.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const mockVerifyToken = vi.fn();
@@ -48,6 +48,25 @@ describe('AI Syllabus Chat Route (Item 35)', () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toMatch(/Missing message/i);
+  });
+
+  describe('when running in production', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it.each([
+      ['with the admin project set', 'my-project'],
+      ['with the admin project NOT set', ''],
+    ])('refuses a signed-out request %s', async (_label, projectId) => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', projectId);
+      const req = new NextRequest('http://localhost:3000/api/syllabus/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message: 'When is the final?' }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(401);
+      expect(mockAnthropicCreate).not.toHaveBeenCalled();
+    });
   });
 
   // Offline answers come only from what's on record. They used to invent
