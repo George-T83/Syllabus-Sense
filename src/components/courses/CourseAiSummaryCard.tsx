@@ -10,6 +10,8 @@ import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
 import { updateCourse } from '@/lib/firestore/courses';
 import { courseSummarySchema, type CourseSummaryNote } from '@/types/courseSummary';
 import type { Course } from '@/types/schedule';
+import { AiNote } from '@/components/ui/AiNote';
+import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 const CATEGORY_LABEL: Record<CourseSummaryNote['category'], string> = {
@@ -193,6 +195,10 @@ export function CourseAiSummaryCard({ course }: { course: Course }) {
             Generated {formatRelativeTime(summary.generatedAt)} from {summary.sourceFileName}
             {isStale && ' (a newer syllabus has been uploaded since)'}
           </p>
+          <AiNote>
+            Written by AI, so it can miss or misread things. Check dates and weights against the
+            syllabus. <CheckSyllabusButton syllabus={primarySyllabus} />
+          </AiNote>
         </div>
       )}
     </Card>

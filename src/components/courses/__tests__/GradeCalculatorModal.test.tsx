@@ -107,6 +107,12 @@ describe('GradeCalculatorModal (Item 36)', () => {
     expect(screen.getByLabelText(/If you average/)).toBeDefined();
   });
 
+  it('calls the outcome a projection and names the official source', () => {
+    renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
+    expect(screen.getByText(/A projection from the weights and scores shown here/)).toBeDefined();
+    expect(screen.getByText(/gradebook is the official grade/)).toBeDefined();
+  });
+
   it('sits above the mobile tab bar so its Done button is never covered', () => {
     renderWithProviders(<GradeCalculatorModal isOpen={true} onClose={vi.fn()} />);
     // The tab bar is z-50; every other dialog in the app is z-[60].

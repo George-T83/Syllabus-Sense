@@ -17,6 +17,8 @@ import { MemoryTiles } from '@/components/flashcards/MemoryTiles';
 import { generatedFlashcardsSchema } from '@/types/flashcard';
 import type { Flashcard } from '@/types/flashcard';
 import type { Course } from '@/types/schedule';
+import { AiNote } from '@/components/ui/AiNote';
+import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 export function FlashcardDeckCard({
@@ -197,6 +199,12 @@ export function FlashcardDeckCard({
             </button>
           ))}
       </div>
+      {(deckCards.length > 0 || latestSyllabus) && (
+        <AiNote className="mt-3">
+          Cards are written by AI from your syllabus and can be wrong.{' '}
+          <CheckSyllabusButton syllabus={latestSyllabus} />
+        </AiNote>
+      )}
     </Card>
   );
 }

@@ -23,6 +23,10 @@ import {
   WEEKDAY_LONG_DATE_YEAR_FORMATTER as dueDateFormatter,
 } from '@/lib/dateFormatters';
 import { dueInstant, isOverdue, parseDayKey } from '@/lib/calendar/dates';
+import { AiNote } from '@/components/ui/AiNote';
+import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
+import { useSyllabi } from '@/lib/firestore/useSyllabi';
+import { getPrimarySyllabus } from '@/lib/firestore/syllabi';
 
 /** Plain-English sentence comparing `item`'s grade weight to the rest of
  * its course, so "worth 25%" comes with a sense of scale instead of a bare
@@ -220,6 +224,10 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
 
   const item = state.scheduleItems.find((i) => i.id === taskId);
   const course = item ? state.courses.find((c) => c.id === item.courseId) : undefined;
+  // For the "Check the syllabus" link beside AI-read dates and weights. Hooks
+  // stay above the early return below; an empty course id means "nothing yet".
+  const syllabi = useSyllabi(user?.uid, item?.courseId ?? '');
+  const primarySyllabus = getPrimarySyllabus(syllabi);
 
   if (!item) {
     return (
@@ -446,6 +454,12 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
                 </span>
               )}
             </div>
+            {item.source === 'ai' && (
+              <AiNote className="mt-3">
+                Read from your syllabus by AI. The due date and weight can be wrong, so check them
+                against the syllabus. <CheckSyllabusButton syllabus={primarySyllabus} />
+              </AiNote>
+            )}
           </div>
 
           {/* The single most important action on this page gets a full-width

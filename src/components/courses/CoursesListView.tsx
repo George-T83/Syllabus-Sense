@@ -210,7 +210,8 @@ export function CoursesListView() {
             </span>
             <span className="text-xs text-muted-foreground">
               From {gpaSummary.gradedCourseCount} of {gpaSummary.totalCourseCount}{' '}
-              {gpaSummary.totalCourseCount === 1 ? 'course' : 'courses'} with grades entered.
+              {gpaSummary.totalCourseCount === 1 ? 'course' : 'courses'} with grades entered. An
+              estimate, not your official GPA.
             </span>
           </div>
         )}
