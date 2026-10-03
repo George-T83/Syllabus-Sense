@@ -10,6 +10,7 @@ import {
   type PdfViewerState,
 } from '@/components/syllabus/PdfViewer';
 import { toProxyUrl } from '@/lib/syllabus/proxyUrl';
+import { sanitizeDocxHtml } from '@/lib/syllabus/sanitizeDocxHtml';
 import { cn } from '@/lib/utils';
 import type { SyllabusUpload } from '@/types/syllabus';
 
@@ -71,7 +72,7 @@ function useDocxHtml(syllabus: SyllabusUpload | null, active: boolean, authToken
         if (!response.ok) throw new Error('fetch failed');
         const bytes = await response.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer: bytes });
-        if (!cancelled) setHtml(result.value);
+        if (!cancelled) setHtml(sanitizeDocxHtml(result.value));
       } catch (err) {
         console.error('[DocumentViewerModal] failed to convert docx', err);
         if (!cancelled) setError("Couldn't preview this file.");
