@@ -353,8 +353,15 @@ export function PlannerView() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const today = useMemo(() => new Date(), []);
+  const activeFilterCount =
+    Number(courseFilter !== 'all') +
+    Number(typeFilter !== 'all') +
+    Number(statusFilter !== 'all') +
+    Number(groupBy !== 'date') +
+    Number(withinSort !== 'dueDate');
 
   // Merged in from the former standalone /planner page: a recommended-
   // start-date plan (distinct from the due-date groups below - a task can
@@ -790,167 +797,47 @@ export function PlannerView() {
           }
         />
 
-        {/* Hero: today's recommended-start load is the single most useful
-            glanceable fact on this page - merged in from the former
-            standalone Planner page rather than buried in the 7-day strip
-            alongside every other day. */}
-        <Card accent className="rounded-2xl p-4 sm:p-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
-              Today&apos;s Load
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              {plan.runwayExhaustedCount > 0 && (
-                <span
-                  className={cn(
-                    'rounded-full border px-2.5 py-1 text-caption font-semibold',
-                    WORKLOAD_BADGE_CLASS.critical,
-                  )}
-                >
-                  {plan.runwayExhaustedCount} Runway Exhausted
-                </span>
-              )}
-              <span
-                className={cn(
-                  'rounded-full border px-2.5 py-1 text-caption font-semibold',
-                  WORKLOAD_CHIP_CLASS[todayLevel],
-                  WORKLOAD_TEXT_CLASS[todayLevel],
-                )}
-              >
-                {WORKLOAD_LEVEL_LABELS[todayLevel]}
-              </span>
-            </div>
-          </div>
-          <div className="mb-1 flex flex-wrap items-end gap-x-6 gap-y-3">
-            <div className="flex items-end gap-2">
-              <span className="text-display text-foreground sm:text-5xl">
-                {todayLoad.hours.toFixed(1)}
-                <span className="ml-1 text-h3 text-muted-foreground sm:text-xl">h</span>
-              </span>
-              <span className="pb-1.5 text-body-sm text-muted-foreground">due today</span>
-            </div>
-            {hasOverdueBacklog && (
-              <div className="flex items-end gap-2">
-                <span className="text-h1 text-destructive sm:text-3xl">
-                  {plan.overdueHours.toFixed(1)}
-                  <span className="ml-1 text-body-sm font-semibold text-destructive/70 sm:text-base">
-                    h
-                  </span>
-                </span>
-                <span className="pb-1 text-body-sm text-muted-foreground">overdue backlog</span>
-              </div>
-            )}
-          </div>
-          <p className="mb-5 text-xs text-muted-foreground">
-            Calculated from your exams, projects, and readings - weighted by type and progress, not
-            just a headcount.
-          </p>
-
-          {plan.startToday.length === 0 ? (
-            <EmptyState
-              icon={
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              }
-              title="Nothing to start today"
-              description="You're caught up - check back tomorrow."
-            />
-          ) : (
-            <ExpandableItemList
-              items={plan.startToday}
-              renderItem={({ item, startDate, overloaded, tight, overdue }) => (
-                <PlannedTaskRow
-                  key={item.id}
-                  variant={state.preferences.taskRowVariant}
-                  item={item}
-                  startDate={startDate}
-                  course={courses.find((c) => c.id === item.courseId)}
-                  overloaded={overloaded}
-                  tight={tight}
-                  overdue={overdue}
-                  onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
-                />
-              )}
-            />
-          )}
-        </Card>
-
-        {plan.overdueItems.length > 0 && (
-          <Card
-            accent="none"
-            className="rounded-2xl border-destructive/30 bg-destructive/5 p-4 sm:p-6"
-          >
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground">
-                  !
-                </span>
-                <h2 className="text-sm font-semibold text-destructive">
-                  Overdue Backlog ({plan.overdueItems.length}{' '}
-                  {plan.overdueItems.length === 1 ? 'item' : 'items'})
-                </h2>
-              </div>
-              <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
-                {plan.overdueHours.toFixed(1)}h backlog debt
-              </span>
-            </div>
-            <p className="mb-4 text-xs text-muted-foreground">
-              Past-due deliverables are separated from prospective 7-day runway planning. Complete
-              or reschedule these items to clear debt.
-            </p>
-            <ExpandableItemList
-              items={plan.overdueItems}
-              renderItem={({ item, startDate, overloaded, tight, overdue }) => (
-                <PlannedTaskRow
-                  key={item.id}
-                  item={item}
-                  startDate={startDate}
-                  course={courses.find((c) => c.id === item.courseId)}
-                  overloaded={overloaded}
-                  tight={tight}
-                  overdue={overdue}
-                  variant={state.preferences.taskRowVariant}
-                  onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
-                />
-              )}
-            />
-          </Card>
-        )}
-
-        <WorkloadOverviewDashboard />
-
-        <SemesterHeatmapCard />
-
-        <StudyBlockSuggestionsCard />
-
-        <PlanSection
-          title="Start This Week"
-          items={plan.startThisWeek}
-          courses={courses}
-          variant={state.preferences.taskRowVariant}
-          onToggleComplete={user ? handleToggleComplete : undefined}
-        />
-        <PlanSection
-          title="Later"
-          items={plan.startLater}
-          courses={courses}
-          variant={state.preferences.taskRowVariant}
-          onToggleComplete={user ? handleToggleComplete : undefined}
-        />
-
         {/* Header, stats, and filters as one panel (matching the Card
          * language WorkloadOverviewDashboard already establishes above)
          * instead of a bare heading + a plain text stats strip + a loose
          * row of selects each doing their own thing. */}
-        <Card className="rounded-2xl p-4 sm:p-5">
-          <div className="flex flex-wrap items-center gap-2">
+        <Card className="rounded-2xl p-3 sm:p-5">
+          {/* Five dropdowns stacked on a phone pushed the task list a full
+           * screen down, so below sm they sit behind one button that says
+           * how many are active. */}
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((open) => !open)}
+            aria-expanded={filtersOpen}
+            aria-controls="task-filters"
+            className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-2 text-left text-sm font-semibold text-foreground sm:hidden"
+          >
+            <span>Filter &amp; sort</span>
+            <span className="flex items-center gap-2">
+              {activeFilterCount > 0 && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                  {activeFilterCount} active
+                </span>
+              )}
+              <svg
+                className={cn('h-4 w-4 transition-transform', filtersOpen && 'rotate-180')}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
+          <div
+            id="task-filters"
+            className={cn(
+              'flex-wrap items-center gap-2 sm:mt-0 sm:flex',
+              filtersOpen ? 'mt-3 flex' : 'hidden',
+            )}
+          >
             <select
               aria-label="Filter by course"
               value={courseFilter}
@@ -1025,11 +912,16 @@ export function PlannerView() {
         </Card>
 
         <Card className="rounded-2xl p-6" data-testid="tasks-list-card">
-          <div className="mb-4 flex items-center gap-3">
-            <SectionIcon icon="tasks" />
-            <h2 className="text-base font-semibold text-foreground">
-              {filteredItems.length} task{filteredItems.length === 1 ? '' : 's'}
-            </h2>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <SectionIcon icon="tasks" />
+              <h2 className="text-base font-semibold text-foreground">
+                {filteredItems.length} task{filteredItems.length === 1 ? '' : 's'}
+              </h2>
+            </div>
+            <CardActionLink href="#planning" variant="ghost">
+              What to start today
+            </CardActionLink>
           </div>
 
           {!state.initialized ? (
@@ -1102,6 +994,176 @@ export function PlannerView() {
             </div>
           )}
         </Card>
+
+        <section
+          id="planning"
+          aria-labelledby="planning-heading"
+          className="scroll-mt-24 space-y-6 sm:space-y-8"
+        >
+          <div>
+            <h2 id="planning-heading" className="text-lg font-semibold text-foreground">
+              Planning
+            </h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Your workload and what to start when, based on the tasks above.
+            </p>
+          </div>
+
+          {/* Hero: today's recommended-start load is the single most useful
+            glanceable fact on this page - merged in from the former
+            standalone Planner page rather than buried in the 7-day strip
+            alongside every other day. */}
+          <Card accent className="rounded-2xl p-4 sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+                Today&apos;s Load
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {plan.runwayExhaustedCount > 0 && (
+                  <span
+                    className={cn(
+                      'rounded-full border px-2.5 py-1 text-caption font-semibold',
+                      WORKLOAD_BADGE_CLASS.critical,
+                    )}
+                  >
+                    {plan.runwayExhaustedCount} Runway Exhausted
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-caption font-semibold',
+                    WORKLOAD_CHIP_CLASS[todayLevel],
+                    WORKLOAD_TEXT_CLASS[todayLevel],
+                  )}
+                >
+                  {WORKLOAD_LEVEL_LABELS[todayLevel]}
+                </span>
+              </div>
+            </div>
+            <div className="mb-1 flex flex-wrap items-end gap-x-6 gap-y-3">
+              <div className="flex items-end gap-2">
+                <span className="text-display text-foreground sm:text-5xl">
+                  {todayLoad.hours.toFixed(1)}
+                  <span className="ml-1 text-h3 text-muted-foreground sm:text-xl">h</span>
+                </span>
+                <span className="pb-1.5 text-body-sm text-muted-foreground">due today</span>
+              </div>
+              {hasOverdueBacklog && (
+                <div className="flex items-end gap-2">
+                  <span className="text-h1 text-destructive sm:text-3xl">
+                    {plan.overdueHours.toFixed(1)}
+                    <span className="ml-1 text-body-sm font-semibold text-destructive/70 sm:text-base">
+                      h
+                    </span>
+                  </span>
+                  <span className="pb-1 text-body-sm text-muted-foreground">overdue backlog</span>
+                </div>
+              )}
+            </div>
+            <p className="mb-5 text-xs text-muted-foreground">
+              Calculated from your exams, projects, and readings - weighted by type and progress,
+              not just a headcount.
+            </p>
+
+            {plan.startToday.length === 0 ? (
+              <EmptyState
+                icon={
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                }
+                title="Nothing to start today"
+                description="You're caught up - check back tomorrow."
+              />
+            ) : (
+              <ExpandableItemList
+                items={plan.startToday}
+                renderItem={({ item, startDate, overloaded, tight, overdue }) => (
+                  <PlannedTaskRow
+                    key={item.id}
+                    variant={state.preferences.taskRowVariant}
+                    item={item}
+                    startDate={startDate}
+                    course={courses.find((c) => c.id === item.courseId)}
+                    overloaded={overloaded}
+                    tight={tight}
+                    overdue={overdue}
+                    onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+                  />
+                )}
+              />
+            )}
+          </Card>
+
+          {plan.overdueItems.length > 0 && (
+            <Card
+              accent="none"
+              className="rounded-2xl border-destructive/30 bg-destructive/5 p-4 sm:p-6"
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground">
+                    !
+                  </span>
+                  <h2 className="text-sm font-semibold text-destructive">
+                    Overdue Backlog ({plan.overdueItems.length}{' '}
+                    {plan.overdueItems.length === 1 ? 'item' : 'items'})
+                  </h2>
+                </div>
+                <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
+                  {plan.overdueHours.toFixed(1)}h backlog debt
+                </span>
+              </div>
+              <p className="mb-4 text-xs text-muted-foreground">
+                Past-due deliverables are separated from prospective 7-day runway planning. Complete
+                or reschedule these items to clear debt.
+              </p>
+              <ExpandableItemList
+                items={plan.overdueItems}
+                renderItem={({ item, startDate, overloaded, tight, overdue }) => (
+                  <PlannedTaskRow
+                    key={item.id}
+                    item={item}
+                    startDate={startDate}
+                    course={courses.find((c) => c.id === item.courseId)}
+                    overloaded={overloaded}
+                    tight={tight}
+                    overdue={overdue}
+                    variant={state.preferences.taskRowVariant}
+                    onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
+                  />
+                )}
+              />
+            </Card>
+          )}
+
+          <WorkloadOverviewDashboard />
+
+          <SemesterHeatmapCard />
+
+          <StudyBlockSuggestionsCard />
+
+          <PlanSection
+            title="Start This Week"
+            items={plan.startThisWeek}
+            courses={courses}
+            variant={state.preferences.taskRowVariant}
+            onToggleComplete={user ? handleToggleComplete : undefined}
+          />
+          <PlanSection
+            title="Later"
+            items={plan.startLater}
+            courses={courses}
+            variant={state.preferences.taskRowVariant}
+            onToggleComplete={user ? handleToggleComplete : undefined}
+          />
+        </section>
       </div>
 
       <TaskFormModal
