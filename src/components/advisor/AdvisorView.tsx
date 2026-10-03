@@ -32,6 +32,12 @@ function ChatBubble({ message }: { message: AdvisorMessage }) {
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
         {message.warning && <AdvisorWarningCard warning={message.warning} />}
+        {message.offline && (
+          <p className="text-caption text-muted-foreground">
+            Offline answer: worked out from your saved Degree Compass data by simple rules, not by
+            AI. It only understands a few questions.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -123,6 +129,7 @@ export function AdvisorView() {
         role: 'assistant',
         content: body.reply,
         ...(body.highStakes ? { warning: body.highStakes } : {}),
+        ...(body.offline ? { offline: true } : {}),
         createdAt: new Date().toISOString(),
       };
       await appendAdvisorMessage(user.uid, assistantMessage);
