@@ -89,6 +89,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // updateProfile changes the signed-in User object in place, so `user` keeps
+  // the same reference and React would not re-render. Bumping this counter is
+  // what makes consumers pick up the new displayName.
+  const [, setProfileRevision] = useState(0);
 
   useEffect(() => {
     if (
@@ -174,9 +178,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateDisplayName = (displayName: string) =>
     runAuthAction(async () => {
       await updateProfile(auth!.currentUser!, { displayName });
-      // updateProfile doesn't trigger onAuthStateChanged, so the cached user
-      // object won't reflect the new name without a manual refresh here.
-      setUser(auth!.currentUser ? { ...auth!.currentUser } : null);
+      // updateProfile doesn't trigger onAuthStateChanged, so consumers would
+      // not see the new name without a manual refresh here. Keep the real
+      // Firebase User: its methods (getIdToken, reload, ...) live on the
+      // prototype, so a spread copy `{ ...currentUser }` has none of them and
+      // every later `user.getIdToken()` (quizzes, flashcards, chat, ...)
+      // would throw. Re-render through the revision counter instead.
+      setUser(auth!.currentUser);
+      setProfileRevision((r) => r + 1);
     });
 
   const changePassword = (currentPassword: string, newPassword: string) =>
