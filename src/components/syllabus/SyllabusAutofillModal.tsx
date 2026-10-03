@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { syllabusContentType, validateSyllabusFile } from '@/lib/validation/syllabusFile';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { createContacts, updateContact } from '@/lib/firestore/contacts';
 import { courseFormSchema } from '@/lib/validation/course';
@@ -357,24 +358,6 @@ function renderInlineMarkdown(text: string): React.ReactNode {
   );
 }
 
-/** Classifies a caught extraction error into a user-facing bucket so the UI
- * never surfaces a raw fetch/JS error message (e.g. the literal string
- * "Failed to fetch") to the student. `fetch()` itself rejects with a
- * TypeError on a genuine network failure (offline, DNS, CORS, connection
- * reset) across browsers - that's the one case we can reliably tell apart
- * from a server-returned/parse failure, which covers everything else. */
-function classifyExtractionError(err: unknown): 'network' | 'auth' | 'parsing' {
-  if (err instanceof Error && err.message === 'You must be signed in.') return 'auth';
-  if (err instanceof TypeError) return 'network';
-  return 'parsing';
-}
-
-const EXTRACTION_ERROR_COPY: Record<ReturnType<typeof classifyExtractionError>, string> = {
-  network: "Couldn't reach the server — check your connection and try again.",
-  auth: 'You must be signed in to use Syllabus Autofill.',
-  parsing: "Couldn't read that file — try a different PDF or Word doc.",
-};
-
 /** Strips the synthetic per-item `key` (React list identity only, never
  * part of the extracted data) before a draft is snapshotted/compared for
  * the SY-5 dirty check. */
@@ -398,6 +381,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** False when the failure is the file's (or the account's) and sending the
+   * same request again cannot help, so "Try again" would only mislead. */
+  const [errorRetryable, setErrorRetryable] = useState(true);
   const [rerunCount, setRerunCount] = useState(0);
   const [revealFacts, setRevealFacts] = useState<string[]>([]);
   const [showRerunConfirm, setShowRerunConfirm] = useState(false);
@@ -596,8 +582,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ fileBase64, fileName: selected.name }),
       });
+      // Read a failure by its status, not its body: a platform-level 413 or
+      // 502 isn't JSON, and the route's own text is not always for students.
+      if (!res.ok) throw await aiRequestErrorFrom(res);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Extraction failed.');
 
       const result: SyllabusExtractionResult = data.result;
       const nextCourse = {
@@ -679,9 +667,13 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       );
       setStep('materializing');
     } catch (err) {
-      // Never surface the raw fetch/JS error (e.g. "Failed to fetch") to
-      // the student - map it to typed, actionable copy instead (SY-1).
-      setError(EXTRACTION_ERROR_COPY[classifyExtractionError(err)]);
+      // Never surface a raw fetch/JS error (e.g. "Failed to fetch") or a
+      // server string to the student. The copy names what actually failed
+      // (the connection, the file, a busy AI service, a daily limit).
+      console.error('[SyllabusAutofillModal] extraction failed', err);
+      const failure = describeAiFailure(err);
+      setError(failure.message);
+      setErrorRetryable(failure.retryable);
       setStep(course ? 'review' : 'upload');
     }
   };
@@ -1205,20 +1197,29 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                   {file.name}
                 </span>
                 <span className="text-xs text-destructive">{error}</span>
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => runExtraction(file)}
-                    className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90"
-                  >
-                    Try again
-                  </button>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  {errorRetryable && (
+                    <button
+                      type="button"
+                      onClick={() => runExtraction(file)}
+                      className="rounded-lg bg-primary text-primary-foreground text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-90"
+                    >
+                      Try again
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={chooseDifferentFile}
                     className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     Choose a different file
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStartFromScratch}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    Add it by hand
                   </button>
                 </div>
                 <input

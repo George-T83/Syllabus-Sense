@@ -17,6 +17,7 @@ import { MemoryTiles } from '@/components/flashcards/MemoryTiles';
 import { generatedFlashcardsSchema } from '@/types/flashcard';
 import type { Flashcard } from '@/types/flashcard';
 import type { Course } from '@/types/schedule';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 export function FlashcardDeckCard({
   course,
@@ -57,8 +58,8 @@ export function FlashcardDeckCard({
           fileName: latestSyllabus.fileName,
         }),
       });
+      if (!response.ok) throw await aiRequestErrorFrom(response);
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? 'Flashcard generation failed.');
 
       const generated = generatedFlashcardsSchema.parse(body.cards);
       const today = toDayKey(new Date());
@@ -75,7 +76,8 @@ export function FlashcardDeckCard({
       await createFlashcards(user.uid, newCards, dispatch);
       showSuccess('Flashcards generated', `${newCards.length} cards ready for ${course.code}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      console.error('[AI request] failed', err);
+      setError(describeAiFailure(err).message);
     } finally {
       setGenerating(false);
     }
