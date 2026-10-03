@@ -50,3 +50,7 @@ next-env.d.ts
 # local browser automation profile, never committed
 /chrome-profile/
 .env*
+
+# credentials never belong in the repo (use the emulators or a password manager)
+test-credentials*
+*-credentials.md
