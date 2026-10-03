@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
   throw new Error('Internal Error: firebase-admin must not be imported in client-side code.');
 }
 
-const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
 const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;

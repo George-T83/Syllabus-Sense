@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   if (!token || !projectId) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
