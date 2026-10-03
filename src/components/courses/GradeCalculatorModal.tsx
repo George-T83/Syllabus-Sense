@@ -281,7 +281,7 @@ export function GradeCalculatorModal({
       role="dialog"
       aria-modal="true"
       aria-label="What-If Grade Simulator & Target GPA Calculator"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm transition-opacity overflow-y-auto"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm transition-opacity overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

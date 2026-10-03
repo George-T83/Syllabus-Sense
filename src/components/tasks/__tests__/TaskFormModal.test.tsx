@@ -110,3 +110,43 @@ describe('TaskFormModal - Conflict-Aware Recurring Task Templates', () => {
     expect(onSubmit.mock.calls[0][0].dueDate).toBe('2026-09-07');
   });
 });
+
+describe('TaskFormModal - everyday behaviour', () => {
+  it('puts focus on the Title field when there are courses', () => {
+    render(
+      <TaskFormModal open={true} onClose={vi.fn()} onSubmit={vi.fn()} courses={mockCourses} />,
+    );
+    expect(document.activeElement).toBe(screen.getByLabelText('Title'));
+  });
+
+  it('keeps its overlay scrollable, so a tall form can reach its save button on a phone', () => {
+    render(
+      <TaskFormModal open={true} onClose={vi.fn()} onSubmit={vi.fn()} courses={mockCourses} />,
+    );
+    const overlay = screen.getByRole('dialog');
+    expect(overlay.className).toContain('overflow-y-auto');
+    // Auto-margin centring, not items-center: the latter clips a tall dialog.
+    expect(overlay.className).not.toContain('items-center');
+  });
+
+  describe('with no courses yet', () => {
+    it('offers a way to add a course instead of a disabled Add Task button', () => {
+      render(<TaskFormModal open={true} onClose={vi.fn()} onSubmit={vi.fn()} courses={[]} />);
+      const link = screen.getByRole('link', { name: 'Add a course' });
+      expect(link.getAttribute('href')).toBe('/courses?new=1');
+      expect(screen.queryByRole('button', { name: 'Add Task' })).toBeNull();
+    });
+
+    it('focuses that action rather than Cancel', () => {
+      render(<TaskFormModal open={true} onClose={vi.fn()} onSubmit={vi.fn()} courses={[]} />);
+      expect(document.activeElement).toBe(screen.getByRole('link', { name: 'Add a course' }));
+    });
+
+    it('closes the dialog when the student follows it', () => {
+      const onClose = vi.fn();
+      render(<TaskFormModal open={true} onClose={onClose} onSubmit={vi.fn()} courses={[]} />);
+      fireEvent.click(screen.getByRole('link', { name: 'Add a course' }));
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+});
