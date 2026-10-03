@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * CI gate: fails only on a critical `npm audit` finding that isn't already
- * tracked in scripts/acceptedCriticalVulnerabilities.json. A known, dated,
- * reasoned exception doesn't reset the gate to "anything goes" - a
- * genuinely new critical (a different package, or the same package once a
- * fix becomes available and isn't taken) still fails the build. See that
- * JSON file for what's currently accepted and why.
+ * CI gate: fails on a critical `npm audit` finding unless it is covered by a
+ * live waiver in scripts/acceptedCriticalVulnerabilities.json. A waiver is a
+ * known, reasoned, *temporary* exception: each entry needs a `package`, a
+ * `reason`, `trackedSince` and an `expires` date (YYYY-MM-DD, at most 90 days
+ * after `trackedSince`). Once it expires the build fails again until the
+ * vulnerability is fixed or the decision is renewed on purpose. A genuinely
+ * new critical (a different package) fails immediately. The file is an empty
+ * list when nothing is waived, which is the goal.
  */
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -30,7 +32,10 @@ try {
   auditJson = JSON.parse(err.stdout);
 }
 
-const { tracked, newCriticals } = partitionCriticals(auditJson.vulnerabilities, allowlist);
+const { tracked, newCriticals, expired, staleEntries } = partitionCriticals(
+  auditJson.vulnerabilities,
+  allowlist,
+);
 
 if (tracked.length > 0) {
   console.log(
@@ -38,8 +43,25 @@ if (tracked.length > 0) {
   );
   for (const [name] of tracked) {
     const entry = allowlist.find((e) => e.package === name);
-    console.log(`  - ${name}: ${entry.reason}`);
+    console.log(`  - ${name}: ${entry.reason} (waiver expires ${entry.expires})`);
   }
+}
+
+if (staleEntries.length > 0) {
+  console.log('\nWaivers that no longer match any critical finding - delete them:');
+  for (const e of staleEntries) console.log(`  - ${e.package}`);
+}
+
+if (expired.length > 0) {
+  console.error('\nCritical vulnerabilities whose waiver is no longer valid:');
+  for (const { entry, problem, vulnerability } of expired) {
+    console.error(
+      `  - ${entry.package} (${vulnerability.range || 'unknown range'}): waiver ${problem}`,
+    );
+  }
+  console.error(
+    '\nFix the vulnerability, or renew the waiver on purpose with a new `expires` date and reason.',
+  );
 }
 
 if (newCriticals.length > 0) {
@@ -48,11 +70,12 @@ if (newCriticals.length > 0) {
     console.error(`  - ${name} (${v.range || 'unknown range'})`);
   }
   console.error(
-    '\nEither fix it, or if it genuinely has no available fix yet, add it to scripts/acceptedCriticalVulnerabilities.json with a dated reason.',
+    '\nEither fix it, or if it genuinely has no available fix yet, add it to scripts/acceptedCriticalVulnerabilities.json with a reason and an `expires` date.',
   );
-  process.exit(1);
 }
 
+if (newCriticals.length > 0 || expired.length > 0) process.exit(1);
+
 console.log(
-  `\nNo new critical vulnerabilities (${tracked.length + newCriticals.length} critical total, ${tracked.length} already tracked).`,
+  `\nNo unwaived critical vulnerabilities (${tracked.length} critical total, ${tracked.length} covered by a live waiver).`,
 );
