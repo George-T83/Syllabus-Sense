@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
-import { requireUser } from '@/lib/auth/requireUser';
+import { requireUserOutsideDemo } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { generateOfflineSyllabusAnswer, type ChatRequestBody } from '@/lib/syllabus/chatEngine';
@@ -36,16 +36,15 @@ export async function POST(req: NextRequest) {
     body.syllabusText = undefined;
   }
 
-  // Optional authentication check (graceful for demo/dev)
-  const user = await requireUser(req);
-  const isProd = process.env.NODE_ENV === 'production';
-  if (isProd && !user && process.env.FIREBASE_ADMIN_PROJECT_ID) {
+  // Signed-out calls are only allowed outside production (local dev, demos).
+  const { user, denied } = await requireUserOutsideDemo(req);
+  if (denied) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 
   // Unauthenticated demo/dev calls have no stable identity to cap by, and
-  // that path is only reachable outside prod or without an admin project
-  // configured in the first place - only meter identified callers.
+  // that path is only reachable outside production - only meter identified
+  // callers.
   if (user) {
     const usage = await checkAndIncrementAiUsage(user);
     if (!usage.allowed) {

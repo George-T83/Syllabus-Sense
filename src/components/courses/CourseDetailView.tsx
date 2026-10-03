@@ -213,7 +213,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const router = useRouter();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showWarning } = useToast();
   const syllabi = useSyllabi(user?.uid, courseId);
   const currentPrimarySyllabus = getPrimarySyllabus(syllabi) ?? null;
   const [syllabusDiff, setSyllabusDiff] = useState<{
@@ -316,8 +316,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     if (!user) return;
     setIsDeletingCourse(true);
     try {
-      await deleteCourse(user.uid, course, items, dispatch, courseContacts);
-      showSuccess('Course deleted', `${course.code} and its tasks were removed.`);
+      const { failedFiles } = await deleteCourse(user.uid, course, items, dispatch, courseContacts);
+      if (failedFiles > 0) {
+        showWarning(
+          'Course deleted, but not all files',
+          `${failedFiles} uploaded ${failedFiles === 1 ? 'file' : 'files'} for ${course.code} couldn't be removed from storage.`,
+        );
+      } else {
+        showSuccess('Course deleted', `${course.code} and everything in it was removed.`);
+      }
       router.push('/dashboard');
     } catch (err) {
       showError('Could not delete course', err instanceof Error ? err.message : undefined);
@@ -838,7 +845,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     onConfirm={handleDeleteCourse}
                     onCancel={() => setConfirmingDeleteCourse(false)}
                     size="lg"
-                    message="Delete course and its tasks?"
+                    message="Delete this course and everything in it?"
                   />
                 ) : (
                   <button

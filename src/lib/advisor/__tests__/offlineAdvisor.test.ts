@@ -92,4 +92,35 @@ describe('generateOfflineAdvisorReply', () => {
     expect(result.reply).toContain('General Education: 36 credits still needed');
     expect(result.reply).not.toContain('Major Core');
   });
+
+  it('marks every reply as offline so the page can say it is not the AI', () => {
+    expect(generateOfflineAdvisorReply('Should I drop CHEM 201?', baseInput()).offline).toBe(true);
+    expect(generateOfflineAdvisorReply('hello', baseInput()).offline).toBe(true);
+  });
+
+  it.each([
+    'Why is my backdrop image blurry?',
+    'I need more space in my schedule',
+    'Is there a drop-down for terms?',
+    'Which soundtrack is good for studying?',
+  ])('does not mistake "%s" for a drop, pace or track question', (message) => {
+    const result = generateOfflineAdvisorReply(message, baseInput());
+    expect(result.highStakes).toBeUndefined();
+    expect(result.reply).not.toMatch(/Dropping or withdrawing/);
+  });
+
+  it.each(['I am thinking of dropping organic chem', 'Can I withdraw after week 8?', 'drop?'])(
+    'still flags "%s" as a drop question',
+    (message) => {
+      expect(generateOfflineAdvisorReply(message, baseInput()).highStakes).toBeDefined();
+    },
+  );
+
+  it('says it cannot answer an unrelated question instead of pretending to', () => {
+    const input = baseInput({
+      degreeProfile: { majorName: 'Computer Science', categories: [majorCore], updatedAt: '2026' },
+    });
+    const result = generateOfflineAdvisorReply('What is the capital of France?', input);
+    expect(result.reply).toMatch(/can't answer that one without the AI/);
+  });
 });

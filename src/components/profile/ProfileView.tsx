@@ -2,7 +2,7 @@
 
 import { useMemo, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { SectionIcon } from '@/components/ui/SectionIcon';
@@ -14,6 +14,10 @@ import { db } from '@/lib/firebase/client';
 import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
 import { generateICS, createICSBlob, buildICSFilename } from '@/lib/export/ics';
 import { generateVCard } from '@/lib/export/vcard';
+import { buildDataExport } from '@/lib/export/dataExport';
+import { loadSessions } from '@/lib/focus/pomodoroSessions';
+import type { DegreeCourse, DegreeProfile } from '@/types/degreeCompass';
+import type { AdvisorMessage } from '@/types/advisor';
 import type { SyllabusUpload } from '@/types/syllabus';
 import type { GradeScenario } from '@/types/gradeScenario';
 import type { MeetingTime } from '@/types/schedule';
@@ -308,8 +312,13 @@ export function ProfileView() {
         snapshot.docs.map((doc) => doc.data() as GradeScenario),
       );
 
-      const payload = {
-        exportedAt: new Date().toISOString(),
+      const [profileSnap, degreeCoursesSnap, advisorSnap] = await Promise.all([
+        getDoc(doc(firestore, 'users', user.uid, 'degreeProfile', 'profile')),
+        getDocs(collection(firestore, 'users', user.uid, 'degreeCourses')),
+        getDocs(collection(firestore, 'users', user.uid, 'advisorMessages')),
+      ]);
+
+      const payload = buildDataExport({
         account: {
           email: user.email,
           displayName: user.displayName,
@@ -318,11 +327,19 @@ export function ProfileView() {
         courses: state.courses,
         scheduleItems: state.scheduleItems,
         contacts: state.contacts,
+        sources: state.sources,
+        flashcards: state.flashcards,
+        quizzes: state.quizzes,
+        quizAttempts: state.quizAttempts,
         moodEntries: state.moodEntries,
         gradeScenarios,
-        preferences: state.preferences,
         syllabi,
-      };
+        degreeProfile: profileSnap.exists() ? (profileSnap.data() as DegreeProfile) : null,
+        degreeCourses: degreeCoursesSnap.docs.map((d) => d.data() as DegreeCourse),
+        advisorMessages: advisorSnap.docs.map((d) => d.data() as AdvisorMessage),
+        focusSessions: loadSessions(user.uid),
+        preferences: state.preferences,
+      });
       downloadBlob(
         new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
         `syllabus-sense-data-${user.uid}.json`,
@@ -886,8 +903,10 @@ export function ProfileView() {
         <div className="border-t border-border pt-5" data-testid="data-export-section">
           <h3 className="text-sm font-semibold text-foreground">Your data</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every course, task, contact, mood check-in, grade scenario, syllabus, and preference in
-            your account - as one machine-readable file, or as files other apps can actually open.
+            Everything saved in your account - courses, tasks, contacts, mood check-ins, grade
+            scenarios, syllabus records, flashcards, quizzes, degree plan, Advisor conversation,
+            focus sessions and preferences - as one machine-readable file, or as files other apps
+            can actually open. The uploaded syllabus files themselves are not in the file.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
@@ -925,7 +944,8 @@ export function ProfileView() {
         >
           <h3 className="text-sm font-semibold text-destructive">Delete account</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Permanently deletes your Syllabus Sense sign-in. This cannot be undone.
+            Permanently deletes your sign-in and everything in your account, including uploaded
+            files. You&apos;ll be asked to sign in again first. This cannot be undone.
           </p>
 
           {!deleting ? (
