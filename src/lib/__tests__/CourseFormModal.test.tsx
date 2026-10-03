@@ -17,6 +17,19 @@ describe('CourseFormModal', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('keeps its overlay scrollable, so a dialog taller than a phone can reach Add Course', () => {
+    renderModal(<CourseFormModal open onClose={vi.fn()} onSubmit={vi.fn()} />);
+    const overlay = screen.getByRole('dialog');
+    expect(overlay.className).toContain('overflow-y-auto');
+    // Auto-margin centring, not items-center: the latter clips a tall dialog.
+    expect(overlay.className).not.toContain('items-center');
+  });
+
+  it('puts focus on the first field when it opens', () => {
+    renderModal(<CourseFormModal open onClose={vi.fn()} onSubmit={vi.fn()} />);
+    expect(document.activeElement).toBe(screen.getByLabelText('Course Code'));
+  });
+
   it('blocks submit and shows errors when required fields are empty', async () => {
     const onSubmit = vi.fn();
     renderModal(<CourseFormModal open onClose={vi.fn()} onSubmit={onSubmit} />);

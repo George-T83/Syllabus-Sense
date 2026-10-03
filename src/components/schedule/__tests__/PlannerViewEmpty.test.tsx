@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { PlannerView } from '../PlannerView';
 import { AppStateProvider } from '@/context/AppStateContext';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -65,5 +65,28 @@ describe('PlannerView with nothing to plan', () => {
     );
     expect(screen.queryByRole('heading', { name: 'Your deadlines go here' })).toBeNull();
     expect(screen.getByTestId('tasks-list-card')).toBeTruthy();
+  });
+});
+
+describe('PlannerView once tasks exist', () => {
+  const task: ScheduleItem = {
+    id: 't1',
+    courseId: 'cs',
+    title: 'Problem Set 1',
+    type: 'assignment',
+    dueDate: '2099-01-01',
+    completed: false,
+  } as ScheduleItem;
+
+  it('keeps an Add Task button in the page header', () => {
+    renderTasks([course], [task]);
+    expect(screen.getByRole('button', { name: 'Add Task' })).toBeTruthy();
+  });
+
+  it('opens the Add Task form from that button', () => {
+    renderTasks([course], [task]);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Task' }));
+    expect(screen.getByRole('dialog', { name: 'Add Task' })).toBeTruthy();
   });
 });
