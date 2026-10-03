@@ -7,6 +7,8 @@ import { saveSession } from '@/lib/focus/pomodoroSessions';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
+import { usePlatform } from '@/hooks/usePlatformKey';
+import { matchesShortcut } from '@/lib/shortcuts';
 
 const WORK_DURATION = 25 * 60; // 25 minutes
 const BREAK_DURATION = 5 * 60; //  5 minutes
@@ -96,7 +98,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
   // Alt+P keyboard shortcut to toggle the widget
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.altKey && e.key === 'p') {
+      if (matchesShortcut(e, 'timer')) {
         e.preventDefault();
         setVisible((v) => !v);
       }
@@ -106,6 +108,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
   }, []);
 
   const { user } = useAuth();
+  const { alt } = usePlatform();
   const userId = user?.uid;
 
   const tick = useCallback(() => {
@@ -174,8 +177,8 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
     return (
       <FloatingActionPill
         onClick={() => setVisible(true)}
-        ariaLabel="Open Pomodoro focus timer (Alt+P)"
-        title="Focus Timer (Alt+P)"
+        ariaLabel={`Open Pomodoro focus timer (${alt}+P)`}
+        title={`Focus Timer (${alt}+P)`}
         positionClassName="bottom-20 left-4 z-50 md:bottom-6 md:left-6"
         colorClassName="border-amber-400/30 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 shadow-[0_8px_25px_rgba(245,158,11,0.4)] hover:shadow-[0_12px_30px_rgba(245,158,11,0.6)] focus:ring-amber-400 dark:from-slate-900 dark:to-slate-800 dark:text-amber-400 dark:border-amber-500/40 dark:shadow-2xl"
         icon={
@@ -195,7 +198,7 @@ export function PomodoroTimer({ taskId, openSignal }: PomodoroTimerProps = {}) {
         }
         label="Focus Timer"
         labelClassName="text-white dark:text-amber-300"
-        shortcut="Alt+P"
+        shortcut={`${alt}+P`}
         shortcutClassName="dark:bg-amber-500/20 dark:text-amber-300"
       />
     );

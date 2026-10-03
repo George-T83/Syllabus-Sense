@@ -115,7 +115,8 @@ describe('SyllabusChatDrawer (Item 35)', () => {
     renderWithProviders(<SyllabusChatDrawer isOpen={true} onClose={vi.fn()} />);
 
     expect(screen.getByRole('dialog')).toBeDefined();
-    expect(screen.getByText(/AI Syllabus Copilot/i)).toBeDefined();
+    expect(screen.getByRole('heading', { name: /AI Advisor/i })).toBeDefined();
+    expect(screen.queryByText(/Copilot/i)).toBeNull();
     expect(screen.getByLabelText(/Select course scope/i)).toBeDefined();
     expect(screen.getByPlaceholderText(/Ask anything about/i)).toBeDefined();
     expect(screen.getByRole('button', { name: /Send query/i })).toBeDefined();

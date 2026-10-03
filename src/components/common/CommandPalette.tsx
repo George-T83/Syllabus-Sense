@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAppState } from '@/context/AppStateContext';
 import { useTheme } from '@/context/ThemeProvider';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
+import { matchesShortcut } from '@/lib/shortcuts';
 import { isCardDue } from '@/lib/flashcards/sm2';
 import { parseDayKey } from '@/lib/calendar/dates';
 
@@ -69,10 +70,10 @@ export function CommandPalette({
     setSelectedIndex(0);
   }, [isControlled, controlledOnClose]);
 
-  // Global hotkey: Cmd+P / Ctrl+P
+  // Global hotkey: Cmd+K / Ctrl+K. Not Ctrl+P - that is the browser's Print.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p') {
+      if (matchesShortcut(e, 'palette')) {
         e.preventDefault();
         if (isOpen) {
           closePalette();
@@ -258,10 +259,10 @@ export function CommandPalette({
       },
       {
         id: 'action-ai-copilot',
-        title: 'Ask AI Syllabus Copilot',
+        title: 'Ask the AI Advisor',
         subtitle: 'Query syllabus policies, grading scales, and late work rules',
         category: 'Actions',
-        badge: 'AI Copilot',
+        badge: 'AI Advisor',
         badgeVariant: 'primary',
         perform: () => {
           // The chat drawer's open/closed state lives in LayoutWrapper, not
@@ -269,6 +270,18 @@ export function CommandPalette({
           // consumed this callback, so the palette just closed and nothing
           // else happened.
           onAction?.('ai-copilot');
+          closePalette();
+        },
+      },
+      {
+        id: 'action-shortcuts',
+        title: 'Keyboard shortcuts',
+        subtitle: 'See every shortcut in one list',
+        category: 'Actions',
+        badge: '?',
+        badgeVariant: 'primary',
+        perform: () => {
+          onAction?.('shortcuts');
           closePalette();
         },
       },
@@ -457,7 +470,7 @@ export function CommandPalette({
             aria-autocomplete="list"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Type a command, course, task, or page (or ${modKey}+P)...`}
+            placeholder={`Type a command, course, task, or page (or ${modKey}+K)...`}
             className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {query ? (

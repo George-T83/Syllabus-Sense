@@ -206,8 +206,46 @@ describe('CommandPalette (Item 34)', () => {
     const onAction = vi.fn();
     renderWithProviders(<CommandPalette isOpen={true} onAction={onAction} />);
 
-    fireEvent.click(screen.getByText('Ask AI Syllabus Copilot'));
+    fireEvent.click(screen.getByText('Ask the AI Advisor'));
     expect(onAction).toHaveBeenCalledWith('ai-copilot');
+  });
+
+  it('opens with Ctrl+K and closes again with Ctrl+K', () => {
+    renderWithProviders(<CommandPalette />);
+    expect(screen.queryByPlaceholderText(/Type a command/)).toBeNull();
+
+    fireEvent.keyDown(window, { key: 'k', code: 'KeyK', ctrlKey: true });
+    expect(screen.getByPlaceholderText(/Type a command/)).toBeDefined();
+
+    fireEvent.keyDown(window, { key: 'k', code: 'KeyK', ctrlKey: true });
+    expect(screen.queryByPlaceholderText(/Type a command/)).toBeNull();
+  });
+
+  it('opens with Cmd+K on a Mac', () => {
+    renderWithProviders(<CommandPalette />);
+    fireEvent.keyDown(window, { key: 'k', code: 'KeyK', metaKey: true });
+    expect(screen.getByPlaceholderText(/Type a command/)).toBeDefined();
+  });
+
+  it('leaves Ctrl+P alone so the browser can print', () => {
+    renderWithProviders(<CommandPalette />);
+    const printKey = new KeyboardEvent('keydown', {
+      key: 'p',
+      code: 'KeyP',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(printKey);
+    expect(printKey.defaultPrevented).toBe(false);
+    expect(screen.queryByPlaceholderText(/Type a command/)).toBeNull();
+  });
+
+  it('lists a Keyboard shortcuts command that fires onAction', () => {
+    const onAction = vi.fn();
+    renderWithProviders(<CommandPalette isOpen={true} onAction={onAction} />);
+    fireEvent.click(screen.getByText('Keyboard shortcuts'));
+    expect(onAction).toHaveBeenCalledWith('shortcuts');
   });
 
   it('fires onAction for pomodoro, whose open/closed state lives outside the palette', () => {
