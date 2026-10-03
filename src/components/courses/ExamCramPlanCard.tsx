@@ -15,6 +15,7 @@ import {
 } from '@/lib/planner/cramPlan';
 import { generatedCramPlanSchema } from '@/types/cramPlan';
 import type { Course } from '@/types/schedule';
+import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 export function ExamCramPlanCard({ course }: { course: Course }) {
   const { user } = useAuth();
@@ -54,8 +55,8 @@ export function ExamCramPlanCard({ course }: { course: Course }) {
           days: planDays,
         }),
       });
+      if (!response.ok) throw await aiRequestErrorFrom(response);
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? 'Cram plan generation failed.');
 
       const topics = generatedCramPlanSchema(planDays).parse(body.topics);
       await Promise.all(
@@ -78,7 +79,8 @@ export function ExamCramPlanCard({ course }: { course: Course }) {
       );
       setAddedCount(topics.length);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      console.error('[AI request] failed', err);
+      setError(describeAiFailure(err).message);
     } finally {
       setGenerating(false);
     }
