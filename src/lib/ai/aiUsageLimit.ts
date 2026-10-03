@@ -17,6 +17,18 @@ export const AI_DAILY_CALL_LIMIT = (() => {
 })();
 
 /**
+ * Hard ceiling on Anthropic-calling requests across ALL accounts (and any
+ * unauthenticated caller) per UTC day. Unlike the per-user cap below, which
+ * the repo owner turned off, this one bounds the worst-case daily bill no
+ * matter how many accounts or scripts are calling. Tune with
+ * AI_GLOBAL_DAILY_CALL_LIMIT; see docs/AI_USAGE_CAP.md for how to pick it.
+ */
+export const AI_GLOBAL_DAILY_CALL_LIMIT = (() => {
+  const raw = Number(process.env.AI_GLOBAL_DAILY_CALL_LIMIT);
+  return Number.isInteger(raw) && raw > 0 ? raw : 1000;
+})();
+
+/**
  * Global kill switch for the cap below - turned off deliberately by the
  * repo owner. See docs/AI_USAGE_CAP.md for why, and for what to check before
  * flipping this back to `true` (which is the only change re-enabling it
@@ -29,10 +41,14 @@ export interface AiUsageCaller {
   email?: string;
 }
 
+export type AiUsageDenialReason = 'user_limit' | 'global_limit';
+
 export interface AiUsageDecision {
   allowed: boolean;
   remaining: number;
   limit: number;
+  /** Why a call was refused. Absent when `allowed` is true. */
+  reason?: AiUsageDenialReason;
   /** True when this call bypassed the cap entirely (an exempt account) -
    * `remaining`/`limit` are meaningless in that case and callers shouldn't
    * display them as a real quota. */
@@ -80,43 +96,110 @@ export function decideAiUsage(
 }
 
 /**
- * Atomically checks and increments today's AI-call count for a user.
- * Returns `allowed: false` (without incrementing) once the daily limit is
- * hit. While `AI_USAGE_CAP_ENABLED` is off (see above), this always passes
- * without touching Firestore at all - same as an exempt caller (see
- * `isExempt`), which always passes below that too. When adminDb isn't
- * configured (local dev without admin credentials), this fails open - the
- * routes it guards already 503 without adminStorage/getAnthropicClient in
- * that case, so this never becomes the only gate.
+ * Pure decision for one call. The global budget is checked first so a refused
+ * call never uses up a per-user slot, and a per-user refusal never uses up a
+ * global one. `userCount` is null when the caller is not metered per user
+ * (cap switched off, exempt account, or no identity).
  */
-export async function checkAndIncrementAiUsage(caller: AiUsageCaller): Promise<AiUsageDecision> {
-  if (!AI_USAGE_CAP_ENABLED) {
-    return { allowed: true, remaining: Infinity, limit: Infinity, unlimited: true };
+export function decideAiCall(input: {
+  globalCount: number;
+  globalLimit?: number;
+  userCount: number | null;
+  userLimit?: number;
+}): { allowed: boolean; reason?: AiUsageDenialReason; userRemaining: number | null } {
+  const globalLimit = input.globalLimit ?? AI_GLOBAL_DAILY_CALL_LIMIT;
+  const userLimit = input.userLimit ?? AI_DAILY_CALL_LIMIT;
+  if (input.globalCount >= globalLimit) {
+    return { allowed: false, reason: 'global_limit', userRemaining: null };
   }
+  if (input.userCount === null) return { allowed: true, userRemaining: null };
+  const user = decideAiUsage(input.userCount, userLimit);
+  if (!user.allowed) return { allowed: false, reason: 'user_limit', userRemaining: 0 };
+  return { allowed: true, userRemaining: user.remaining };
+}
 
-  if (isExempt(caller)) {
-    return { allowed: true, remaining: Infinity, limit: Infinity, unlimited: true };
-  }
+const UNLIMITED: AiUsageDecision = {
+  allowed: true,
+  remaining: Infinity,
+  limit: Infinity,
+  unlimited: true,
+};
+
+/**
+ * Atomically checks and increments today's AI-call counts: the global budget
+ * for every call, plus the per-user count for a metered caller. Returns
+ * `allowed: false` (without incrementing anything) once either limit is hit.
+ *
+ * While `AI_USAGE_CAP_ENABLED` is off (see above) or the caller is exempt,
+ * only the global budget applies. `caller` is null for an unauthenticated
+ * request, which is also counted against the global budget.
+ *
+ * When adminDb isn't configured (local dev without admin credentials) this
+ * fails open - the routes it guards already 503 without adminStorage/
+ * getAnthropicClient in that case, so this is never the only gate. If the
+ * transaction itself fails, the error propagates and the route returns 500
+ * without calling Anthropic, so a Firestore outage stops spend rather than
+ * allowing it.
+ */
+export async function checkAndIncrementAiUsage(
+  caller: AiUsageCaller | null,
+): Promise<AiUsageDecision> {
+  const userMetered = caller !== null && AI_USAGE_CAP_ENABLED && !isExempt(caller);
 
   if (!adminDb) {
-    return {
-      allowed: true,
-      remaining: AI_DAILY_CALL_LIMIT - 1,
-      limit: AI_DAILY_CALL_LIMIT,
-      unlimited: false,
-    };
+    return userMetered
+      ? {
+          allowed: true,
+          remaining: AI_DAILY_CALL_LIMIT - 1,
+          limit: AI_DAILY_CALL_LIMIT,
+          unlimited: false,
+        }
+      : UNLIMITED;
   }
 
-  const dayKey = toDayKey(new Date());
-  const ref = adminDb.doc(`users/${caller.uid}/aiUsage/${dayKey}`);
+  const now = new Date();
+  // The budget resets at UTC midnight so "paused until midnight UTC" is a
+  // single, server-independent moment.
+  const globalRef = adminDb.doc(`aiBudget/${now.toISOString().slice(0, 10)}`);
+  const userRef =
+    userMetered && caller ? adminDb.doc(`users/${caller.uid}/aiUsage/${toDayKey(now)}`) : null;
 
   return adminDb.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const currentCount = (snap.exists ? (snap.data()?.count as number | undefined) : 0) ?? 0;
-    const decision = decideAiUsage(currentCount);
-    if (!decision.allowed) return { ...decision, unlimited: false };
+    const [globalSnap, userSnap] = await Promise.all([
+      tx.get(globalRef),
+      userRef ? tx.get(userRef) : Promise.resolve(null),
+    ]);
+    const globalCount = (globalSnap.exists ? (globalSnap.data()?.count as number) : 0) ?? 0;
+    const userCount = userSnap
+      ? ((userSnap.exists ? (userSnap.data()?.count as number | undefined) : 0) ?? 0)
+      : null;
 
-    tx.set(ref, { count: currentCount + 1, updatedAt: new Date().toISOString() }, { merge: true });
-    return { ...decision, unlimited: false };
+    const decision = decideAiCall({ globalCount, userCount });
+    if (!decision.allowed) {
+      const reason = decision.reason as AiUsageDenialReason;
+      return reason === 'global_limit'
+        ? {
+            allowed: false,
+            remaining: 0,
+            limit: AI_GLOBAL_DAILY_CALL_LIMIT,
+            unlimited: !userMetered,
+            reason,
+          }
+        : { allowed: false, remaining: 0, limit: AI_DAILY_CALL_LIMIT, unlimited: false, reason };
+    }
+
+    const stamp = new Date().toISOString();
+    tx.set(globalRef, { count: globalCount + 1, updatedAt: stamp }, { merge: true });
+    if (userRef && userCount !== null) {
+      tx.set(userRef, { count: userCount + 1, updatedAt: stamp }, { merge: true });
+    }
+    return decision.userRemaining === null
+      ? UNLIMITED
+      : {
+          allowed: true,
+          remaining: decision.userRemaining,
+          limit: AI_DAILY_CALL_LIMIT,
+          unlimited: false,
+        };
   });
 }

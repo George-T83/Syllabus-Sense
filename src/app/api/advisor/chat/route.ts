@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BODY_LIMITS, bodyErrorResponse, readJsonBody } from '@/lib/http/readJsonBody';
 import type Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
+import { aiUsageDeniedResponse } from '@/lib/ai/usageResponse';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { buildAdvisorSystemPrompt, buildAdvisorTool } from '@/lib/ai/advisorTool';
 import { buildAdvisorContextBlock, type AdvisorContextInput } from '@/lib/advisor/buildContext';
@@ -40,9 +42,9 @@ export async function POST(req: NextRequest) {
 
   let body: AdvisorChatRequestBody;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    body = await readJsonBody(req, BODY_LIMITS.text);
+  } catch (err) {
+    return bodyErrorResponse(err, 'Invalid JSON body.');
   }
 
   if (!body.message || typeof body.message !== 'string') {
@@ -51,10 +53,7 @@ export async function POST(req: NextRequest) {
 
   const usage = await checkAndIncrementAiUsage(user);
   if (!usage.allowed) {
-    return NextResponse.json(
-      { error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.` },
-      { status: 429 },
-    );
+    return aiUsageDeniedResponse(usage);
   }
 
   const contextInput: AdvisorContextInput = {

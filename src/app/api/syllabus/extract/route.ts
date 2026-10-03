@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BODY_LIMITS, bodyErrorResponse, readJsonBody } from '@/lib/http/readJsonBody';
 import type Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
+import { aiUsageDeniedResponse } from '@/lib/ai/usageResponse';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import {
   SYLLABUS_EXTRACTION_SYSTEM_PROMPT,
@@ -23,17 +25,14 @@ export async function POST(req: NextRequest) {
 
   const usage = await checkAndIncrementAiUsage(user);
   if (!usage.allowed) {
-    return NextResponse.json(
-      { error: `Daily AI usage limit reached (${usage.limit} requests/day). Try again tomorrow.` },
-      { status: 429 },
-    );
+    return aiUsageDeniedResponse(usage);
   }
 
   let body: { fileBase64?: string; fileName?: string };
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+    body = await readJsonBody(req, BODY_LIMITS.file);
+  } catch (err) {
+    return bodyErrorResponse(err, 'Invalid request body.');
   }
 
   const { fileBase64, fileName } = body;
