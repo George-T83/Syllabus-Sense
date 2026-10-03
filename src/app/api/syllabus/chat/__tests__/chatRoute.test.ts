@@ -59,6 +59,7 @@ describe('AI Syllabus Chat Route (Item 35)', () => {
     ])('refuses a signed-out request %s', async (_label, projectId) => {
       vi.stubEnv('NODE_ENV', 'production');
       vi.stubEnv('FIREBASE_ADMIN_PROJECT_ID', projectId);
+      vi.stubEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID', '');
       const req = new NextRequest('http://localhost:3000/api/syllabus/chat', {
         method: 'POST',
         body: JSON.stringify({ message: 'When is the final?' }),
