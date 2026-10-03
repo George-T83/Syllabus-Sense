@@ -10,6 +10,9 @@ import {
   type PdfViewerState,
 } from '@/components/syllabus/PdfViewer';
 import { toProxyUrl } from '@/lib/syllabus/proxyUrl';
+import { sanitizeDocxHtml } from '@/lib/syllabus/sanitizeDocxHtml';
+import { downloadBlob, fetchProxiedFile, openPdfInNewTab } from '@/lib/syllabus/proxyFile';
+import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import type { SyllabusUpload } from '@/types/syllabus';
 
@@ -71,7 +74,7 @@ function useDocxHtml(syllabus: SyllabusUpload | null, active: boolean, authToken
         if (!response.ok) throw new Error('fetch failed');
         const bytes = await response.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer: bytes });
-        if (!cancelled) setHtml(result.value);
+        if (!cancelled) setHtml(sanitizeDocxHtml(result.value));
       } catch (err) {
         console.error('[DocumentViewerModal] failed to convert docx', err);
         if (!cancelled) setError("Couldn't preview this file.");
@@ -118,22 +121,31 @@ export function DocumentViewerModal({ syllabus, onClose }: DocumentViewerModalPr
 
   const { html, error: docxError } = useDocxHtml(syllabus, kind === 'docx', authToken);
 
-  // Opens/downloads via the file proxy using the token already fetched for
-  // the viewer (good for the token's ~1hr lifetime - this modal isn't kept
-  // open that long). window.open() has to run synchronously inside the
-  // click handler, in the same tick as the user gesture, or browsers treat
-  // it as an unrequested popup and silently block it - an `await` before
-  // it (e.g. fetching a fresh token first) breaks that.
+  // Open/Download fetch the file through the proxy with the token in a
+  // header (never in the URL) and hand the browser a blob. The token fetched
+  // for the viewer is good for ~1hr, longer than this modal stays open.
+  const { showError } = useToast();
   const openProxied = useCallback(
-    (disposition: 'inline' | 'attachment') => {
+    async (disposition: 'inline' | 'attachment') => {
       if (!syllabus || !authToken) return;
-      const url = toProxyUrl(syllabus.storagePath, syllabus.fileName, {
-        token: authToken,
-        disposition,
-      });
-      window.open(url, '_blank', 'noopener,noreferrer');
+      const load = () =>
+        fetchProxiedFile(syllabus.storagePath, syllabus.fileName, authToken, disposition);
+      try {
+        // Only a PDF previews in a tab; a .docx or anything else is a download.
+        if (disposition === 'inline' && kind === 'pdf') {
+          await openPdfInNewTab(load, syllabus.fileName);
+        } else {
+          downloadBlob(await load(), syllabus.fileName);
+        }
+      } catch (err) {
+        console.error('[DocumentViewerModal] could not open or download file', err);
+        showError(
+          disposition === 'inline' ? "Couldn't open the file" : "Couldn't download the file",
+          'Please try again.',
+        );
+      }
     },
-    [syllabus, authToken],
+    [syllabus, authToken, kind, showError],
   );
 
   const pdfControlsRef = useRef<PdfViewerControls | null>(null);

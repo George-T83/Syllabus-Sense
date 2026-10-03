@@ -17,7 +17,11 @@ describe('TaskFormModal', () => {
   it('prompts to add a course first when there are none', () => {
     render(<TaskFormModal open onClose={vi.fn()} onSubmit={vi.fn()} courses={[]} />);
     expect(screen.getByText('Add a course first before creating tasks for it.')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Add Task' })).toHaveProperty('disabled', true);
+    // No dead-end disabled "Add Task": the way forward is a link to add a course.
+    expect(screen.queryByRole('button', { name: 'Add Task' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Add a course' }).getAttribute('href')).toBe(
+      '/courses?new=1',
+    );
   });
 
   it('blocks submit and shows an error when title and due date are empty', async () => {
