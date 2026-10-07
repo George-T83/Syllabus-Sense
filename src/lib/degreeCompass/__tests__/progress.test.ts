@@ -85,7 +85,12 @@ describe('computeOverallProgress', () => {
       course({ categoryId: genEd.id, credits: 3, status: 'in-progress' }),
     ];
     const result = computeOverallProgress(categories, courses);
-    expect(result).toEqual({ creditsRequired: 21, creditsCompleted: 4, creditsInProgress: 3 });
+    expect(result).toEqual({
+      creditsRequired: 21,
+      creditsCompleted: 4,
+      creditsInProgress: 3,
+      creditsExtra: 0,
+    });
   });
 });
 
@@ -206,5 +211,80 @@ describe('categoryCourseBlocks', () => {
     ]);
     expect(result.creditsLeft).toBe(0);
     expect(result.creditsUnplanned).toBe(0);
+  });
+});
+
+describe('surplus in one category never hides a shortfall in another', () => {
+  const major: DegreeRequirementCategory = { id: 'major', name: 'Major', creditsRequired: 12 };
+  const elective: DegreeRequirementCategory = {
+    id: 'elective',
+    name: 'Free Electives',
+    creditsRequired: 6,
+  };
+  const minor: DegreeRequirementCategory = { id: 'minor', name: 'Minor', creditsRequired: 9 };
+  const cats = [major, elective, minor];
+
+  // 12 + 18 + 6 = 36 credits taken against a 27-credit degree: the minor is 3 short.
+  const taken = [
+    course({ id: 'm', categoryId: 'major', credits: 12, term: 'Fall 2025' }),
+    course({ id: 'e', categoryId: 'elective', credits: 18, term: 'Spring 2026' }),
+    course({ id: 'n', categoryId: 'minor', credits: 6, term: 'Fall 2026' }),
+  ];
+
+  it('caps each category at its requirement and reports the surplus', () => {
+    const overall = computeOverallProgress(cats, taken);
+    expect(overall.creditsCompleted).toBe(24); // 12 + 6 + 6, not 36
+    expect(overall.creditsExtra).toBe(12);
+    expect(overall.creditsRequired).toBe(27);
+  });
+
+  it('caps in-progress credits by the room left after completed ones', () => {
+    const overall = computeOverallProgress(
+      [major],
+      [
+        course({ id: 'a', categoryId: 'major', credits: 9, status: 'completed' }),
+        course({ id: 'b', categoryId: 'major', credits: 9, status: 'in-progress' }),
+      ],
+    );
+    expect(overall.creditsCompleted).toBe(9);
+    expect(overall.creditsInProgress).toBe(3);
+    expect(overall.creditsExtra).toBe(6);
+  });
+
+  it('is not on track while any category falls short, however many credits there are', () => {
+    const route = buildDegreeRoute(cats, taken);
+    expect(route.creditsOnRoute).toBe(36);
+    expect(route.creditsEarned).toBe(24);
+    expect(route.creditsUnplanned).toBe(3);
+    expect(route.shortfalls).toEqual([{ name: 'Minor', credits: 3 }]);
+    expect(route.graduationTerm).toBeNull();
+  });
+
+  it('names the biggest gap first and sums them', () => {
+    const route = buildDegreeRoute(cats, [course({ categoryId: 'major', credits: 10 })]);
+    expect(route.shortfalls).toEqual([
+      { name: 'Minor', credits: 9 },
+      { name: 'Free Electives', credits: 6 },
+      { name: 'Major', credits: 2 },
+    ]);
+    expect(route.creditsUnplanned).toBe(17);
+  });
+
+  it('is on track once every category is covered, planned courses included', () => {
+    const route = buildDegreeRoute(cats, [
+      ...taken,
+      course({ id: 'p', categoryId: 'minor', credits: 3, status: 'planned', term: 'Spring 2027' }),
+    ]);
+    expect(route.shortfalls).toEqual([]);
+    expect(route.graduationTerm).toBe('Spring 2027');
+  });
+
+  it('counts a course filed under a category the profile no longer has for nothing', () => {
+    const overall = computeOverallProgress(
+      [major],
+      [course({ categoryId: 'deleted', credits: 12 })],
+    );
+    expect(overall.creditsCompleted).toBe(0);
+    expect(overall.creditsExtra).toBe(0);
   });
 });

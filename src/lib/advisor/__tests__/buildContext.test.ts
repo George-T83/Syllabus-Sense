@@ -44,7 +44,7 @@ describe('summarizeAdvisorContext', () => {
       degreeCourses: [
         degreeCourse({ term: 'Fall 2025', credits: 15, status: 'completed' }),
         degreeCourse({ term: 'Fall 2025', credits: 3, status: 'completed' }),
-        degreeCourse({ term: 'Spring 2026', credits: 15, status: 'in-progress' }),
+        degreeCourse({ term: 'Spring 2026', credits: 9, status: 'in-progress' }),
       ],
       courses: [],
       pendingTaskCount: 0,
@@ -53,8 +53,24 @@ describe('summarizeAdvisorContext', () => {
     expect(summary.degreeConnected).toBe(true);
     expect(summary.completedTerms).toBe(1);
     expect(summary.creditsCompleted).toBe(18);
-    expect(summary.creditsInProgress).toBe(15);
+    expect(summary.creditsInProgress).toBe(9);
     expect(summary.creditsRequired).toBe(30);
+  });
+
+  it('counts credits toward a requirement only up to what it asks for', () => {
+    const summary = summarizeAdvisorContext({
+      degreeProfile: { majorName: 'CS', categories: [majorCore], updatedAt: '2026-01-01' },
+      degreeCourses: [
+        degreeCourse({ term: 'Fall 2025', credits: 18, status: 'completed' }),
+        degreeCourse({ term: 'Spring 2026', credits: 15, status: 'in-progress' }),
+      ],
+      courses: [],
+      pendingTaskCount: 0,
+      overdueTaskCount: 0,
+    });
+    // The 30-credit requirement has room for 12 more after 18 completed.
+    expect(summary.creditsCompleted).toBe(18);
+    expect(summary.creditsInProgress).toBe(12);
   });
 });
 

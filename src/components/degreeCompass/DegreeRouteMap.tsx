@@ -115,7 +115,7 @@ export function DegreeRouteMap({ categories, courses }: DegreeRouteMapProps) {
       kind: s.state,
       title: s.term,
       detail: `${s.credits} cr · ${s.courseCount} ${s.courseCount === 1 ? 'course' : 'courses'}`,
-      running: `${s.cumulativeCredits} of ${req} cr`,
+      running: `${Math.min(s.cumulativeCredits, req)} of ${req} cr`,
     })),
     ...(route.creditsUnplanned > 0
       ? [
@@ -137,11 +137,14 @@ export function DegreeRouteMap({ categories, courses }: DegreeRouteMapProps) {
         ? 'border-primary'
         : 'border-dashed border-muted-foreground/50';
 
+  const [biggest, ...rest] = route.shortfalls;
   const headline = route.graduationTerm
     ? `On track to graduate after ${route.graduationTerm}`
     : route.stops.length === 0
       ? 'Add your courses to draw your route'
-      : `Plan ${route.creditsUnplanned} more credits to reach ${req}`;
+      : `Not on track yet: ${biggest.name} needs ${biggest.credits} more ${
+          biggest.credits === 1 ? 'credit' : 'credits'
+        }${rest.length > 0 ? `, and ${rest.length} more ${rest.length === 1 ? 'requirement falls' : 'requirements fall'} short` : ''}`;
 
   return (
     <Card className="rounded-2xl p-5 sm:p-6">
@@ -150,7 +153,7 @@ export function DegreeRouteMap({ categories, courses }: DegreeRouteMapProps) {
         {headline}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        {route.creditsEarned} of {req} credits earned or in progress
+        {route.creditsEarned} of {req} credits earned or in progress toward your requirements
         {route.graduationTerm ? ', if your plan holds.' : '.'}
       </p>
 
