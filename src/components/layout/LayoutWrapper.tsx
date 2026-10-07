@@ -118,7 +118,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         <AppStateProvider>
           <FirestoreSync />
           <div className="min-h-screen flex flex-col text-foreground">
-            <OfflineBanner />
             <Navbar onCommandPaletteAction={handleCommandPaletteAction} />
             <div className="flex flex-1 pt-20">
               <Sidebar />
@@ -130,6 +129,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     : 'pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]',
                 )}
               >
+                {/* Inside the content column: above the page it sits under the fixed
+                    navbar and is hidden, and beside it the sidebar covers its edge. */}
+                <OfflineBanner className="mb-6" />
                 {children}
               </main>
             </div>

@@ -19,6 +19,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { clearSessions } from '@/lib/focus/pomodoroSessions';
+import { clearOfflineData } from '@/lib/offline/clearOfflineData';
 
 interface AuthContextType {
   user: User | null;
@@ -176,7 +177,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = () =>
     runAuthAction(() => signInWithPopup(auth!, new GoogleAuthProvider()));
 
-  const signOut = () => runAuthAction(() => firebaseSignOut(auth!));
+  const signOut = () =>
+    runAuthAction(async () => {
+      await firebaseSignOut(auth!);
+      // The student's data stays on this device for offline use; leaving removes it.
+      await clearOfflineData();
+    });
 
   const updateDisplayName = (displayName: string) =>
     runAuthAction(async () => {
@@ -231,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await deleteUser(current);
       // Local-only study sessions belong to the account that was just deleted.
       clearSessions(uid);
+      await clearOfflineData();
     });
 
   const clearError = () => setError(null);
