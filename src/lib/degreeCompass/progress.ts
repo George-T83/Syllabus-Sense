@@ -33,19 +33,44 @@ export function computeCategoryProgress(
 
 export interface OverallProgress {
   creditsRequired: number;
+  /** Completed credits that count toward a requirement, each category
+   * capped at what it asks for. */
   creditsCompleted: number;
+  /** In-progress credits that still fit under a requirement. */
   creditsInProgress: number;
+  /** Credits earned or in progress beyond what their category needs. They
+   * are real, but they do not close a gap in another category. */
+  creditsExtra: number;
 }
 
+/**
+ * Progress across the whole degree, counted per category. A category only
+ * contributes up to what it requires: 30 credits in a 12-credit elective
+ * bucket is 12 toward the degree, with 18 extra, so surplus in one place can
+ * never hide a shortfall in another. Courses filed under a category the
+ * profile no longer has count for nothing.
+ */
 export function computeOverallProgress(
   categories: DegreeRequirementCategory[],
   courses: DegreeCourse[],
 ): OverallProgress {
   const perCategory = computeCategoryProgress(categories, courses);
+  let creditsCompleted = 0;
+  let creditsInProgress = 0;
+  let creditsExtra = 0;
+  for (const p of perCategory) {
+    const required = p.category.creditsRequired;
+    const completed = Math.min(p.creditsCompleted, required);
+    const inProgress = Math.min(p.creditsInProgress, required - completed);
+    creditsCompleted += completed;
+    creditsInProgress += inProgress;
+    creditsExtra += p.creditsCompleted + p.creditsInProgress - completed - inProgress;
+  }
   return {
     creditsRequired: categories.reduce((sum, c) => sum + c.creditsRequired, 0),
-    creditsCompleted: perCategory.reduce((sum, c) => sum + c.creditsCompleted, 0),
-    creditsInProgress: perCategory.reduce((sum, c) => sum + c.creditsInProgress, 0),
+    creditsCompleted,
+    creditsInProgress,
+    creditsExtra,
   };
 }
 
@@ -105,16 +130,26 @@ export interface RouteStop {
   state: RouteStopState;
 }
 
+/** A requirement the plan does not cover yet. */
+export interface CategoryShortfall {
+  name: string;
+  /** Credits no completed, in-progress or planned course covers. */
+  credits: number;
+}
+
 export interface DegreeRoute {
   stops: RouteStop[];
   creditsRequired: number;
-  /** Completed + in-progress credits. */
+  /** Completed + in-progress credits that count toward a requirement. */
   creditsEarned: number;
   /** Every credit on the route, planned ones included. */
   creditsOnRoute: number;
-  /** Credits the plan doesn't cover yet. */
+  /** Credits the plan doesn't cover yet, summed over the categories that
+   * fall short - surplus elsewhere does not offset them. */
   creditsUnplanned: number;
-  /** The last planned term, when the plan reaches the requirement. */
+  /** Which categories those credits are missing from, biggest gap first. */
+  shortfalls: CategoryShortfall[];
+  /** The last planned term, when every category is covered. */
   graduationTerm: string | null;
 }
 
@@ -144,16 +179,27 @@ export function buildDegreeRoute(
       state,
     };
   });
-  const creditsEarned = courses
-    .filter((c) => c.status !== 'planned')
-    .reduce((sum, c) => sum + c.credits, 0);
-  const creditsUnplanned = Math.max(0, creditsRequired - running);
+  const overall = computeOverallProgress(categories, courses);
+  const creditsEarned = overall.creditsCompleted + overall.creditsInProgress;
+  // Per category: what is still uncovered once everything filed under it,
+  // planned courses included, is counted.
+  const shortfalls: CategoryShortfall[] = categories
+    .map((category) => {
+      const covered = courses
+        .filter((c) => c.categoryId === category.id)
+        .reduce((sum, c) => sum + c.credits, 0);
+      return { name: category.name, credits: Math.max(0, category.creditsRequired - covered) };
+    })
+    .filter((s) => s.credits > 0)
+    .sort((a, b) => b.credits - a.credits);
+  const creditsUnplanned = shortfalls.reduce((sum, s) => sum + s.credits, 0);
   return {
     stops,
     creditsRequired,
     creditsEarned,
     creditsOnRoute: running,
     creditsUnplanned,
+    shortfalls,
     graduationTerm:
       creditsUnplanned === 0 && stops.length > 0 ? stops[stops.length - 1].term : null,
   };

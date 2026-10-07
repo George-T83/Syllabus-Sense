@@ -118,7 +118,11 @@ describe('DegreeCompassView', () => {
     expect(stops[3]).toContain('12 of 66 cr');
     expect(stops[4]).toContain('54 cr still to plan');
     expect(stops[5]).toContain('Graduation');
-    expect(screen.getByText('Plan 54 more credits to reach 66')).toBeDefined();
+    expect(
+      screen.getByText(
+        'Not on track yet: General Education needs 36 more credits, and 1 more requirement falls short',
+      ),
+    ).toBeDefined();
     // Requirements say what's left in plain words.
     expect(screen.getByText('22 cr left, 18 not planned yet')).toBeDefined();
     expect(screen.getByText('36 cr left, none planned yet')).toBeDefined();

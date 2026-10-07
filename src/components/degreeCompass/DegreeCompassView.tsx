@@ -98,6 +98,8 @@ export function DegreeCompassView() {
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {earned} / {overall.creditsRequired} credits ({overallPct}%)
+            {overall.creditsExtra > 0 &&
+              ` · ${overall.creditsExtra} extra beyond your requirements`}
           </p>
         </div>
         <div className="flex items-center gap-2">
