@@ -28,10 +28,10 @@ Upload a syllabus PDF and Claude turns it into a working semester: courses, ever
 
 ## Stack
 
-- **Next.js 14** (App Router) + **TypeScript**, **Tailwind CSS**
+- **Next.js 15** (App Router) + **TypeScript**, **Tailwind CSS**
 - **Firebase** — Auth, Firestore, Storage, with the Local Emulator Suite for offline development
 - **Claude** (Anthropic API) — syllabus extraction, chat, summarization, flashcards/quizzes/cram plans, all through a single structured tool-use pipeline with a shared per-user daily usage cap
-- **Recharts**, **Zod**, **Vitest** + **Testing Library** (900+ unit tests), **Playwright** (e2e)
+- **Recharts**, **Zod**, **Vitest** + **Testing Library** (1,100+ unit tests), **Playwright** (e2e)
 - Deployed on **Vercel**, with GitHub Actions running lint/build/test on every PR and auto-deploying Firestore rules on merge to `main`
 
 ## Quickstart
@@ -46,12 +46,30 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-To run entirely offline against the Firebase Local Emulator Suite instead of a real project:
+To run entirely offline against the Firebase Local Emulator Suite instead of a real project (needs Java for the Firestore emulator), put this in `.env.local` instead of real keys:
 
 ```bash
-npm run emulators                            # in one terminal
-NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true npm run dev   # in another
+NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true
+NEXT_PUBLIC_FIREBASE_API_KEY=demo-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-syllabus-sense.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-syllabus-sense
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=demo-syllabus-sense.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1
+NEXT_PUBLIC_FIREBASE_APP_ID=1:1:web:1
+FIREBASE_ADMIN_PROJECT_ID=demo-syllabus-sense
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199
 ```
+
+then start the emulators in one terminal and the app in another:
+
+```bash
+npx firebase emulators:start --only auth,firestore,storage --project demo-syllabus-sense
+npm run dev
+```
+
+Sign up on the login page; the account lives only in the emulator. AI features need a real `ANTHROPIC_API_KEY`; everything else works without one.
 
 ### Checks
 
@@ -74,4 +92,4 @@ One Firebase project serves every environment, isolated via Firestore's multi-da
 
 Firestore security rules deploy automatically on every merge to `main` that touches `firestore.rules` or `firestore.indexes.json` — see `.github/workflows/deploy-firestore-rules.yml`.
 
-See [`.env.example`](./.env.example) for the full list of required environment variables.
+See [`.env.example`](./.env.example) for the full list of environment variables, [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the code is laid out, and [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for CI, deploys and what to do when something breaks.
