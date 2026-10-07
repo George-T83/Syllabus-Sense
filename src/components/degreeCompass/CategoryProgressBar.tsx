@@ -47,7 +47,8 @@ export function CategoryProgressBar({
       <div className="flex items-center justify-between gap-2 text-xs">
         <span className="font-medium text-foreground">{category.name}</span>
         <span className="shrink-0 tabular-nums text-muted-foreground">
-          {earned} / {category.creditsRequired} cr
+          {Math.min(earned, category.creditsRequired)} / {category.creditsRequired} cr
+          {earned > category.creditsRequired && ` (+${earned - category.creditsRequired} extra)`}
         </span>
       </div>
       <div
