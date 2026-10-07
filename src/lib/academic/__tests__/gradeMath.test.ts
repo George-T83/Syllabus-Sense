@@ -13,6 +13,8 @@ import {
   remainingWorkFromScheduleItems,
   summarizeSemesterGpa,
   GradeCategory,
+  formatRequiredScore,
+  totalGradeWeight,
 } from '../gradeMath';
 import type { ScheduleItem } from '@/types/schedule';
 
@@ -312,7 +314,13 @@ describe('courseStanding', () => {
       item({ id: 'final', gradeWeight: 40, gradeCategory: 'Exams' }),
     ]);
     // (10*92 + 25*78) / 35 = 82
-    expect(s).toEqual({ percentage: 82, letter: 'B-', decidedWeight: 35, gradedCount: 2 });
+    expect(s).toEqual({
+      percentage: 82,
+      letter: 'B-',
+      gpaPoints: 2.7,
+      decidedWeight: 35,
+      gradedCount: 2,
+    });
   });
 });
 
@@ -367,5 +375,85 @@ describe('summarizeSemesterGpa', () => {
     ]);
     const result = summarizeSemesterGpa([{ id: 'a' }], itemsByCourseId);
     expect(result?.totalCredits).toBe(3);
+  });
+});
+
+describe('rounding never promotes a letter grade', () => {
+  const graded = (id: string, courseId: string, score: number): ScheduleItem =>
+    item({ id, courseId, gradeWeight: 100, earnedScore: score });
+
+  it('keeps 89.996% a B+ instead of rounding it up to an A-', () => {
+    const r = calculateCurrentWeightedGrade([{ id: 'x', name: 'All', weight: 100, score: 89.996 }]);
+    expect(r.letterGrade).toBe('B+');
+    expect(r.gpaPoints).toBe(3.3);
+    expect(r.currentPercentage).toBe(90); // shown to two places, but the letter is not rounded
+  });
+
+  it('shows 89.96% as 89.96, never as a 90 beside a B+', () => {
+    const s = courseStanding([graded('a', 'c1', 89.96)]);
+    expect(s?.letter).toBe('B+');
+    expect(s?.percentage).toBe(89.96);
+  });
+
+  it('truncates when even two places would round up across the line', () => {
+    const s = courseStanding([graded('a', 'c1', 89.996)]);
+    expect(s?.letter).toBe('B+');
+    expect(s?.percentage).toBe(89.99);
+  });
+
+  it('still rounds to a tenth when that is honest', () => {
+    expect(courseStanding([graded('a', 'c1', 87.34)])?.percentage).toBe(87.3);
+  });
+
+  it('builds the semester GPA from the letter shown, not the rounded percentage', () => {
+    const items = new Map<string, ScheduleItem[]>([
+      ['a', [graded('a1', 'a', 89.96)]],
+      ['b', [graded('b1', 'b', 89.96)]],
+    ]);
+    // Two B+ courses: 3.3, not the 3.7 two rounded-up 90s would give.
+    expect(summarizeSemesterGpa([{ id: 'a' }, { id: 'b' }], items)?.gpa).toBe(3.3);
+  });
+});
+
+describe('formatRequiredScore', () => {
+  it('reads "over 100%" instead of printing an absurd number', () => {
+    expect(formatRequiredScore(4350)).toBe('over 100%');
+    expect(formatRequiredScore(100.1)).toBe('over 100%');
+  });
+  it('prints normal scores as they are, and 0% when nothing is needed', () => {
+    expect(formatRequiredScore(87.5)).toBe('87.5%');
+    expect(formatRequiredScore(100)).toBe('100%');
+    expect(formatRequiredScore(-12)).toBe('0%');
+  });
+  it('says so in the impossible-target message too', () => {
+    const r = calculateRequiredFinalScore(
+      [{ id: 'x', name: 'HW', weight: 99.9, score: 40 }],
+      0.1,
+      90,
+    );
+    expect(r.status).toBe('impossible');
+    expect(r.statusMessage).toContain('more than 100%');
+    expect(r.statusMessage).not.toMatch(/\d{4,}/);
+  });
+});
+
+describe('totalGradeWeight', () => {
+  it('adds the weights of every weighted item, graded or not', () => {
+    expect(
+      totalGradeWeight([
+        item({ id: 'a', gradeWeight: 30, earnedScore: 90 }),
+        item({ id: 'b', gradeWeight: 70 }),
+        item({ id: 'c' }),
+      ]),
+    ).toBe(100);
+  });
+  it('rounds away floating point noise', () => {
+    expect(
+      totalGradeWeight([
+        item({ id: 'a', gradeWeight: 33.3 }),
+        item({ id: 'b', gradeWeight: 33.3 }),
+        item({ id: 'c', gradeWeight: 33.4 }),
+      ]),
+    ).toBe(100);
   });
 });

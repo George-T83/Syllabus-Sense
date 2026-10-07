@@ -63,12 +63,20 @@ export function letterGradeToGpaPoints(letterGrade: string): number {
  */
 export function calculateCurrentWeightedGrade(categories: GradeCategory[]): {
   currentPercentage: number;
+  /** The same grade before rounding - what the letter was decided on. */
+  exactPercentage: number;
   letterGrade: string;
   gpaPoints: number;
   totalCompletedWeight: number;
 } {
   if (!categories || categories.length === 0) {
-    return { currentPercentage: 100, letterGrade: 'A', gpaPoints: 4.0, totalCompletedWeight: 0 };
+    return {
+      currentPercentage: 100,
+      exactPercentage: 100,
+      letterGrade: 'A',
+      gpaPoints: 4.0,
+      totalCompletedWeight: 0,
+    };
   }
 
   let totalWeightedPoints = 0;
@@ -85,16 +93,25 @@ export function calculateCurrentWeightedGrade(categories: GradeCategory[]): {
   }
 
   if (totalWeight <= 0) {
-    return { currentPercentage: 100, letterGrade: 'A', gpaPoints: 4.0, totalCompletedWeight: 0 };
+    return {
+      currentPercentage: 100,
+      exactPercentage: 100,
+      letterGrade: 'A',
+      gpaPoints: 4.0,
+      totalCompletedWeight: 0,
+    };
   }
 
-  // Percentage normalized to the weight completed so far
-  const normalizedPercentage = Math.round(((totalWeightedPoints * 100) / totalWeight) * 100) / 100;
-  const letterGrade = percentageToLetterGrade(normalizedPercentage);
+  // Percentage normalized to the weight completed so far. The letter comes
+  // from the unrounded value: 89.996% is a B+, and rounding it to 90.00
+  // first would quietly promote it to an A-.
+  const rawPercentage = (totalWeightedPoints * 100) / totalWeight;
+  const letterGrade = percentageToLetterGrade(rawPercentage);
   const gpaPoints = letterGradeToGpaPoints(letterGrade);
 
   return {
-    currentPercentage: normalizedPercentage,
+    currentPercentage: Math.round(rawPercentage * 100) / 100,
+    exactPercentage: rawPercentage,
     letterGrade,
     gpaPoints,
     totalCompletedWeight: totalWeight,
@@ -132,8 +149,33 @@ export function deriveCategoriesFromScheduleItems(items: ScheduleItem[]): GradeC
     id: `real-${name}`,
     name,
     weight: Math.round(weight * 100) / 100,
-    score: weight > 0 ? Math.round((weightedScore / weight) * 100) / 100 : 0,
+    // Not rounded: a category at 89.996 must still read as a B+, not 90.
+    score: weight > 0 ? weightedScore / weight : 0,
   }));
+}
+
+/**
+ * A required score for display. Past 100% the exact number is noise (a
+ * 0.1%-weight final can "require" 4,350%), so it reads "over 100%"; at or
+ * below 0 the grade is already locked in.
+ */
+export function formatRequiredScore(score: number): string {
+  if (score > 100) return 'over 100%';
+  if (score <= 0) return '0%';
+  return `${score}%`;
+}
+
+/**
+ * Total grade weight on a course's schedule items, in percent, to a hundredth.
+ * A syllabus's weights should add to 100; when they do not, the AI misread one
+ * or the syllabus itself is off, and the grade built on them is too.
+ */
+export function totalGradeWeight(items: ScheduleItem[]): number {
+  const total = items.reduce(
+    (sum, i) => sum + (typeof i.gradeWeight === 'number' && i.gradeWeight > 0 ? i.gradeWeight : 0),
+    0,
+  );
+  return Math.round(total * 100) / 100;
 }
 
 export type TargetScoreStatus = 'already_achieved' | 'achievable' | 'challenging' | 'impossible';
@@ -197,7 +239,7 @@ export function calculateRequiredFinalScore(
   } else if (roundedRequired > 100) {
     status = 'impossible';
     isAchievable = false;
-    statusMessage = `Mathematically impossible to achieve ${targetGrade} (${targetPercentage}%): requires ${roundedRequired}% on the Final Exam.`;
+    statusMessage = `Mathematically impossible to achieve ${targetGrade} (${targetPercentage}%): it would take more than 100% on the Final Exam.`;
   } else if (roundedRequired >= 90) {
     status = 'challenging';
     statusMessage = `Challenging goal: You need a high ${roundedRequired}% on the Final Exam to secure a ${targetGrade}.`;
@@ -418,13 +460,31 @@ export function remainingScoreThresholds(
 }
 
 export interface CourseStanding {
-  /** Running grade over the work graded so far. */
+  /** Running grade over the work graded so far, for display. Rounded to a
+   * tenth, or to as many places as it takes not to read as a higher letter
+   * than the one earned (89.96% shows as 89.96, never as 90). */
   percentage: number;
   letter: string;
+  /** 4.0-scale points for `letter`, from the unrounded grade. */
+  gpaPoints: number;
   /** Share of the final grade already decided by graded work, in percent. */
   decidedWeight: number;
   /** How many graded items it rests on. */
   gradedCount: number;
+}
+
+/**
+ * The percentage to show next to a letter: a tenth of a point normally, but
+ * never rounded up across a letter boundary, which would print "90%" beside
+ * a B+. Falls back to two places, then to truncating the hundredths.
+ */
+function displayPercentage(percentage: number, letter: string): number {
+  for (const places of [1, 2]) {
+    const factor = 10 ** places;
+    const rounded = Math.round(percentage * factor) / factor;
+    if (percentageToLetterGrade(rounded) === letter) return rounded;
+  }
+  return Math.floor(percentage * 100) / 100;
 }
 
 /**
@@ -439,13 +499,13 @@ export function courseStanding(items: ScheduleItem[]): CourseStanding | null {
       typeof i.gradeWeight === 'number' && i.gradeWeight > 0 && typeof i.earnedScore === 'number',
   );
   if (graded.length === 0) return null;
-  const { currentPercentage, letterGrade, totalCompletedWeight } = calculateCurrentWeightedGrade(
-    deriveCategoriesFromScheduleItems(graded),
-  );
+  const { exactPercentage, letterGrade, gpaPoints, totalCompletedWeight } =
+    calculateCurrentWeightedGrade(deriveCategoriesFromScheduleItems(graded));
   if (totalCompletedWeight <= 0) return null;
   return {
-    percentage: Math.round(currentPercentage * 10) / 10,
+    percentage: displayPercentage(exactPercentage, letterGrade),
     letter: letterGrade,
+    gpaPoints,
     decidedWeight: Math.round(totalCompletedWeight * 10) / 10,
     gradedCount: graded.length,
   };
@@ -477,9 +537,9 @@ export function summarizeSemesterGpa(
     .map((course) => {
       const standing = courseStanding(itemsByCourseId.get(course.id) ?? []);
       if (!standing) return null;
-      return { credits: course.credits ?? 3, percentage: standing.percentage };
+      return { credits: course.credits ?? 3, gpaPoints: standing.gpaPoints };
     })
-    .filter((c): c is { credits: number; percentage: number } => c !== null);
+    .filter((c): c is { credits: number; gpaPoints: number } => c !== null);
 
   if (graded.length === 0) return null;
 

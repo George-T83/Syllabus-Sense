@@ -1,5 +1,5 @@
 import { CardActionButton } from '@/components/ui/CardAction';
-import { courseStanding } from '@/lib/academic/gradeMath';
+import { courseStanding, totalGradeWeight } from '@/lib/academic/gradeMath';
 import { AiNote } from '@/components/ui/AiNote';
 import { CheckSyllabusButton } from '@/components/syllabus/CheckSyllabus';
 import type { ScheduleItem } from '@/types/schedule';
@@ -44,6 +44,8 @@ export function CourseStandingStrip({
     (i) => i.source === 'ai' && typeof i.gradeWeight === 'number' && i.gradeWeight > 0,
   );
   const ahead = Math.max(0, Math.round((100 - decided) * 10) / 10);
+  const weightTotal = totalGradeWeight(items);
+  const weightsOff = Math.abs(weightTotal - 100) > 0.5;
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border pt-4">
@@ -72,6 +74,12 @@ export function CourseStandingStrip({
         <CardActionButton withChevron onClick={onOpenCalculator}>
           What do I need?
         </CardActionButton>
+      )}
+      {weightsOff && (
+        <p role="status" className="basis-full text-xs font-medium text-load-medium">
+          The weights on this course add up to {weightTotal}%, not 100%, so this grade may be off.
+          Check them against your syllabus.
+        </p>
       )}
       <AiNote className="basis-full">
         {weightsFromAi ? (

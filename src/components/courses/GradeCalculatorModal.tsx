@@ -12,6 +12,7 @@ import {
   calculateCurrentWeightedGrade,
   calculateGradeFloorCeiling,
   calculateRequiredFinalScore,
+  formatRequiredScore,
   calculateSemesterGpa,
   deriveCategoriesFromScheduleItems,
   projectCourseGrade,
@@ -165,7 +166,12 @@ export function GradeCalculatorModal({
 
   // Total weight check
   const totalWeight = useMemo(() => {
-    return categories.reduce((sum, c) => sum + (c.weight || 0), 0) + finalExamWeight;
+    // Rounded: 33.3 + 33.3 + 33.4 should read 100, not 100.00000000000001.
+    return (
+      Math.round(
+        (categories.reduce((sum, c) => sum + (c.weight || 0), 0) + finalExamWeight) * 100,
+      ) / 100
+    );
   }, [categories, finalExamWeight]);
 
   // Semester GPA Calculation - every enrolled course's REAL current standing
@@ -176,13 +182,21 @@ export function GradeCalculatorModal({
     const coursesList = state.courses.map((course) => {
       const cr = course.credits ?? 3;
       if (course.id === selectedCourseId) {
-        return { credits: cr, percentage: projectedGrade };
+        return { credits: cr, percentage: projectedGrade, gpaPoints: undefined };
       }
       const real = realCategoriesFor(course.id);
-      if (real.length === 0) return { credits: cr, percentage: undefined };
-      return { credits: cr, percentage: calculateCurrentWeightedGrade(real).currentPercentage };
+      if (real.length === 0) return { credits: cr, percentage: undefined, gpaPoints: undefined };
+      // Points come from the letter earned on the unrounded grade, the same
+      // way the Courses page works its GPA, so the two always agree.
+      return {
+        credits: cr,
+        percentage: undefined,
+        gpaPoints: calculateCurrentWeightedGrade(real).gpaPoints,
+      };
     });
-    return calculateSemesterGpa(coursesList.filter((c) => c.percentage !== undefined));
+    return calculateSemesterGpa(
+      coursesList.filter((c) => c.percentage !== undefined || c.gpaPoints !== undefined),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.courses, state.scheduleItems, selectedCourseId, projectedGrade]);
 
@@ -567,8 +581,8 @@ export function GradeCalculatorModal({
                       {finalExamTarget.status === 'already_achieved'
                         ? 'Locked in'
                         : finalExamTarget.status === 'impossible'
-                          ? `Out of reach (${finalExamTarget.requiredFinalScore}%)`
-                          : `${finalExamTarget.requiredFinalScore}% on what's left`}
+                          ? `Out of reach (${formatRequiredScore(finalExamTarget.requiredFinalScore)})`
+                          : `${formatRequiredScore(finalExamTarget.requiredFinalScore)} on what's left`}
                     </dd>
                   </div>
                 </dl>
@@ -792,7 +806,7 @@ export function GradeCalculatorModal({
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-semibold text-primary">Required:</span>
                         <span className="text-xs font-extrabold text-primary">
-                          {finalExamTarget.requiredFinalScore}%
+                          {formatRequiredScore(finalExamTarget.requiredFinalScore)}
                         </span>
                       </div>
                     </div>
