@@ -61,5 +61,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "proxy-addr": "^2.0.8"
   }
 }
