@@ -1,6 +1,13 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
-import { initializeFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  Firestore,
+  FirestoreSettings,
+  connectFirestoreEmulator,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -34,7 +41,15 @@ if (firebaseConfig.apiKey) {
   // connection, surfacing as a hung "Could not reach Cloud Firestore
   // backend" with no application-visible error. This only changes behavior
   // when streaming actually fails, falling back to plain long-polling.
-  db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, databaseId);
+  const settings: FirestoreSettings = { experimentalAutoDetectLongPolling: true };
+  // Keep the student's data on this device (IndexedDB) so the app opens and
+  // works offline, and changes made offline are queued and sent on reconnect.
+  // Skipped on the server and where IndexedDB does not exist. Signing out
+  // removes it again (lib/offline/clearOfflineData.ts).
+  if (typeof window !== 'undefined' && 'indexedDB' in window) {
+    settings.localCache = persistentLocalCache({ tabManager: persistentMultipleTabManager() });
+  }
+  db = initializeFirestore(app, settings, databaseId);
 
   storage = getStorage(app);
 

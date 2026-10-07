@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'SyllabusSense',
     description:
       'Autonomous AI-powered syllabus management, cognitive workload planning, and academic productivity command center.',
-    start_url: '/',
+    start_url: '/dashboard',
     display: 'standalone',
     background_color: '#090D16',
     theme_color: '#5B3DF5',

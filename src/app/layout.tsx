@@ -5,6 +5,7 @@ import './globals.css';
 import { ThemeProvider } from '@/context/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/components/ui/Toast';
+import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -110,6 +111,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>
+            <ServiceWorkerRegistration />
           </AuthProvider>
         </ThemeProvider>
       </body>

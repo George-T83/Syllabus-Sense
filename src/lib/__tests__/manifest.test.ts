@@ -9,7 +9,7 @@ describe('Web App Manifest (Item 26)', () => {
 
     expect(config.name).toBe('Syllabus Sense - AI Academic Planning & Schedule Command Center');
     expect(config.short_name).toBe('SyllabusSense');
-    expect(config.start_url).toBe('/');
+    expect(config.start_url).toBe('/dashboard');
     expect(config.display).toBe('standalone');
     expect(config.orientation).toBe('portrait-primary');
     expect(config.background_color).toBe('#090D16');
