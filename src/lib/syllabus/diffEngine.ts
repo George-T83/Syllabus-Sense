@@ -94,7 +94,7 @@ export function computeLineDiff(oldText: string, newText: string): DiffLine[] {
  */
 export function analyzeSyllabusRevision(
   originalText: string,
-  revisedText: string,
+  revisedText: string
 ): PolicyDiffReport {
   const lines = computeLineDiff(originalText, revisedText);
 
@@ -109,8 +109,7 @@ export function analyzeSyllabusRevision(
   const sectionsSet = new Set<string>();
 
   // Check for grading weight modifications
-  const gradingPattern =
-    /(grading|weights?|breakdown|exams?|homework|quizzes|projects?|midterm|final)\s*:?\s*(\d{1,3}%)/i;
+  const gradingPattern = /(grading|weights?|breakdown|exams?|homework|quizzes|projects?|midterm|final)\s*:?\s*(\d{1,3}%)/i;
   const oldGradingMatches = originalText.match(new RegExp(gradingPattern, 'gi')) || [];
   const newGradingMatches = revisedText.match(new RegExp(gradingPattern, 'gi')) || [];
 
@@ -130,19 +129,12 @@ export function analyzeSyllabusRevision(
   }
 
   // Check for late policy modifications
-  const latePattern =
-    /(late\s*policy|late\s*submissions?|penalty|grace\s*period|per\s*day|deduct)/i;
+  const latePattern = /(late\s*policy|late\s*submissions?|penalty|grace\s*period|per\s*day|deduct)/i;
   const hasOldLate = latePattern.test(originalText);
   const hasNewLate = latePattern.test(revisedText);
   if (hasOldLate || hasNewLate) {
-    const oldLateSnippet = originalText
-      .split('\n')
-      .filter((l) => latePattern.test(l))
-      .join('; ');
-    const newLateSnippet = revisedText
-      .split('\n')
-      .filter((l) => latePattern.test(l))
-      .join('; ');
+    const oldLateSnippet = originalText.split('\n').filter((l) => latePattern.test(l)).join('; ');
+    const newLateSnippet = revisedText.split('\n').filter((l) => latePattern.test(l)).join('; ');
     if (oldLateSnippet !== newLateSnippet && (oldLateSnippet || newLateSnippet)) {
       sectionsSet.add('Late Submission Policy');
       changes.push({
@@ -161,14 +153,8 @@ export function analyzeSyllabusRevision(
 
   // Check for attendance / absence policy
   const attendancePattern = /(attendance|absences?|excused|unexcused|allowed\s*absences?)/i;
-  const oldAtt = originalText
-    .split('\n')
-    .filter((l) => attendancePattern.test(l))
-    .join('; ');
-  const newAtt = revisedText
-    .split('\n')
-    .filter((l) => attendancePattern.test(l))
-    .join('; ');
+  const oldAtt = originalText.split('\n').filter((l) => attendancePattern.test(l)).join('; ');
+  const newAtt = revisedText.split('\n').filter((l) => attendancePattern.test(l)).join('; ');
   if (oldAtt !== newAtt && (oldAtt || newAtt)) {
     sectionsSet.add('Attendance & Absence Policy');
     changes.push({
@@ -185,16 +171,9 @@ export function analyzeSyllabusRevision(
   }
 
   // Check for schedule / exam dates
-  const schedulePattern =
-    /(exam|midterm|final\s*exam|due\s*date|project\s*due|nov\s*\d+|dec\s*\d+|oct\s*\d+)/i;
-  const oldSchedule = originalText
-    .split('\n')
-    .filter((l) => schedulePattern.test(l))
-    .join('; ');
-  const newSchedule = revisedText
-    .split('\n')
-    .filter((l) => schedulePattern.test(l))
-    .join('; ');
+  const schedulePattern = /(exam|midterm|final\s*exam|due\s*date|project\s*due|nov\s*\d+|dec\s*\d+|oct\s*\d+)/i;
+  const oldSchedule = originalText.split('\n').filter((l) => schedulePattern.test(l)).join('; ');
+  const newSchedule = revisedText.split('\n').filter((l) => schedulePattern.test(l)).join('; ');
   if (oldSchedule !== newSchedule && (oldSchedule || newSchedule)) {
     sectionsSet.add('Exam Schedule & Deadlines');
     changes.push({
@@ -212,14 +191,8 @@ export function analyzeSyllabusRevision(
 
   // Check for contact / office hours
   const contactPattern = /(office\s*hours|zoom|email|room|hall|prof|ta|instructor)/i;
-  const oldContact = originalText
-    .split('\n')
-    .filter((l) => contactPattern.test(l))
-    .join('; ');
-  const newContact = revisedText
-    .split('\n')
-    .filter((l) => contactPattern.test(l))
-    .join('; ');
+  const oldContact = originalText.split('\n').filter((l) => contactPattern.test(l)).join('; ');
+  const newContact = revisedText.split('\n').filter((l) => contactPattern.test(l)).join('; ');
   if (oldContact !== newContact && (oldContact || newContact)) {
     sectionsSet.add('Office Hours & Contact Info');
     changes.push({
@@ -239,10 +212,7 @@ export function analyzeSyllabusRevision(
   let overallSeverity: PolicySeverity = 'minor';
   if (changes.some((c) => c.severity === 'major')) {
     overallSeverity = 'major';
-  } else if (
-    changes.some((c) => c.severity === 'moderate') ||
-    totalAdditions + totalDeletions > 10
-  ) {
+  } else if (changes.some((c) => c.severity === 'moderate') || totalAdditions + totalDeletions > 10) {
     overallSeverity = 'moderate';
   }
 
