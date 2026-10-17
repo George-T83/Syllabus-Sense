@@ -116,3 +116,43 @@ jobs:
           echo "| Unit Tests | ${{ steps.test.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Firestore Rules Tests | ${{ steps.rules-test.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Dependency Audit (critical) | ${{ steps.audit.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+
+  # Runs the real app against the Firebase emulators in a browser. It is a
+  # separate job so a flaky browser run never blocks the required check above;
+  # it reports on every PR so a broken sign-in or empty dashboard shows up.
+  e2e:
+    name: End-to-end smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Setup Java (for the emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run End-to-End Smoke Tests
+        run: npm run test:e2e:emulated
+
+      - name: Upload Failure Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failures
+          path: test-results/
+          retention-days: 7
