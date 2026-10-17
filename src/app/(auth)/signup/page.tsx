@@ -8,6 +8,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import Logo from '@/components/layout/Logo';
 
+/** Matches the reset-password page, so the rule is the same everywhere. */
+const MIN_PASSWORD_LENGTH = 6;
+
 export default function SignupPage() {
   const { signUp, signInWithGoogle, error, clearError } = useAuth();
   const { showError } = useToast();
@@ -21,6 +24,12 @@ export default function SignupPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      const err = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+      setFormError(err);
+      showError('Password Too Short', err);
+      return;
+    }
     if (password !== confirmPassword) {
       const err = 'Passwords do not match.';
       setFormError(err);
@@ -67,7 +76,10 @@ export default function SignupPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         {displayedError && (
-          <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
+          <div
+            role="alert"
+            className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical"
+          >
             {displayedError}
           </div>
         )}

@@ -87,7 +87,10 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
-          <div className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical">
+          <div
+            role="alert"
+            className="rounded-lg border border-load-critical/30 bg-load-critical/10 px-3 py-2 text-sm text-load-critical"
+          >
             {error}
           </div>
         )}
