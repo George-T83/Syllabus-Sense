@@ -12,6 +12,7 @@ import { summarizeAdvisorContext } from '@/lib/advisor/buildContext';
 import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from './AdvisorWarningCard';
 import { cn } from '@/lib/utils';
+import { withoutSample } from '@/lib/sample/sampleSemester';
 import { isOverdue } from '@/lib/calendar/dates';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
@@ -97,8 +98,10 @@ export function AdvisorView() {
     };
 
     const now = Date.now();
-    const pendingTaskCount = state.scheduleItems.filter((i) => !i.completed).length;
-    const overdueTaskCount = state.scheduleItems.filter((i) => isOverdue(i, now)).length;
+    const pendingTaskCount = withoutSample(state.scheduleItems).filter((i) => !i.completed).length;
+    const overdueTaskCount = withoutSample(state.scheduleItems).filter((i) =>
+      isOverdue(i, now),
+    ).length;
 
     try {
       await appendAdvisorMessage(user.uid, userMessage);
@@ -117,7 +120,11 @@ export function AdvisorView() {
           history,
           degreeProfile,
           degreeCourses,
-          courses: state.courses.map((c) => ({ code: c.code, title: c.title, term: c.term })),
+          courses: withoutSample(state.courses).map((c) => ({
+            code: c.code,
+            title: c.title,
+            term: c.term,
+          })),
           pendingTaskCount,
           overdueTaskCount,
         }),
