@@ -447,7 +447,7 @@ export function CommandPalette({
         className="w-full max-w-2xl overflow-hidden rounded-2xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl transition-all"
       >
         {/* Search Input Bar */}
-        <div className="relative flex items-center border-b border-border/40 px-4 py-3.5">
+        <div className="relative flex items-center border-b border-border/40 px-4 py-3.5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
           <svg
             className="h-5 w-5 text-muted-foreground mr-3 shrink-0"
             fill="none"
