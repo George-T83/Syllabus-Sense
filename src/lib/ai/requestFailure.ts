@@ -15,6 +15,7 @@ export type AiFailureKind =
   | 'signed_out'
   | 'invalid_file'
   | 'file_too_large'
+  | 'too_long'
   | 'rate_limited'
   | 'unavailable'
   | 'service_error'
@@ -68,6 +69,9 @@ export function classifyAiFailure(err: unknown): AiFailureKind {
     const { status } = err;
     if (status === 401 || status === 403) return 'signed_out';
     if (status === 413) return 'file_too_large';
+    if (status === 422 && err.serverMessage && /longer than the AI/i.test(err.serverMessage)) {
+      return 'too_long';
+    }
     if (status === 429) return 'rate_limited';
     if (status === 400 || status === 404 || status === 422) {
       return err.serverMessage && /too large/i.test(err.serverMessage)
@@ -90,6 +94,8 @@ const COPY: Record<AiFailureKind, string> = {
   signed_out: "You've been signed out. Sign in again, then retry.",
   invalid_file: "That file couldn't be used. Try a different PDF or Word (.docx) file.",
   file_too_large: 'That file is too large to upload (10 MB max). Try a smaller one.',
+  too_long:
+    'That syllabus is too long to read in one go. Add the course by hand, or upload just the pages with the schedule and grading.',
   rate_limited: "You've used today's AI requests. They reset tomorrow, so try again then.",
   unavailable: "AI features aren't available right now. Try again later.",
   service_error:
@@ -120,6 +126,12 @@ export function describeAiFailure(err: unknown): AiFailure {
   return {
     kind,
     message,
-    retryable: !['invalid_file', 'file_too_large', 'rate_limited', 'signed_out'].includes(kind),
+    retryable: ![
+      'invalid_file',
+      'file_too_large',
+      'too_long',
+      'rate_limited',
+      'signed_out',
+    ].includes(kind),
   };
 }

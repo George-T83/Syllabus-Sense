@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  computeLineDiff,
-  analyzeSyllabusRevision,
-} from '../diffEngine';
+import { computeLineDiff, analyzeSyllabusRevision } from '../diffEngine';
 
 const ORIGINAL_SYLLABUS = `CS 301 - Data Structures
 Instructor: Dr. Alan Turing (Room 101)
@@ -42,10 +39,7 @@ Final Exam: Dec 12`;
 
 describe('Syllabus Diff Engine (Item 46)', () => {
   it('computes line-by-line diffs with additions and removals', () => {
-    const diff = computeLineDiff(
-      'Line 1\nLine 2\nLine 3',
-      'Line 1\nLine 2 modified\nLine 3'
-    );
+    const diff = computeLineDiff('Line 1\nLine 2\nLine 3', 'Line 1\nLine 2 modified\nLine 3');
 
     expect(diff.some((l) => l.type === 'unchanged' && l.content === 'Line 1')).toBe(true);
     expect(diff.some((l) => l.type === 'removed' && l.content === 'Line 2')).toBe(true);
