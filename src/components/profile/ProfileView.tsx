@@ -2,6 +2,7 @@
 
 import { useMemo, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
@@ -911,7 +912,10 @@ export function ProfileView() {
             Everything saved in your account - courses, tasks, contacts, mood check-ins, grade
             scenarios, syllabus records, flashcards, quizzes, degree plan, Advisor conversation,
             focus sessions and preferences - as one machine-readable file, or as files other apps
-            can actually open. The uploaded syllabus files themselves are not in the file.
+            can actually open. The uploaded syllabus files themselves are not in the file.{' '}
+            <Link href="/privacy" className="font-medium text-primary hover:underline">
+              How your data is handled
+            </Link>
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
