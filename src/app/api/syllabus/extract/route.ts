@@ -7,13 +7,18 @@ import {
   SYLLABUS_EXTRACTION_SYSTEM_PROMPT,
   SYLLABUS_EXTRACTION_TOOL,
 } from '@/lib/ai/syllabusExtractionTool';
-import { syllabusExtractionSchema } from '@/types/extraction';
+import { describeProviderFailure, SYLLABUS_TOO_LONG_MESSAGE } from '@/lib/ai/anthropicFailure';
+import { salvageExtraction } from '@/lib/syllabus/salvageExtraction';
 import { detectSyllabusFileKind, extractRawSyllabusText } from '@/lib/syllabus/extractRawText';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+// A long syllabus can need more room than most. Start with the usual budget and, if
+// the reply was cut off, try once more with twice as much before giving up.
+const EXTRACTION_TOKENS = [8000, 16000] as const;
 
 export async function POST(req: NextRequest) {
   const user = await requireUser(req);
@@ -108,21 +113,39 @@ export async function POST(req: NextRequest) {
           },
         ];
 
-  let message;
-  try {
-    message = await anthropic.messages.create({
-      model: SYLLABUS_EXTRACTION_MODEL,
-      max_tokens: 8000,
-      system: `${SYLLABUS_EXTRACTION_SYSTEM_PROMPT}\n\nToday's date is ${today} - use it only to disambiguate a term/year if the syllabus itself doesn't state one clearly.`,
-      tools: [SYLLABUS_EXTRACTION_TOOL],
-      tool_choice: { type: 'tool', name: SYLLABUS_EXTRACTION_TOOL.name },
-      messages: [{ role: 'user', content: documentContent }],
-    });
-  } catch (err) {
-    // Logged server-side only - the raw SDK error can include request-shape
-    // or account-tier detail that shouldn't reach the client.
-    console.error('Anthropic call failed in syllabus extraction:', err);
-    return NextResponse.json({ error: 'Extraction request failed.' }, { status: 502 });
+  const system = `${SYLLABUS_EXTRACTION_SYSTEM_PROMPT}\n\nToday's date is ${today} - use it only to disambiguate a term/year if the syllabus itself doesn't state one clearly.`;
+
+  let message: Anthropic.Message | undefined;
+  for (const maxTokens of EXTRACTION_TOKENS) {
+    try {
+      message = await anthropic.messages.create({
+        model: SYLLABUS_EXTRACTION_MODEL,
+        max_tokens: maxTokens,
+        system,
+        tools: [SYLLABUS_EXTRACTION_TOOL],
+        tool_choice: { type: 'tool', name: SYLLABUS_EXTRACTION_TOOL.name },
+        messages: [{ role: 'user', content: documentContent }],
+      });
+    } catch (err) {
+      // Logged server-side only - the raw SDK error can include request-shape
+      // or account-tier detail that shouldn't reach the client.
+      console.error('Anthropic call failed in syllabus extraction:', err);
+      const failure = describeProviderFailure(err);
+      return NextResponse.json(
+        { error: failure.error },
+        {
+          status: failure.status,
+          ...(failure.retryAfter ? { headers: { 'Retry-After': String(failure.retryAfter) } } : {}),
+        },
+      );
+    }
+    if (message.stop_reason !== 'max_tokens') break;
+  }
+
+  // Still cut off after the larger budget: the JSON is incomplete, so it is not
+  // "malformed" (a retry would not help) - the syllabus is simply too long.
+  if (!message || message.stop_reason === 'max_tokens') {
+    return NextResponse.json({ error: SYLLABUS_TOO_LONG_MESSAGE }, { status: 422 });
   }
 
   const toolUse = message.content.find(
@@ -135,14 +158,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const parsed = syllabusExtractionSchema.safeParse(toolUse.input);
-  if (!parsed.success) {
-    console.error('Syllabus extraction validation failed:', parsed.error.issues);
+  // Keep what is usable. One over-long note or one odd date no longer fails the
+  // whole syllabus; whatever had to be left out is listed for the review screen.
+  const salvaged = salvageExtraction(toolUse.input);
+  if (!salvaged) {
+    console.error(
+      'Syllabus extraction could not be salvaged:',
+      JSON.stringify(toolUse.input).slice(0, 500),
+    );
     return NextResponse.json(
       { error: 'The extracted data was malformed. Try again.' },
       { status: 502 },
     );
   }
+  if (!salvaged.clean) {
+    console.warn('Syllabus extraction repaired:', salvaged.notes);
+  }
+  const parsed = { data: salvaged.data };
 
   // Guarantee the "CSCI 213" spacing the prompt asks for even if the model
   // copies a source syllabus's unspaced code (e.g. "CSCI213") verbatim.

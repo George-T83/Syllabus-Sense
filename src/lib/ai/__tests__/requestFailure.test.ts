@@ -32,6 +32,13 @@ describe('classifyAiFailure', () => {
     expect(classifyAiFailure(failure(400, 'File is too large (max 10MB).'))).toBe('file_too_large');
   });
 
+  it('tells a syllabus that is too long apart from an unreadable file', () => {
+    expect(
+      classifyAiFailure(failure(422, 'This syllabus is longer than the AI can read in one pass.')),
+    ).toBe('too_long');
+    expect(classifyAiFailure(failure(422, 'Not a PDF.'))).toBe('invalid_file');
+  });
+
   it('treats a fetch rejection (TypeError) as offline', () => {
     expect(classifyAiFailure(new TypeError('Failed to fetch'))).toBe('offline');
   });
@@ -104,6 +111,14 @@ describe('describeAiFailure', () => {
     expect(describeAiFailure(failure(400, 'Missing storagePath or fileName.')).message).not.toMatch(
       /Missing/,
     );
+  });
+
+  it('does not offer a retry for a syllabus that is too long, and says what to do instead', () => {
+    const d = describeAiFailure(
+      failure(422, 'This syllabus is longer than the AI can read in one pass.'),
+    );
+    expect(d.retryable).toBe(false);
+    expect(d.message).toMatch(/by hand/);
   });
 
   it('marks failures where retrying the same request cannot help', () => {
