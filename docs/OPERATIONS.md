@@ -38,7 +38,7 @@ A critical finding in a dev-only tool still fails CI, so it is not a reason to i
 
 ## Firestore rules and indexes
 
-`.github/workflows/deploy-firestore-rules.yml` deploys `firestore.rules` and `firestore.indexes.json` to the live project when a change to either lands on `main`. Nothing deploys `storage.rules` automatically, so deploy that by hand when it changes.
+`.github/workflows/deploy-firestore-rules.yml` deploys `firestore.rules`, `firestore.indexes.json` and `storage.rules` to the live project when a change to any of them lands on `main`. The service account in the `FIREBASE_SERVICE_ACCOUNT` secret needs permission to release Storage rules as well as Firestore rules; if the job fails on Storage with a permission error, grant it the Firebase Rules Admin role.
 
 ## Commits
 
