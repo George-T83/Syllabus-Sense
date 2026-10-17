@@ -14,6 +14,8 @@ import { useToast } from '@/components/ui/Toast';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
+import { SampleDataBanner } from '@/components/sample/SampleDataBanner';
+import { useSampleData } from '@/components/sample/useSampleData';
 import { createScheduleItem, updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
@@ -85,6 +87,7 @@ export function DashboardView() {
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
+  const sample = useSampleData();
 
   useEffect(() => {
     // CommandPalette's "Add New Task" action - the Tasks page itself has no
@@ -260,6 +263,14 @@ export function DashboardView() {
           )}
         </header>
 
+        {!dataLoading && sample.hasSample && (
+          <SampleDataBanner
+            onRemove={sample.remove}
+            removing={sample.removing}
+            onUploadSyllabus={() => setAutofillOpen(true)}
+          />
+        )}
+
         {showHero && (
           <NowHeroCard
             hero={nowHero}
@@ -283,6 +294,7 @@ export function DashboardView() {
           onUploadSyllabus={() => setAutofillOpen(true)}
           onAddCourse={() => setAddCourseOpen(true)}
           onAddTask={() => setAddTaskOpen(true)}
+          onTrySample={() => void sample.load()}
           dismissed={checklistDismissed}
           onDismiss={dismissChecklist}
         />
