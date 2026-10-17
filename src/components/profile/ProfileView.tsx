@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
 import { StudyStreakCard } from './StudyStreakCard';
 import { DisplaySettings } from './DisplaySettings';
+import { CalendarFeedSection } from './CalendarFeedSection';
 import { buildGpaGoalCourses } from '@/lib/gpa/termCourses';
 import { LONG_DATE_YEAR_FORMATTER as dateFormatter } from '@/lib/dateFormatters';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -954,6 +955,7 @@ export function ProfileView() {
               <RemoveSampleDataButton onRemove={sample.remove} removing={sample.removing} />
             </div>
           )}
+          <CalendarFeedSection />
         </div>
 
         {/* Account deletion - the only genuinely destructive action on this
