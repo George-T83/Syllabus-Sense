@@ -785,7 +785,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     href={rmpUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                    className="ml-auto inline-flex min-h-9 items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
                   >
                     Rate My Professor
                     <svg
@@ -850,7 +850,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 ) : (
                   <button
                     onClick={() => setConfirmingDeleteCourse(true)}
-                    className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                    className="inline-flex min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                   >
                     Delete
                   </button>

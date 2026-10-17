@@ -96,7 +96,7 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
       <Card accent="none" className="rounded-2xl border-dashed p-5 opacity-90">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground">{course.code}</h3>
+            <h2 className="text-sm font-semibold text-muted-foreground">{course.code}</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Upload a syllabus on this course&apos;s page to generate a practice quiz.
             </p>
@@ -110,7 +110,7 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
     <Card className="rounded-2xl p-5 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-foreground">{course.code}</h3>
+          <h2 className="truncate text-sm font-semibold text-foreground">{course.code}</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {quiz ? `${quiz.questions.length} questions` : 'No quiz yet'}
           </p>

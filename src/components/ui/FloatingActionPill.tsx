@@ -84,18 +84,20 @@ export function FloatingActionPill({
           onClick={onDismiss}
           aria-label={dismissLabel ?? 'Hide this button'}
           title={dismissLabel ?? 'Hide this button'}
-          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className="group absolute -right-4 -top-4 flex h-9 w-9 items-center justify-center focus:outline-none"
         >
-          <svg
-            className="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-            aria-hidden="true"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors group-hover:bg-accent group-hover:text-foreground group-focus-visible:ring-2 group-focus-visible:ring-primary">
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </span>
         </button>
       )}
     </div>

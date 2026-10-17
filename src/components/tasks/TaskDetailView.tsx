@@ -416,7 +416,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
                 {course && (
                   <Link
                     href={`/courses/${course.id}`}
-                    className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                    className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:text-primary hover:underline"
                   >
                     {course.code} · {course.title}
                   </Link>
@@ -520,7 +520,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
                   type="button"
                   onClick={() => setTrackingOpen(true)}
                   disabled={!user}
-                  className="flex items-center gap-2 text-xs font-semibold text-primary transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-9 items-center gap-2 text-xs font-semibold text-primary transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <svg
                     className="h-3.5 w-3.5"
