@@ -19,6 +19,7 @@ import { usePlatform } from '@/hooks/usePlatformKey';
 import { ShortcutsCheatSheet } from '@/components/common/ShortcutsCheatSheet';
 import { matchesShortcut } from '@/lib/shortcuts';
 import { FOCUS_TASK_EVENT, type FocusTaskEventDetail } from '@/lib/focus/focusTaskEvent';
+import { MAIN_CONTENT_ID } from '@/components/layout/SkipLink';
 
 // The AI Advisor chat answers questions about a student's enrolled course syllabi -
 // it needs a course in scope to be coherent, and silently falls back to
@@ -122,8 +123,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             <div className="flex flex-1 pt-20">
               <Sidebar />
               <main
+                id={MAIN_CONTENT_ID}
+                tabIndex={-1}
                 className={cn(
-                  'min-w-0 flex-1 p-6 md:pl-72 md:p-8 md:pb-8 max-w-7xl transition-all duration-300',
+                  'min-w-0 flex-1 p-6 md:pl-72 md:p-8 md:pb-8 max-w-7xl transition-all duration-300 outline-none',
                   pillsShowing
                     ? 'pb-[calc(9rem+env(safe-area-inset-bottom))]'
                     : 'pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]',

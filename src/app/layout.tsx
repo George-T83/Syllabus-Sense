@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/context/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ServiceWorkerRegistration } from '@/components/layout/ServiceWorkerRegistration';
+import SkipLink from '@/components/layout/SkipLink';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -108,6 +109,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased`}
       >
+        <SkipLink />
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

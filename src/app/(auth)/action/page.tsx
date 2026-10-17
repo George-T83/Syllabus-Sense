@@ -86,7 +86,7 @@ function AuthActionHandler() {
       <Card>
         <CardHeader className="items-center text-center">
           <Logo className="h-10 w-10 animate-bounce mb-2" />
-          <CardTitle>Verifying reset link...</CardTitle>
+          <CardTitle as="h1">Verifying reset link...</CardTitle>
           <CardDescription>Please wait while we validate your security token.</CardDescription>
         </CardHeader>
       </Card>
@@ -112,7 +112,7 @@ function AuthActionHandler() {
               />
             </svg>
           </div>
-          <CardTitle>Invalid or Expired Link</CardTitle>
+          <CardTitle as="h1">Invalid or Expired Link</CardTitle>
           <CardDescription>
             This password reset link is invalid, expired, or has already been used.
           </CardDescription>
@@ -133,7 +133,7 @@ function AuthActionHandler() {
     return (
       <Card>
         <CardHeader className="items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 mb-2">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 mb-2">
             <svg
               className="h-6 w-6"
               fill="none"
@@ -144,7 +144,7 @@ function AuthActionHandler() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <CardTitle>Password Reset Complete</CardTitle>
+          <CardTitle as="h1">Password Reset Complete</CardTitle>
           <CardDescription>
             Your password has been updated. Redirecting you to sign in...
           </CardDescription>
@@ -168,7 +168,7 @@ function AuthActionHandler() {
           <Logo className="h-12 w-12" />
           <span className="text-2xl font-bold text-foreground tracking-tight">Syllabus Sense</span>
         </div>
-        <CardTitle>Set New Password</CardTitle>
+        <CardTitle as="h1">Set New Password</CardTitle>
         <CardDescription>
           Create a new password for <span className="font-semibold text-foreground">{email}</span>
         </CardDescription>
@@ -229,7 +229,7 @@ export default function AuthActionPage() {
         <Card>
           <CardHeader className="items-center text-center">
             <Logo className="h-10 w-10 animate-bounce mb-2" />
-            <CardTitle>Loading...</CardTitle>
+            <CardTitle as="h1">Loading...</CardTitle>
           </CardHeader>
         </Card>
       }
