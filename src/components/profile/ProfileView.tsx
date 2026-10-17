@@ -417,7 +417,7 @@ export function ProfileView() {
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                className="min-h-9 rounded-full px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               >
                 Edit
               </button>
@@ -579,7 +579,7 @@ export function ProfileView() {
               aria-pressed={!preferences.avatarColor}
               title="Default gradient"
               className={cn(
-                'h-8 w-8 rounded-full bg-gradient-brand ring-2 ring-offset-2 ring-offset-card transition-shadow',
+                'h-9 w-9 rounded-full bg-gradient-brand ring-2 ring-offset-2 ring-offset-card transition-shadow',
                 !preferences.avatarColor ? 'ring-primary' : 'ring-transparent hover:ring-border',
               )}
             />
@@ -591,7 +591,7 @@ export function ProfileView() {
                 aria-pressed={preferences.avatarColor === preset.value}
                 title={preset.value.replace('bg-', '').replace('-500', '')}
                 className={cn(
-                  'h-8 w-8 rounded-full ring-2 ring-offset-2 ring-offset-card transition-shadow',
+                  'h-9 w-9 rounded-full ring-2 ring-offset-2 ring-offset-card transition-shadow',
                   preset.value,
                   preferences.avatarColor === preset.value
                     ? 'ring-primary'
@@ -918,7 +918,7 @@ export function ProfileView() {
               type="button"
               onClick={handleDownloadData}
               disabled={downloadingData}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               {downloadingData ? 'Preparing...' : 'Download everything (.json)'}
             </button>
@@ -926,7 +926,7 @@ export function ProfileView() {
               type="button"
               onClick={handleDownloadCalendar}
               disabled={state.scheduleItems.length === 0}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               Download schedule (.ics)
             </button>
@@ -934,7 +934,7 @@ export function ProfileView() {
               type="button"
               onClick={handleDownloadContacts}
               disabled={state.contacts.length === 0}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               Download contacts (.vcf)
             </button>
@@ -962,7 +962,7 @@ export function ProfileView() {
                 setDeletePassword('');
                 clearError();
               }}
-              className="mt-3 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+              className="mt-3 min-h-9 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
             >
               Delete account
             </button>

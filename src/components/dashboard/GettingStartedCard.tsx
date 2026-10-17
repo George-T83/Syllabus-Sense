@@ -178,7 +178,7 @@ export function GettingStartedCard({
             type="button"
             onClick={onDismiss}
             aria-label="Hide the setup checklist"
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            className="-m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
           >
             <svg
               className="h-4 w-4"
