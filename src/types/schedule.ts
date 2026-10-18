@@ -185,6 +185,12 @@ export type Priority = 'low' | 'medium' | 'high';
  */
 export type DataSource = 'manual' | 'ai';
 
+export interface TaskStep {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
 /**
  * Represents a dated piece of work/task associated with a course.
  */
@@ -214,6 +220,9 @@ export interface ScheduleItem {
   progress?: number;
   /** User-assigned priority */
   priority?: Priority;
+  /** A checklist of smaller pieces of this task. When present, ticking a step
+   * moves `progress` to the share of steps done. */
+  steps?: TaskStep[];
   /** Free-text notes */
   notes?: string;
   /** Weight of this item toward the course's final grade, as a percentage (e.g. 15 for 15%) */

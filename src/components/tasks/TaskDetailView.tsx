@@ -19,9 +19,11 @@ import { RingGauge } from '@/components/ui/RingGauge';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
 import { generateGoogleCalendarUrl, generateOutlookCalendarUrl } from '@/lib/export/calendarLinks';
 import { clampProgress, TASK_STATUS_LABEL } from '@/lib/taskStatus';
+import { TaskSteps } from '@/components/tasks/TaskSteps';
+import { progressFromSteps } from '@/lib/tasks/steps';
 import { LatePenaltyAdvisor } from './LatePenaltyAdvisor';
 import type { ScheduleItemFormValues } from '@/lib/validation/scheduleItem';
-import type { AssignmentType, Course, ScheduleItem } from '@/types/schedule';
+import type { AssignmentType, Course, ScheduleItem, TaskStep } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import {
   SHORT_DATE_FORMATTER as shortDueDateFormatter,
@@ -271,6 +273,24 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
     } catch (err) {
       console.error('Failed to update progress:', err);
       showError("Couldn't save your progress update. Try again in a moment.");
+    }
+  };
+
+  const handleSetSteps = async (steps: TaskStep[]) => {
+    if (!user) return;
+    // Ticking steps moves progress to the share done; with no steps the
+    // student's own progress stays as it was.
+    const implied = progressFromSteps(steps);
+    try {
+      await updateScheduleItem(
+        user.uid,
+        item,
+        { ...item, steps, ...(implied !== undefined ? { progress: implied } : {}) },
+        dispatch,
+      );
+    } catch (err) {
+      console.error('Failed to update steps:', err);
+      showError("Couldn't save your steps. Try again in a moment.");
     }
   };
 
@@ -661,6 +681,10 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
               )}
             </div>
           )}
+
+          <div className="border-t border-border">
+            <TaskSteps steps={item.steps} onChange={handleSetSteps} disabled={!user} />
+          </div>
 
           <dl className="grid grid-cols-2 gap-4 p-6 text-sm">
             <div>
