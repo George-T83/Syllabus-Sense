@@ -382,6 +382,7 @@ export function DashboardView() {
                           courseIcon={course?.icon}
                           completed={item.completed}
                           progress={item.progress}
+                          steps={item.steps}
                           priority={item.priority}
                           assignedTo={item.assignedTo}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
@@ -643,6 +644,7 @@ export function DashboardView() {
                         courseIcon={course?.icon}
                         completed={item.completed}
                         progress={item.progress}
+                        steps={item.steps}
                         priority={item.priority}
                         onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                         trailing={

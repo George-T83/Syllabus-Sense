@@ -185,6 +185,35 @@ describe('firestore.rules: cross-user collection queries', () => {
   });
 });
 
+describe('firestore.rules: calendarFeeds (server-only token mapping)', () => {
+  const TOKEN_PATH = 'calendarFeeds/token-abc';
+
+  beforeEach(async () => {
+    await seed(TOKEN_PATH, { uid: OWNER_UID, createdAt: '2026-01-01T00:00:00.000Z' });
+  });
+
+  it('denies the owning user from reading their own mapping', async () => {
+    const ownerDb = testEnv.authenticatedContext(OWNER_UID).firestore();
+    await assertFails(getDoc(doc(ownerDb, TOKEN_PATH)));
+  });
+
+  it('denies listing the collection', async () => {
+    const ownerDb = testEnv.authenticatedContext(OWNER_UID).firestore();
+    await assertFails(getDocs(collection(ownerDb, 'calendarFeeds')));
+  });
+
+  it('denies unauthenticated reads', async () => {
+    const anonDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(anonDb, TOKEN_PATH)));
+  });
+
+  it('denies clients creating or deleting mappings', async () => {
+    const ownerDb = testEnv.authenticatedContext(OWNER_UID).firestore();
+    await assertFails(setDoc(doc(ownerDb, 'calendarFeeds/other'), { uid: OWNER_UID }));
+    await assertFails(deleteDoc(doc(ownerDb, TOKEN_PATH)));
+  });
+});
+
 describe('firestore.rules: default-deny catch-all', () => {
   it('denies reads to collections outside the users/{userId} tree, even when authenticated', async () => {
     await seed('config/app-settings', { maintenanceMode: false });
