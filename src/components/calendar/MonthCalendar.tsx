@@ -733,7 +733,7 @@ export function MonthCalendar() {
             {monthStats.busiestDay && (
               <button
                 onClick={() => selectDay(monthStats.busiestDay!.day)}
-                className="ml-auto flex items-center gap-1.5 font-semibold text-primary hover:underline"
+                className="ml-auto flex min-h-9 items-center gap-1.5 font-semibold text-primary hover:underline"
               >
                 <span
                   className={cn(

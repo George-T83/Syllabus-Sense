@@ -54,3 +54,10 @@ describe('CoursesListView GPA stat', () => {
     expect(screen.getByText(/An estimate, not your official GPA/)).toBeDefined();
   });
 });
+
+describe('CoursesListView accessibility', () => {
+  it('gives the search box an accessible name', () => {
+    renderCourses([{ id: 'a', code: 'CS 101', title: 'Intro', color: 'bg-blue-500' }]);
+    expect(screen.getByRole('textbox', { name: 'Search courses' })).toBeTruthy();
+  });
+});

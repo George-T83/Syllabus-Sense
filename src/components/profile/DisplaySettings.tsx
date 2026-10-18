@@ -19,7 +19,7 @@ function PillSwitch({ id }: { id: PillId }) {
         aria-checked={!hidden}
         onClick={() => setHidden(!hidden)}
         className={cn(
-          'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card',
+          'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-[""] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card',
           hidden ? 'bg-muted' : 'bg-primary',
         )}
       >

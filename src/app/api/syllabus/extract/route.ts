@@ -10,6 +10,8 @@ import {
 import { describeProviderFailure, SYLLABUS_TOO_LONG_MESSAGE } from '@/lib/ai/anthropicFailure';
 import { salvageExtraction } from '@/lib/syllabus/salvageExtraction';
 import { detectSyllabusFileKind, extractRawSyllabusText } from '@/lib/syllabus/extractRawText';
+import { isPendingUploadPath } from '@/lib/syllabus/pendingUpload';
+import { adminStorage } from '@/lib/firebase/adminStorage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -34,14 +36,50 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { fileBase64?: string; fileName?: string };
+  let body: { fileBase64?: string; fileName?: string; storagePath?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { fileBase64, fileName } = body;
+  const { fileName, storagePath } = body;
+  let fileBase64 = body.fileBase64;
+
+  // A big file arrives as a Storage path instead of inline bytes (the host's
+  // request-size limit is lower than the 10MB the upload box promises).
+  if (!fileBase64 && storagePath !== undefined) {
+    if (!isPendingUploadPath(user.uid, storagePath)) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
+    if (!adminStorage) {
+      return NextResponse.json(
+        { error: 'Large file upload is not configured on the server.' },
+        { status: 503 },
+      );
+    }
+    const file = adminStorage.bucket().file(storagePath);
+    try {
+      const [metadata] = await file.getMetadata();
+      if (Number(metadata.size) > MAX_FILE_BYTES) {
+        await file.delete({ ignoreNotFound: true }).catch(() => {});
+        return NextResponse.json({ error: 'File is too large (max 10MB).' }, { status: 400 });
+      }
+      const [bytes] = await file.download();
+      fileBase64 = bytes.toString('base64');
+    } catch (err) {
+      console.error('Failed to read pending syllabus upload:', storagePath, err);
+      return NextResponse.json(
+        { error: "Couldn't read that file. Try uploading it again." },
+        { status: 404 },
+      );
+    }
+    // The bytes are in memory now; the temporary copy has done its job.
+    await file.delete({ ignoreNotFound: true }).catch((err) => {
+      console.warn('Could not delete pending syllabus upload:', storagePath, err);
+    });
+  }
+
   if (!fileBase64 || typeof fileBase64 !== 'string') {
     return NextResponse.json({ error: 'Missing file.' }, { status: 400 });
   }
