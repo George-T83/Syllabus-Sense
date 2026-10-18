@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
+import { useUndoToast } from '@/hooks/useUndoToast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateCourse, deleteCourse } from '@/lib/firestore/courses';
@@ -214,6 +215,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
   const router = useRouter();
   const { showSuccess, showError, showWarning } = useToast();
+  const showUndo = useUndoToast();
   const syllabi = useSyllabi(user?.uid, courseId);
   const currentPrimarySyllabus = getPrimarySyllabus(syllabi) ?? null;
   const [syllabusDiff, setSyllabusDiff] = useState<{
@@ -394,7 +396,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
       setConfirmingDeleteItemId(null);
-      showSuccess('Task deleted', `"${item.title}" was removed.`);
+      showUndo('Task deleted', `"${item.title}" was removed.`, () =>
+        createScheduleItem(user.uid, item, dispatch),
+      );
     } catch (err) {
       showError('Could not delete task', err instanceof Error ? err.message : undefined);
     } finally {
@@ -486,7 +490,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteContact(user.uid, contact, dispatch);
       setConfirmingDeleteContactId(null);
-      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
+      showUndo('Contact deleted', `${contact.fullName} was removed.`, () =>
+        createContact(user.uid, contact, dispatch),
+      );
     } catch (err) {
       showError('Could not delete contact', err instanceof Error ? err.message : undefined);
     } finally {
