@@ -37,7 +37,7 @@
 
     /* Deep enough to hold 4.5:1 both as text on light surfaces and under
        white button text. */
-    --destructive: 0 72% 43%;
+    --destructive: 0 72% 41%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 252 45% 87%;
@@ -104,7 +104,7 @@
        white button labels on it hold 4.5:1; at that lightness primary-colored
        text on the dark page only reaches ~4.2:1, so text-primary reads this
        lighter tone instead (5.4:1+). See .dark .text-primary below. */
-    --primary-text: 250 95% 72%;
+    --primary-text: 250 95% 74%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 250 26% 13%;
@@ -118,7 +118,7 @@
 
     /* Readable as text on dark surfaces (the old 30.6% was a background
        shade that left destructive labels like "Delete deck" near-invisible). */
-    --destructive: 0 84% 64%;
+    --destructive: 0 84% 66%;
     /* The bright red that reads as text on dark surfaces is too light for
        white labels (3.4:1), so destructive buttons use dark ink (5.5:1). */
     --destructive-foreground: 250 40% 8%;
@@ -139,7 +139,7 @@
     --load-low: 142 71% 45%;
     --load-medium: 38 92% 50%;
     --load-high: 24 95% 53%;
-    --load-critical: 0 84% 60%;
+    --load-critical: 0 84% 62%;
 
     --brand-gradient-start: #8c6eff;
     --brand-gradient-mid: #5b3df5;
