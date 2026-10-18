@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-syllabus-sense-rules-test \"vitest run src/lib/firestore/__tests__/rules.spec.ts src/lib/firestore/__tests__/storageRules.spec.ts\"",
     "test:e2e": "playwright test",
+    "test:e2e:emulated": "node scripts/run-e2e.mjs",
     "emulators": "firebase emulators:start"
   },
   "lint-staged": {

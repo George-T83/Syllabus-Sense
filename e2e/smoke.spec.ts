@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { seedStudent, signIn } from './helpers';
 
-test.describe('E2E Application Smoke Suite', () => {
-  test('1. Public Login Page loads with expected form elements', async ({ page }) => {
+test.describe('public pages', () => {
+  test('login page loads with the sign-in form', async ({ page }) => {
     await page.goto('/login');
     await expect(page).toHaveTitle(/Syllabus Sense/);
     await expect(page.locator('#email')).toBeVisible();
@@ -9,30 +10,58 @@ test.describe('E2E Application Smoke Suite', () => {
     await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 
-  test('2. Authenticated Dashboard loads for fixture user', async ({ page, context }) => {
-    await context.addInitScript(() => {
-      window.localStorage.setItem('mock_auth', 'true');
+  test('sign-up page loads with its form', async ({ page }) => {
+    await page.goto('/signup');
+    await expect(page.locator('#email')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign Up' })).toBeVisible();
+  });
+});
+
+test.describe('signed-in student', () => {
+  test('sees their own work on the dashboard and Tasks page', async ({ page }) => {
+    const { email } = await seedStudent('nav');
+    await signIn(page, email);
+
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({
+      timeout: 30_000,
     });
-    await page.goto('/dashboard?mock=true');
-    await expect(page).toHaveURL(/.*dashboard/);
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Problem Set 5').first()).toBeVisible({ timeout: 30_000 });
+
+    await page.goto('/tasks');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Tasks');
+    await expect(page.getByText('Midterm exam').first()).toBeVisible({ timeout: 30_000 });
+
+    await page.goto('/courses');
+    await expect(page.getByText('CSCI 213').first()).toBeVisible({ timeout: 30_000 });
   });
 
-  test('3. Authenticated Navigation across core app routes', async ({ page, context }) => {
-    await context.addInitScript(() => {
-      window.localStorage.setItem('mock_auth', 'true');
-    });
-    await page.goto('/dashboard?mock=true');
-    await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+  test('deleting a task removes it and survives a reload', async ({ page }) => {
+    const { email } = await seedStudent('delete');
+    await signIn(page, email);
+    await page.goto('/tasks');
+    await expect(page.getByText('3 tasks')).toBeVisible({ timeout: 30_000 });
 
-    // Navigate to Courses
-    await page.goto('/courses?mock=true');
-    await expect(page).toHaveURL(/.*courses/);
-    await expect(page.locator('h1')).toContainText('Courses', { timeout: 15000 });
+    const row = page
+      .locator('li, div')
+      .filter({ hasText: 'Reading: Chapter 3' })
+      .filter({ has: page.getByRole('button', { name: 'Delete' }) })
+      .last();
+    await row.getByRole('button', { name: 'Delete' }).first().click();
+    await page.getByRole('button', { name: 'Confirm' }).click();
+    await expect(page.getByText('Task deleted')).toBeVisible();
+    await expect(page.getByText('2 tasks')).toBeVisible();
 
-    // Navigate to Tasks
-    await page.goto('/tasks?mock=true');
-    await expect(page).toHaveURL(/.*tasks/);
-    await expect(page.locator('h1')).toContainText('Tasks', { timeout: 15000 });
+    await page.reload();
+    await expect(page.getByText('2 tasks')).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("one student's data is not visible to another", async ({ page }) => {
+    await seedStudent('other');
+    const { email } = await seedStudent('mine');
+    await signIn(page, email);
+    await page.goto('/tasks');
+    // Both accounts hold three tasks with the same titles; seeing six would mean a leak.
+    await expect(page.getByText('3 tasks')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('6 tasks')).toHaveCount(0);
   });
 });

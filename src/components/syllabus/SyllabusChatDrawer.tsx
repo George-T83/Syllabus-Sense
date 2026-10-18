@@ -16,6 +16,7 @@ import { appendAdvisorMessage, useAdvisorMessages } from '@/lib/firestore/adviso
 import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from '@/components/advisor/AdvisorWarningCard';
 import { cn } from '@/lib/utils';
+import { withoutSample } from '@/lib/sample/sampleSemester';
 import { isOverdue } from '@/lib/calendar/dates';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
@@ -164,6 +165,8 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
       const attachedFile = uploadedFile;
       setUploadedFile(null);
 
+      // A sample course is made-up data: ask the question without it.
+      const aiCourse = selectedCourse?.sample ? undefined : selectedCourse;
       try {
         const token = user ? await user.getIdToken().catch(() => null) : null;
         const res = await fetch('/api/syllabus/chat', {
@@ -174,17 +177,17 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
           },
           body: JSON.stringify({
             message: trimmed,
-            courseId: selectedCourse?.id,
-            courseCode: selectedCourse?.code,
-            courseTitle: selectedCourse?.title,
-            instructor: selectedCourse?.instructor,
-            location: selectedCourse?.meetingTimes?.[0]?.location,
-            notes: selectedCourse?.notes,
+            courseId: aiCourse?.id,
+            courseCode: aiCourse?.code,
+            courseTitle: aiCourse?.title,
+            instructor: aiCourse?.instructor,
+            location: aiCourse?.meetingTimes?.[0]?.location,
+            notes: aiCourse?.notes,
             syllabusText: syllabusText || undefined,
-            materials: normalizeMaterials(selectedCourse?.materials).map((m) =>
+            materials: normalizeMaterials(aiCourse?.materials).map((m) =>
               m.cost !== undefined ? `${m.name} ($${m.cost.toFixed(2)})` : m.name,
             ),
-            learningObjectives: selectedCourse?.learningObjectives,
+            learningObjectives: aiCourse?.learningObjectives,
             fileBase64: attachedFile?.base64 || undefined,
             fileName: attachedFile?.name || undefined,
           }),
@@ -237,8 +240,12 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
       };
 
       const now = Date.now();
-      const pendingTaskCount = state.scheduleItems.filter((i) => !i.completed).length;
-      const overdueTaskCount = state.scheduleItems.filter((i) => isOverdue(i, now)).length;
+      const pendingTaskCount = withoutSample(state.scheduleItems).filter(
+        (i) => !i.completed,
+      ).length;
+      const overdueTaskCount = withoutSample(state.scheduleItems).filter((i) =>
+        isOverdue(i, now),
+      ).length;
 
       try {
         await appendAdvisorMessage(user.uid, userMessage);
@@ -257,7 +264,11 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             history,
             degreeProfile,
             degreeCourses,
-            courses: state.courses.map((c) => ({ code: c.code, title: c.title, term: c.term })),
+            courses: withoutSample(state.courses).map((c) => ({
+              code: c.code,
+              title: c.title,
+              term: c.term,
+            })),
             pendingTaskCount,
             overdueTaskCount,
           }),

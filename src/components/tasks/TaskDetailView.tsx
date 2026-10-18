@@ -8,7 +8,12 @@ import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateScheduleItem, deleteScheduleItem } from '@/lib/firestore/scheduleItems';
+import {
+  createScheduleItem,
+  updateScheduleItem,
+  deleteScheduleItem,
+} from '@/lib/firestore/scheduleItems';
+import { useUndoToast } from '@/hooks/useUndoToast';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
@@ -198,6 +203,7 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
+  const showUndo = useUndoToast();
   const router = useRouter();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -401,7 +407,9 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
     if (!user) return;
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
-      showSuccess('Task deleted', `"${item.title}" was removed.`);
+      showUndo('Task deleted', `"${item.title}" was removed.`, () =>
+        createScheduleItem(user.uid, item, dispatch),
+      );
       router.push('/tasks');
     } catch (err) {
       showError('Could not delete task', err instanceof Error ? err.message : undefined);
