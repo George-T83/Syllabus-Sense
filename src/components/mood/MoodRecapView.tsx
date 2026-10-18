@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -60,6 +61,7 @@ const CHART_TOOLTIP_STYLE = {
 };
 
 export function MoodRecapView() {
+  const router = useRouter();
   const { state } = useAppState();
   const entries = state.moodEntries;
 
@@ -148,7 +150,7 @@ export function MoodRecapView() {
           description="Tap a mood on your dashboard each day - your recap builds up from there."
           action={{
             label: 'Go to Dashboard',
-            onClick: () => (window.location.href = '/dashboard'),
+            onClick: () => router.push('/dashboard'),
           }}
         />
       </Card>
