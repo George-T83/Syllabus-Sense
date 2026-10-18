@@ -27,6 +27,10 @@ Listed with their purpose in `.env.example`. The ones that matter most:
 
 `.github/workflows/ci.yml` runs on every PR and is the required check, "Lint, Build, and Test". In order: commit-message attribution check, lint, build, unit tests, Firestore and Storage rules tests (against the emulators), and a critical dependency audit.
 
+### End-to-end smoke test
+
+A second job, "End-to-end smoke", is not a required check. It starts the Auth, Firestore and Storage emulators, runs the app in dev mode against them, and drives it in Chromium: sign in as a seeded student, see the dashboard, Tasks and Courses, delete a task, and confirm one student's data does not appear in another's account. Run it locally on any OS with `npm run test:e2e:emulated` (it needs Java for the emulators). It uses the dev server because the production Content Security Policy deliberately blocks connections to the emulators.
+
 ### The dependency audit
 
 `scripts/check-critical-audit.mjs` fails the build on any critical `npm audit` finding. When one appears:

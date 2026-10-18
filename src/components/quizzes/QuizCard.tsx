@@ -64,10 +64,18 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
         createdAt: new Date().toISOString(),
         sourceFileName: latestSyllabus.fileName,
       };
-      if (quiz) {
-        await deleteQuiz(user.uid, quiz, dispatch);
-      }
+      // Save the new quiz before removing the old one, so a failed save leaves
+      // the student with the quiz they had instead of neither.
       await createQuiz(user.uid, newQuiz, dispatch);
+      if (quiz) {
+        try {
+          await deleteQuiz(user.uid, quiz, dispatch);
+        } catch (err) {
+          // Keep one quiz per course: put things back as they were.
+          await deleteQuiz(user.uid, newQuiz, dispatch).catch(() => {});
+          throw err;
+        }
+      }
       showSuccess('Quiz generated', `${generated.length} questions ready for ${course.code}.`);
     } catch (err) {
       console.error('[AI request] failed', err);
