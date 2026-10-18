@@ -22,7 +22,7 @@ export function RowActionButton({
     <button
       type={type}
       className={cn(
-        'inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors disabled:opacity-50',
+        'inline-flex min-h-9 shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-50',
         tone === 'destructive'
           ? 'bg-destructive/10 text-destructive hover:bg-destructive/20'
           : 'bg-primary/10 text-primary hover:bg-primary/20',

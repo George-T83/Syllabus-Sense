@@ -129,9 +129,9 @@ function LatePenaltyCalculator({
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left Side: Interactive Sliders (6 cols) */}
         <Card className="md:col-span-6 p-6 space-y-5">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+          <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
             Submission Parameters
-          </h3>
+          </h2>
 
           {/* Hours Late Slider */}
           <div className="space-y-2">
@@ -213,9 +213,9 @@ function LatePenaltyCalculator({
         {/* Right Side: Grade Outcome & Decay Curve (6 cols) */}
         <Card className="md:col-span-6 p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
               Projected Final Recorded Grade
-            </h3>
+            </h2>
 
             {/* Score Comparison Display */}
             <div className="p-4 rounded-2xl bg-muted/40 border border-border flex items-center justify-between">
@@ -405,9 +405,9 @@ export function LatePenaltyAdvisor({ policy: providedPolicy, ...rest }: LatePena
         <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 pb-0 sm:pb-0 lg:pb-0">
           <Card className="p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+              <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
                 Late policy
-              </h3>
+              </h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 Syllabus Sense does not have this course&apos;s late policy on file, so nothing is
                 assumed. Enter it from your syllabus to see what a late hand-in would cost.

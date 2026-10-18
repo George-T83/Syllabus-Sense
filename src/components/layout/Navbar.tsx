@@ -304,6 +304,7 @@ export default function Navbar({ onCommandPaletteAction }: NavbarProps = {}) {
       {/* Mark + wordmark */}
       <Link
         href="/"
+        aria-label="Syllabus Sense home"
         className="flex items-center gap-2.5 shrink-0 text-lg font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
       >
         <Logo className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />

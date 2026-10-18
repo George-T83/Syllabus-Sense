@@ -58,7 +58,7 @@ export function MoodCheckInCard() {
         </div>
         <Link
           href="/mood"
-          className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+          className="inline-flex min-h-9 shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
         >
           See your recap →
         </Link>

@@ -58,6 +58,8 @@ export interface GettingStartedCardProps {
   onUploadSyllabus: () => void;
   onAddCourse: () => void;
   onAddTask: () => void;
+  /** Loads the sample semester. Omit to hide the "Try a sample semester" action. */
+  onTrySample?: () => void;
   /** From useSetupChecklistDismissed - lifted so the dashboard can tell
    * whether the checklist is on screen. */
   dismissed: boolean;
@@ -103,6 +105,7 @@ export function GettingStartedCard({
   onUploadSyllabus,
   onAddCourse,
   onAddTask,
+  onTrySample,
   dismissed,
   onDismiss,
 }: GettingStartedCardProps) {
@@ -128,6 +131,9 @@ export function GettingStartedCard({
             <CardActionButton withPlus onClick={onAddCourse}>
               Add by hand
             </CardActionButton>
+            {onTrySample && courses.length === 0 && (
+              <CardActionButton onClick={onTrySample}>Try a sample semester</CardActionButton>
+            )}
           </>
         );
       case 'deadlines':
@@ -178,7 +184,7 @@ export function GettingStartedCard({
             type="button"
             onClick={onDismiss}
             aria-label="Hide the setup checklist"
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            className="-m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
           >
             <svg
               className="h-4 w-4"

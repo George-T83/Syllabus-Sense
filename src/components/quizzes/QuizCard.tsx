@@ -64,10 +64,18 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
         createdAt: new Date().toISOString(),
         sourceFileName: latestSyllabus.fileName,
       };
-      if (quiz) {
-        await deleteQuiz(user.uid, quiz, dispatch);
-      }
+      // Save the new quiz before removing the old one, so a failed save leaves
+      // the student with the quiz they had instead of neither.
       await createQuiz(user.uid, newQuiz, dispatch);
+      if (quiz) {
+        try {
+          await deleteQuiz(user.uid, quiz, dispatch);
+        } catch (err) {
+          // Keep one quiz per course: put things back as they were.
+          await deleteQuiz(user.uid, newQuiz, dispatch).catch(() => {});
+          throw err;
+        }
+      }
       showSuccess('Quiz generated', `${generated.length} questions ready for ${course.code}.`);
     } catch (err) {
       console.error('[AI request] failed', err);
@@ -96,7 +104,7 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
       <Card accent="none" className="rounded-2xl border-dashed p-5 opacity-90">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground">{course.code}</h3>
+            <h2 className="text-sm font-semibold text-muted-foreground">{course.code}</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Upload a syllabus on this course&apos;s page to generate a practice quiz.
             </p>
@@ -110,7 +118,7 @@ export function QuizCard({ course, onTake }: { course: Course; onTake: (quiz: Qu
     <Card className="rounded-2xl p-5 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-foreground">{course.code}</h3>
+          <h2 className="truncate text-sm font-semibold text-foreground">{course.code}</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {quiz ? `${quiz.questions.length} questions` : 'No quiz yet'}
           </p>

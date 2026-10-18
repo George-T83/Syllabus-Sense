@@ -108,6 +108,13 @@ describe('Navbar notification bell - urgency tiers', () => {
     expect(screen.getByText('High Stakes Task')).toBeDefined();
   });
 
+  it('names the logo link, since on a phone it is only an icon', () => {
+    renderNavbar([]);
+    expect(screen.getByRole('link', { name: 'Syllabus Sense home' }).getAttribute('href')).toBe(
+      '/',
+    );
+  });
+
   it('does not surface a low-weight item beyond the due-this-week window', () => {
     renderNavbar([
       itemDueIn('far-1', 10 * 24 * 60 * 60 * 1000, { title: 'Far Off Task', gradeWeight: 5 }),

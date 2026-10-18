@@ -133,7 +133,7 @@ export function NowHeroCard({ hero, onMarkDone, onUploadSyllabus, onAddTask }: N
         {hero.others > 0 && (
           <Link
             href="/tasks"
-            className="ml-auto text-xs font-medium text-muted-foreground hover:text-primary"
+            className="ml-auto inline-flex min-h-9 items-center text-xs font-medium text-muted-foreground hover:text-primary"
           >
             +{hero.others} more this week
           </Link>

@@ -13,6 +13,7 @@ import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
+import { useUndoToast } from '@/hooks/useUndoToast';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
@@ -67,6 +68,7 @@ export function ContactsListView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
+  const showUndo = useUndoToast();
   const { contacts, courses } = state;
 
   const [search, setSearch] = useState('');
@@ -184,6 +186,7 @@ export function ContactsListView() {
         ...(editingContact.source ? { source: editingContact.source } : {}),
         ...(editingContact.approved !== undefined ? { approved: editingContact.approved } : {}),
         ...(editingContact.fieldApprovals ? { fieldApprovals: editingContact.fieldApprovals } : {}),
+        ...(editingContact.sample ? { sample: true } : {}),
       };
       await updateContact(user.uid, editingContact, updated, dispatch);
     } else {
@@ -213,7 +216,9 @@ export function ContactsListView() {
     try {
       await deleteContact(user.uid, contact, dispatch);
       setConfirmingDeleteId(null);
-      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
+      showUndo('Contact deleted', `${contact.fullName} was removed.`, () =>
+        createContact(user.uid, contact, dispatch),
+      );
     } catch (err) {
       showError('Could not delete contact', err instanceof Error ? err.message : undefined);
     }
@@ -281,6 +286,7 @@ export function ContactsListView() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search contacts"
             placeholder="Search by name or course..."
             className="flex-1 min-w-[200px] rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
           />
