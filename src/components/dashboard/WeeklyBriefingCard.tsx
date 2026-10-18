@@ -232,7 +232,7 @@ export function WeeklyBriefingCard({
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss this week's briefing"
-          className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+          className="-m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
         >
           <svg
             className="h-4 w-4"
@@ -255,7 +255,10 @@ export function WeeklyBriefingCard({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-3 text-xs text-muted-foreground">
         <span>{summary}</span>
         {more > 0 && (
-          <Link href="/tasks" className="font-medium hover:text-primary">
+          <Link
+            href="/tasks"
+            className="-my-2 inline-flex min-h-9 items-center font-medium hover:text-primary"
+          >
             +{more} more this week
           </Link>
         )}

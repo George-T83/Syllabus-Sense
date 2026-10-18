@@ -222,6 +222,7 @@ export function CoursesListView() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search courses"
             placeholder="Search by code, title, or instructor..."
             className="flex-1 min-w-[200px] rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />

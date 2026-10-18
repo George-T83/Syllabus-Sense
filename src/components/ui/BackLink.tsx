@@ -6,7 +6,7 @@ export function BackLink({ href, children }: { href: string; children: React.Rea
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 -ml-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      className="inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 py-1.5 -ml-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
     >
       <svg
         className="h-4 w-4"

@@ -37,6 +37,7 @@ if (projectId && clientEmail && privateKey) {
           clientEmail,
           privateKey: formattedPrivateKey,
         }),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       })
     : getApp();
 

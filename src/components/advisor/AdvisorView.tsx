@@ -203,6 +203,7 @@ export function AdvisorView() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            aria-label="Ask the advisor"
             placeholder="Ask about your degree, GPA, or what to take next…"
             disabled={sending}
             className="min-h-[44px] flex-1 rounded-full border border-border bg-background px-4 py-2 text-body-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
