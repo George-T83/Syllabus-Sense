@@ -55,6 +55,32 @@ test.describe('signed-in student', () => {
     await expect(page.getByText('2 tasks')).toBeVisible({ timeout: 30_000 });
   });
 
+  test('a deleted task comes back with Undo, and is still there after a reload', async ({
+    page,
+  }) => {
+    const { email } = await seedStudent('undo');
+    await signIn(page, email);
+    await page.goto('/tasks');
+    await expect(page.getByText('3 tasks')).toBeVisible({ timeout: 30_000 });
+
+    const row = page
+      .locator('li, div')
+      .filter({ hasText: 'Reading: Chapter 3' })
+      .filter({ has: page.getByRole('button', { name: 'Delete' }) })
+      .last();
+    await row.getByRole('button', { name: 'Delete' }).first().click();
+    await page.getByRole('button', { name: 'Confirm' }).click();
+    await expect(page.getByText('Task deleted')).toBeVisible();
+    await expect(page.getByText('2 tasks')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByText('3 tasks')).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByText('3 tasks')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Reading: Chapter 3').first()).toBeVisible();
+  });
+
   test("one student's data is not visible to another", async ({ page }) => {
     await seedStudent('other');
     const { email } = await seedStudent('mine');
