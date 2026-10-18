@@ -1510,6 +1510,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     courseIcon={course.icon}
                     completed={item.completed}
                     progress={item.progress}
+                    steps={item.steps}
                     priority={item.priority}
                     assignedTo={item.assignedTo}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
