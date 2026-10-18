@@ -19,7 +19,9 @@ export function QuizzesView() {
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
 
   const handleComplete = async (score: number, total: number) => {
-    if (!user || !activeQuiz) return;
+    // Throwing, not returning, so the quiz screen says the score was not saved
+    // instead of claiming it was.
+    if (!user || !activeQuiz) throw new Error('You must be signed in to save your score.');
     try {
       await createQuizAttempt(
         user.uid,
