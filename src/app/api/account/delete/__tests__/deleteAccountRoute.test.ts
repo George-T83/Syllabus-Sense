@@ -12,6 +12,16 @@ const mockRecursiveDelete = vi.fn();
 const mockDoc = vi.fn((path: string) => ({ path }));
 const mockDeleteFiles = vi.fn();
 const mockBucket = vi.fn(() => ({ deleteFiles: mockDeleteFiles }));
+const mockFeedRefDelete = vi.fn();
+const mockFeedWhere = vi.fn();
+const mockCollection = vi.fn((name: string) => ({
+  where: (...args: unknown[]) => {
+    mockFeedWhere(name, ...args);
+    return {
+      get: () => Promise.resolve({ docs: [{ ref: { delete: mockFeedRefDelete } }] }),
+    };
+  },
+}));
 
 vi.mock('@/lib/auth/verifyFirebaseIdToken', () => ({
   verifyFirebaseIdToken: (...args: unknown[]) => mockVerifyToken(...args),
@@ -21,6 +31,7 @@ vi.mock('@/lib/firebase/adminFirestore', () => ({
   get adminDb() {
     return {
       doc: mockDoc,
+      collection: mockCollection,
       recursiveDelete: (...args: unknown[]) => mockRecursiveDelete(...args),
     };
   },
@@ -50,6 +61,7 @@ describe('/api/account/delete route contract', () => {
     mockVerifyToken.mockResolvedValue({ uid: 'user-123', authTime: nowSeconds() });
     mockRecursiveDelete.mockResolvedValue(undefined);
     mockDeleteFiles.mockResolvedValue(undefined);
+    mockFeedRefDelete.mockResolvedValue(undefined);
   });
 
   it('rejects requests without a valid token with 401', async () => {
@@ -69,6 +81,14 @@ describe('/api/account/delete route contract', () => {
     expect(mockRecursiveDelete).toHaveBeenCalledWith({ path: 'users/user-123' });
     expect(mockBucket).toHaveBeenCalled();
     expect(mockDeleteFiles).toHaveBeenCalledWith({ prefix: 'users/user-123/' });
+  });
+
+  it('also removes the user calendar feed links', async () => {
+    const res = await POST(makeRequest());
+
+    expect(res.status).toBe(200);
+    expect(mockFeedWhere).toHaveBeenCalledWith('calendarFeeds', 'uid', '==', 'user-123');
+    expect(mockFeedRefDelete).toHaveBeenCalledTimes(1);
   });
 
   it('returns 500 and never touches Storage when the Firestore delete fails', async () => {
