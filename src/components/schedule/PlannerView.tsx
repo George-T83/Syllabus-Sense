@@ -263,6 +263,7 @@ function PlannedTaskRow({
       courseIcon={course?.icon}
       completed={item.completed}
       progress={item.progress}
+      steps={item.steps}
       priority={item.priority}
       assignedTo={item.assignedTo}
       onToggleComplete={onToggleComplete}
@@ -621,6 +622,7 @@ export function PlannerView() {
         courseIcon={course?.icon}
         completed={item.completed}
         progress={item.progress}
+        steps={item.steps}
         priority={item.priority}
         gradeWeight={item.gradeWeight}
         assignedTo={item.assignedTo}

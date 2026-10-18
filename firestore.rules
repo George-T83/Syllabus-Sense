@@ -60,6 +60,12 @@ service cloud.firestore {
       }
     }
 
+    // Calendar feed token -> uid mapping. Written and read only by the server
+    // (Admin SDK bypasses rules); no client may list or read tokens.
+    match /calendarFeeds/{token} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

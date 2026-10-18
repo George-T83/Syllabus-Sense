@@ -7,7 +7,8 @@ import { courseChipTint, courseSwatch, courseWash } from '@/lib/courseColors';
 import { clampProgress, getTaskStatus } from '@/lib/taskStatus';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
-import type { AssignmentType, Priority } from '@/types/schedule';
+import { stepCounts } from '@/lib/tasks/steps';
+import type { AssignmentType, Priority, TaskStep } from '@/types/schedule';
 
 const TYPE_LABEL: Record<AssignmentType, string> = {
   assignment: 'Assignment',
@@ -35,6 +36,26 @@ function GradeWeightPill({ gradeWeight }: { gradeWeight: number | undefined }) {
       title={`Worth ${gradeWeight}% of your grade`}
     >
       {gradeWeight}%
+    </span>
+  );
+}
+
+/** "2/4" next to the title once a task has steps, so progress through a big
+ * task shows in the list without opening it. */
+function StepsPill({ steps }: { steps: TaskStep[] | undefined }) {
+  const { done, total } = stepCounts(steps);
+  if (total === 0) return null;
+  return (
+    <span
+      className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold leading-none text-muted-foreground"
+      title={`${done} of ${total} steps done`}
+    >
+      <span className="sr-only">
+        {done} of {total} steps done
+      </span>
+      <span aria-hidden="true">
+        {done}/{total}
+      </span>
     </span>
   );
 }
@@ -100,6 +121,8 @@ export interface TaskRowProps {
    * anyone. Appended to the meta line rather than its own pill, since it's
    * informational rather than something that needs to grab attention. */
   assignedTo?: string;
+  /** The task's checklist; shows a small "done/total" pill when it has steps. */
+  steps?: TaskStep[];
   onToggleComplete?: () => void;
   /** Right-aligned custom content: due labels, badges, edit/delete links. */
   trailing?: ReactNode;
@@ -130,6 +153,7 @@ export function TaskRow({
   variant = 'card',
   gradeWeight,
   assignedTo,
+  steps,
 }: TaskRowProps) {
   if (variant === 'touch') {
     return (
@@ -147,6 +171,7 @@ export function TaskRow({
         href={href}
         gradeWeight={gradeWeight}
         assignedTo={assignedTo}
+        steps={steps}
       />
     );
   }
@@ -166,6 +191,7 @@ export function TaskRow({
       href={href}
       gradeWeight={gradeWeight}
       assignedTo={assignedTo}
+      steps={steps}
     />
   );
 }
@@ -228,6 +254,7 @@ function CardRow({
   href,
   gradeWeight,
   assignedTo,
+  steps,
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed' | 'priority'>> &
   Pick<
     TaskRowProps,
@@ -240,6 +267,7 @@ function CardRow({
     | 'href'
     | 'gradeWeight'
     | 'assignedTo'
+    | 'steps'
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
@@ -368,6 +396,7 @@ function CardRow({
               {title}
             </div>
             {!completed && <GradeWeightPill gradeWeight={gradeWeight} />}
+            {!completed && <StepsPill steps={steps} />}
           </div>
           <div className="mt-1 text-caption text-muted-foreground">
             {metaLine(courseCode, type, assignedTo)}
@@ -466,6 +495,7 @@ function TouchRow({
   href,
   gradeWeight,
   assignedTo,
+  steps,
 }: Required<Pick<TaskRowProps, 'title' | 'type' | 'completed'>> &
   Pick<
     TaskRowProps,
@@ -479,6 +509,7 @@ function TouchRow({
     | 'href'
     | 'gradeWeight'
     | 'assignedTo'
+    | 'steps'
   >) {
   const status = getTaskStatus({ completed, progress });
   const progressPct = clampProgress(progress ?? 0);
@@ -567,6 +598,7 @@ function TouchRow({
                 {title}
               </div>
               {!completed && <GradeWeightPill gradeWeight={gradeWeight} />}
+              {!completed && <StepsPill steps={steps} />}
             </div>
             <div className="mt-0.5 text-caption text-muted-foreground">
               {metaLine(courseCode, type, assignedTo)}

@@ -1000,6 +1000,7 @@ export function MonthCalendar() {
                           courseIcon={course?.icon}
                           completed={item.completed}
                           progress={item.progress}
+                          steps={item.steps}
                           priority={item.priority}
                           assignedTo={item.assignedTo}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
@@ -1209,6 +1210,7 @@ function DayDetailCard({
                       courseIcon={course?.icon}
                       completed={item.completed}
                       progress={item.progress}
+                      steps={item.steps}
                       priority={item.priority}
                       assignedTo={item.assignedTo}
                       onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}
