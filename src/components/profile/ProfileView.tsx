@@ -10,6 +10,8 @@ import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState, resolveActiveTerm } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import { RemoveSampleDataButton } from '@/components/sample/RemoveSampleDataButton';
+import { useSampleData } from '@/components/sample/useSampleData';
 import { db } from '@/lib/firebase/client';
 import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
 import { generateICS, createICSBlob, buildICSFilename } from '@/lib/export/ics';
@@ -150,6 +152,7 @@ export function ProfileView() {
     useAuth();
   const { state, dispatch } = useAppState();
   const { showError } = useToast();
+  const sample = useSampleData();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.displayName ?? '');
@@ -939,6 +942,18 @@ export function ProfileView() {
               Download contacts (.vcf)
             </button>
           </div>
+          {sample.hasSample && (
+            <div
+              className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-primary/5 px-3 py-2"
+              data-testid="sample-data-row"
+            >
+              <p className="text-xs text-muted-foreground">
+                Your account holds sample courses, tasks and contacts from &ldquo;Try a sample
+                semester&rdquo;. Nothing you added yourself is touched.
+              </p>
+              <RemoveSampleDataButton onRemove={sample.remove} removing={sample.removing} />
+            </div>
+          )}
         </div>
 
         {/* Account deletion - the only genuinely destructive action on this
