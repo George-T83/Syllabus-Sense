@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Logo from '@/components/layout/Logo';
+import { MAIN_CONTENT_ID } from '@/components/layout/SkipLink';
 import { ICON_PATHS, type IconKey } from '@/lib/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
@@ -65,7 +66,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main>
+      <main id={MAIN_CONTENT_ID} tabIndex={-1} className="outline-none">
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-4 pb-14 pt-12 sm:px-6 sm:pb-20 sm:pt-16">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">

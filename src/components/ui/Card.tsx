@@ -67,10 +67,13 @@ export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
 );
 CardHeader.displayName = 'CardHeader';
 
-export type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
+export interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  /** Heading level to render. Defaults to h3; a page's own title card passes h1. */
+  as?: 'h1' | 'h2' | 'h3';
+}
 export const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
-  ({ className, ...props }, ref) => (
-    <h3
+  ({ className, as: Tag = 'h3', ...props }, ref) => (
+    <Tag
       ref={ref}
       className={cn('text-h3 font-extrabold tracking-tight text-foreground', className)}
       {...props}

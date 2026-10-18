@@ -38,6 +38,20 @@ function renderCard(props: Partial<Parameters<typeof GettingStartedCard>[0]> = {
 }
 
 describe('GettingStartedCard', () => {
+  it('offers a sample semester to a student with no courses, when wired', () => {
+    const onTrySample = vi.fn();
+    renderCard({ onTrySample });
+    fireEvent.click(screen.getByRole('button', { name: 'Try a sample semester' }));
+    expect(onTrySample).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer the sample once there is a course, or when not wired', () => {
+    renderCard({ onTrySample: vi.fn(), courses: [course] });
+    expect(screen.queryByRole('button', { name: 'Try a sample semester' })).toBeNull();
+    renderCard();
+    expect(screen.queryByRole('button', { name: 'Try a sample semester' })).toBeNull();
+  });
+
   beforeEach(() => window.localStorage.clear());
 
   it('leads a brand-new student to a syllabus upload, with no way to dismiss it', () => {

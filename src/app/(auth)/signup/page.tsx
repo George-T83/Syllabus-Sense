@@ -71,7 +71,9 @@ export default function SignupPage() {
             Syllabus Sense
           </span>
         </div>
-        <CardTitle className="font-display !text-3xl !font-medium">Create your account</CardTitle>
+        <CardTitle as="h1" className="font-display !text-3xl !font-medium">
+          Create your account
+        </CardTitle>
         <CardDescription>Start tracking your syllabi with Syllabus Sense</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

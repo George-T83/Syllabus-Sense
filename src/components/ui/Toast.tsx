@@ -11,6 +11,8 @@ export interface Toast {
   title: string;
   message?: string;
   duration?: number;
+  /** A button on the toast, e.g. "Undo". Pressing it runs the handler and closes the toast. */
+  action?: { label: string; onAction: () => void };
 }
 
 interface ToastContextValue {
@@ -218,6 +220,18 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
           <p className="mt-0.5 text-caption text-muted-foreground">{toast.message}</p>
         )}
       </div>
+      {toast.action && (
+        <button
+          type="button"
+          onClick={() => {
+            toast.action?.onAction();
+            onDismiss();
+          }}
+          className="shrink-0 rounded-full bg-primary/10 px-3 py-1 min-h-9 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         type="button"
         onClick={onDismiss}

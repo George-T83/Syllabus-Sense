@@ -108,6 +108,10 @@ export interface Course {
   absences?: AbsenceRecord[];
   /** The syllabus's attendance limit, entered by the student. */
   attendancePolicy?: AttendancePolicy;
+  /** True on records created by "Try a sample semester" (lib/sample). Lets
+   * the whole sample be removed in one step and keeps it out of AI requests.
+   * Absent on everything the student entered. */
+  sample?: boolean;
 }
 
 /** Whether a contact is the instructor of record or a teaching assistant. */
@@ -160,6 +164,10 @@ export interface Contact {
       boolean
     >
   >;
+  /** True on records created by "Try a sample semester" (lib/sample). Lets
+   * the whole sample be removed in one step and keeps it out of AI requests.
+   * Absent on everything the student entered. */
+  sample?: boolean;
 }
 
 /**
@@ -176,6 +184,12 @@ export type Priority = 'low' | 'medium' | 'high';
  * Whether a record originated from manual user entry or AI syllabus extraction.
  */
 export type DataSource = 'manual' | 'ai';
+
+export interface TaskStep {
+  id: string;
+  title: string;
+  done: boolean;
+}
 
 /**
  * Represents a dated piece of work/task associated with a course.
@@ -206,6 +220,9 @@ export interface ScheduleItem {
   progress?: number;
   /** User-assigned priority */
   priority?: Priority;
+  /** A checklist of smaller pieces of this task. When present, ticking a step
+   * moves `progress` to the share of steps done. */
+  steps?: TaskStep[];
   /** Free-text notes */
   notes?: string;
   /** Weight of this item toward the course's final grade, as a percentage (e.g. 15 for 15%) */
@@ -237,6 +254,10 @@ export interface ScheduleItem {
    * so it can be visually flagged during review instead of blending in with
    * routine items. */
   highStakes?: boolean;
+  /** True on records created by "Try a sample semester" (lib/sample). Lets
+   * the whole sample be removed in one step and keeps it out of AI requests.
+   * Absent on everything the student entered. */
+  sample?: boolean;
 }
 
 /**

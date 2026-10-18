@@ -76,7 +76,7 @@ export default function LoginPage() {
             Syllabus Sense
           </span>
         </div>
-        <CardTitle className="font-display !text-3xl !font-medium">
+        <CardTitle as="h1" className="font-display !text-3xl !font-medium">
           {isResetMode ? 'Reset password' : 'Welcome back'}
         </CardTitle>
         <CardDescription>
@@ -117,7 +117,7 @@ export default function LoginPage() {
             </div>
 
             {resetSent ? (
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                 Password reset link has been sent to <strong>{email}</strong>. Check your inbox and
                 follow the link to reset your password.
               </div>
