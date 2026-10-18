@@ -13,6 +13,7 @@ import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
+import { useUndoToast } from '@/hooks/useUndoToast';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
@@ -67,6 +68,7 @@ export function ContactsListView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
+  const showUndo = useUndoToast();
   const { contacts, courses } = state;
 
   const [search, setSearch] = useState('');
@@ -214,7 +216,9 @@ export function ContactsListView() {
     try {
       await deleteContact(user.uid, contact, dispatch);
       setConfirmingDeleteId(null);
-      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
+      showUndo('Contact deleted', `${contact.fullName} was removed.`, () =>
+        createContact(user.uid, contact, dispatch),
+      );
     } catch (err) {
       showError('Could not delete contact', err instanceof Error ? err.message : undefined);
     }
