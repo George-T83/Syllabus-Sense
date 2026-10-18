@@ -1,7 +1,10 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { MoodRecapView } from '../MoodRecapView';
+
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 import { AppStateProvider } from '@/context/AppStateContext';
 import type { MoodEntry } from '@/types/mood';
 import type { ScheduleItem } from '@/types/schedule';
@@ -43,6 +46,12 @@ afterEach(() => {
 });
 
 describe('MoodRecapView with no check-ins', () => {
+  it('sends the student to the dashboard through the router, not a full page load', () => {
+    renderRecap([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Go to Dashboard' }));
+    expect(push).toHaveBeenCalledWith('/dashboard');
+  });
+
   it('invites the student to check in from the dashboard and shows no stats', () => {
     renderRecap([]);
     expect(screen.getByText('No check-ins yet')).toBeDefined();
