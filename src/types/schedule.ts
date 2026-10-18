@@ -108,6 +108,10 @@ export interface Course {
   absences?: AbsenceRecord[];
   /** The syllabus's attendance limit, entered by the student. */
   attendancePolicy?: AttendancePolicy;
+  /** True on records created by "Try a sample semester" (lib/sample). Lets
+   * the whole sample be removed in one step and keeps it out of AI requests.
+   * Absent on everything the student entered. */
+  sample?: boolean;
 }
 
 /** Whether a contact is the instructor of record or a teaching assistant. */
@@ -160,6 +164,10 @@ export interface Contact {
       boolean
     >
   >;
+  /** True on records created by "Try a sample semester" (lib/sample). Lets
+   * the whole sample be removed in one step and keeps it out of AI requests.
+   * Absent on everything the student entered. */
+  sample?: boolean;
 }
 
 /**
@@ -237,6 +245,10 @@ export interface ScheduleItem {
    * so it can be visually flagged during review instead of blending in with
    * routine items. */
   highStakes?: boolean;
+  /** True on records created by "Try a sample semester" (lib/sample). Lets
+   * the whole sample be removed in one step and keeps it out of AI requests.
+   * Absent on everything the student entered. */
+  sample?: boolean;
 }
 
 /**

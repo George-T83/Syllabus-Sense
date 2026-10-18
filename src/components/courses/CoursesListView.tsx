@@ -9,6 +9,7 @@ import { SkeletonCard } from '@/components/ui/Skeleton';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
+import { useSampleData } from '@/components/sample/useSampleData';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import type { CourseFormValues } from '@/lib/validation/course';
@@ -36,6 +37,7 @@ export function CoursesListView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const { courses, scheduleItems } = state;
+  const sample = useSampleData();
 
   const [search, setSearch] = useState('');
   const [termFilter, setTermFilter] = useState<string | null>(null);
@@ -307,12 +309,21 @@ export function CoursesListView() {
               title={courses.length === 0 ? 'No courses yet' : 'No courses match these filters'}
               description={
                 courses.length === 0
-                  ? 'Add one to get started.'
+                  ? 'Add one to get started, or look around with a sample semester first.'
                   : 'Try a different search or term filter.'
               }
               action={
                 courses.length === 0
                   ? { label: '+ Add Course', onClick: () => setAddCourseOpen(true) }
+                  : undefined
+              }
+              secondaryAction={
+                courses.length === 0
+                  ? {
+                      label: sample.loading ? 'Loading...' : 'Try a sample semester',
+                      onClick: () => void sample.load(),
+                      disabled: sample.loading,
+                    }
                   : undefined
               }
             />

@@ -186,6 +186,7 @@ export function ContactsListView() {
         ...(editingContact.source ? { source: editingContact.source } : {}),
         ...(editingContact.approved !== undefined ? { approved: editingContact.approved } : {}),
         ...(editingContact.fieldApprovals ? { fieldApprovals: editingContact.fieldApprovals } : {}),
+        ...(editingContact.sample ? { sample: true } : {}),
       };
       await updateContact(user.uid, editingContact, updated, dispatch);
     } else {
