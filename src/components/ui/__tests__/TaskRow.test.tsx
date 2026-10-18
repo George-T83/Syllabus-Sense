@@ -85,3 +85,30 @@ describe('TaskRow - trailing content and checkbox inside an href-wrapped row', (
     expect(checkboxEvent.defaultPrevented).toBe(true);
   });
 });
+
+describe('TaskRow - steps pill', () => {
+  const steps = [
+    { id: 'a', title: 'Outline', done: true },
+    { id: 'b', title: 'Draft', done: true },
+    { id: 'c', title: 'Cite', done: false },
+    { id: 'd', title: 'Edit', done: false },
+  ];
+
+  it.each(['card', 'touch'] as const)('shows how many steps are done (%s)', (variant) => {
+    render(<TaskRow title="Research paper" variant={variant} steps={steps} />);
+    expect(screen.getByText('2 of 4 steps done')).toBeTruthy();
+    expect(screen.getByText('2/4')).toBeTruthy();
+  });
+
+  it('shows nothing without steps', () => {
+    render(<TaskRow title="Research paper" steps={[]} />);
+    expect(screen.queryByText(/steps done/)).toBeNull();
+    render(<TaskRow title="Reading" />);
+    expect(screen.queryByText(/steps done/)).toBeNull();
+  });
+
+  it('is hidden once the task is complete', () => {
+    render(<TaskRow title="Research paper" completed steps={steps} />);
+    expect(screen.queryByText(/steps done/)).toBeNull();
+  });
+});
