@@ -64,7 +64,7 @@ Run on the Firebase emulators in a real browser, with a seeded student.
 
 ## 6. What was verified, and what was not
 
-Verified by me in a real browser against the emulators: every merged feature listed above at desktop width, and the screenshots at mobile and tablet widths for the PRs that changed the interface. Verified in CI: tests, lint, build, rules tests and the end-to-end job on each PR.
+Verified by me in a real browser against the emulators, at desktop width: Undo, the sample semester, the calendar feed, task steps and the steps pill, the Degree Compass planner, uploads through Storage (against a local stand-in for the AI provider), and the sign-in error announcements; plus mobile and tablet screenshots for the PRs that changed the interface. The dependency clean-up, the extraction repair and the test additions were verified by unit tests and CI only. Verified in CI: tests, lint, build, rules tests and the end-to-end job on each PR.
 
 Not verified: anything against the live AI provider; the host's real 4.5MB request limit; a real calendar app subscribing to the feed; dark mode for every state; modals; production logs.
 
