@@ -42,6 +42,9 @@ const SECURITY_HEADERS = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
+  // The round Next.js dev badge sat on top of the phone bottom navigation's
+  // first tab in local development. Build and runtime error overlays still show.
+  devIndicators: false,
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },
