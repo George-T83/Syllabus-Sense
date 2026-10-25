@@ -67,6 +67,26 @@ describe('AttendanceGauge (Item 48)', () => {
     expect(screen.getByText('Overslept alarm')).toBeDefined();
   });
 
+  it('moves focus into the Log absence dialog, closes it on Escape and returns focus', () => {
+    render(
+      <AttendanceGauge
+        courseCode="CS 301"
+        maxAllowedAbsences={3}
+        initialAbsences={SAMPLE_ABSENCES}
+      />,
+    );
+    const opener = screen.getByRole('button', { name: /log absence/i });
+    opener.focus();
+    fireEvent.click(opener);
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
   it('deletes an absence when delete icon button is clicked', () => {
     const onDeleted = vi.fn();
     render(
