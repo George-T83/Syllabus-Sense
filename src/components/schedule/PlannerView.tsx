@@ -651,6 +651,7 @@ export function PlannerView() {
               )}
             >
               <button
+                aria-label={`Edit ${item.title}`}
                 onClick={() => setEditingItem(item)}
                 className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               >
@@ -676,6 +677,7 @@ export function PlannerView() {
                 // urgency badges (TA-5), so this common, low-stakes action
                 // doesn't compete with the one badge that should stand out.
                 <button
+                  aria-label={`Delete ${item.title}`}
                   onClick={() => setConfirmingDeleteId(item.id)}
                   className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >

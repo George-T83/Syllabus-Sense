@@ -1010,7 +1010,10 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           )}
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
-                          <RowActionButton onClick={() => handleStartEditContact(contact)}>
+                          <RowActionButton
+                            aria-label={`Edit ${contact.fullName}`}
+                            onClick={() => handleStartEditContact(contact)}
+                          >
                             Edit
                           </RowActionButton>
                           {confirmingDeleteContactId === contact.id ? (
@@ -1021,6 +1024,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                             />
                           ) : (
                             <RowActionButton
+                              aria-label={`Delete ${contact.fullName}`}
                               tone="destructive"
                               onClick={() => setConfirmingDeleteContactId(contact.id)}
                             >
@@ -1178,10 +1182,14 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         />
                       ) : (
                         <>
-                          <RowActionButton onClick={() => handleStartEditObjective(i)}>
+                          <RowActionButton
+                            aria-label={`Edit objective ${i + 1}`}
+                            onClick={() => handleStartEditObjective(i)}
+                          >
                             Edit
                           </RowActionButton>
                           <RowActionButton
+                            aria-label={`Delete objective ${i + 1}`}
                             tone="destructive"
                             onClick={() => setConfirmingDeleteObjectiveIndex(i)}
                           >
@@ -1363,10 +1371,14 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         />
                       ) : (
                         <>
-                          <RowActionButton onClick={() => handleStartEditMaterial(i)}>
+                          <RowActionButton
+                            aria-label={`Edit material ${i + 1}`}
+                            onClick={() => handleStartEditMaterial(i)}
+                          >
                             Edit
                           </RowActionButton>
                           <RowActionButton
+                            aria-label={`Delete material ${i + 1}`}
                             tone="destructive"
                             onClick={() => setConfirmingDeleteMaterialIndex(i)}
                           >
@@ -1539,7 +1551,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                         <span className="text-xs text-muted-foreground">
                           Due {dueDateFormatter.format(parseDayKey(item.dueDate))}
                         </span>
-                        <RowActionButton onClick={() => setEditingItem(item)}>Edit</RowActionButton>
+                        <RowActionButton
+                          aria-label={`Edit ${item.title}`}
+                          onClick={() => setEditingItem(item)}
+                        >
+                          Edit
+                        </RowActionButton>
                         {confirmingDeleteItemId === item.id ? (
                           <ConfirmDeleteInline
                             deleting={deletingItemId === item.id}
@@ -1548,6 +1565,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                           />
                         ) : (
                           <RowActionButton
+                            aria-label={`Delete ${item.title}`}
                             tone="destructive"
                             onClick={() => setConfirmingDeleteItemId(item.id)}
                           >
