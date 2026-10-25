@@ -315,7 +315,7 @@ export function MoodRecapView() {
         </p>
         <div className="mt-4 overflow-x-auto pb-1">
           <div className="flex min-w-full justify-center">
-            <div className="flex gap-2" style={{ height: '10rem' }}>
+            <div className="flex gap-2" style={{ height: '13rem' }}>
               <div
                 className="grid shrink-0 pt-4 text-xs text-muted-foreground"
                 style={{ gridTemplateRows: 'repeat(7, 1fr)' }}
