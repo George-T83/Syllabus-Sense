@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { CoursesListView } from '@/components/courses/CoursesListView';
 
 export const metadata: Metadata = {
-  title: 'Courses | Syllabus Sense',
+  title: 'Courses',
   description: 'Search, filter, and sort your courses.',
 };
 
