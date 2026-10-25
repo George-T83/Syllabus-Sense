@@ -90,34 +90,6 @@ const ROW_VARIANT_OPTIONS: {
   },
 ];
 
-/** Real, stored preferences shown as disabled toggles below - notification
- * delivery itself hasn't shipped yet (see the honesty note under the
- * list), so every row here is intentionally rendered in its OFF position
- * regardless of what value is actually stored. The stored value is left
- * alone (other code may read it once delivery ships); this is purely about
- * not showing a switch that looks live when nothing is being sent. */
-const PREFERENCE_ROWS: {
-  key: Exclude<keyof UserPreferences, 'taskRowVariant' | 'avatarColor'>;
-  label: string;
-  description: string;
-}[] = [
-  {
-    key: 'dailyDigest',
-    label: 'Daily digest email',
-    description: "A morning summary of what's due today.",
-  },
-  {
-    key: 'deadlineReminders',
-    label: 'Deadline reminders',
-    description: "Get notified 24 hours before something's due.",
-  },
-  {
-    key: 'weeklyRecap',
-    label: 'Weekly workload recap',
-    description: 'A Sunday night look at the week ahead.',
-  },
-];
-
 const WEEKDAY_OPTIONS = [
   { value: 0, label: 'Sun' },
   { value: 1, label: 'Mon' },
@@ -708,60 +680,6 @@ export function ProfileView() {
         )}
       </Card>
 
-      {/* ---------------------------------------------------------------
-          Notifications - real, granular preferences are stored, but
-          nothing is actually sent yet. Every switch below is rendered in
-          its OFF position regardless of the stored value, specifically so
-          it never visually contradicts that fact. */}
-      <SectionHeading
-        icon="settings"
-        title="Notifications"
-        description="What you'll hear from us, once delivery ships."
-      />
-
-      <Card className="rounded-2xl p-6" data-testid="notifications-card">
-        <div className="divide-y divide-border">
-          {PREFERENCE_ROWS.map((row) => (
-            <div key={row.key} className="flex items-center justify-between gap-4 py-3.5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">{row.label}</span>
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Coming soon
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground">{row.description}</div>
-              </div>
-              {/* Always OFF: nothing is sent yet, so nothing should ever
-                  appear switched on here, no matter what's stored. */}
-              <Toggle checked={false} label={row.label} />
-            </div>
-          ))}
-
-          <div className="flex items-center justify-between gap-4 py-3.5">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Canvas sync</span>
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Coming soon
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Pull due dates and announcements straight from Canvas.
-              </div>
-            </div>
-            {/* Deliberately no control here - an informational row, not a
-                switch, so this reads as roadmap rather than a hidden
-                fake toggle. */}
-          </div>
-        </div>
-
-        <p className="mt-4 border-t border-border pt-4 text-xs text-muted-foreground">
-          Notifications haven&apos;t shipped yet, so nothing above is actually being sent -
-          that&apos;s why every switch shows off. Your selection is still saved for the day they do.
-        </p>
-      </Card>
-
       <StudyStreakCard />
 
       {/* ---------------------------------------------------------------
@@ -1085,29 +1003,5 @@ function SectionHeading({
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
-  );
-}
-
-function Toggle({ checked, label }: { checked: boolean; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-label={label}
-      aria-checked={checked}
-      aria-disabled="true"
-      disabled
-      className={cn(
-        'relative inline-flex h-6 w-11 shrink-0 cursor-not-allowed items-center rounded-full opacity-50 transition-colors',
-        checked ? 'bg-primary' : 'bg-muted',
-      )}
-    >
-      <span
-        className={cn(
-          'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
-          checked ? 'translate-x-6' : 'translate-x-1',
-        )}
-      />
-    </button>
   );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ContactsListView } from '@/components/contacts/ContactsListView';
 
 export const metadata: Metadata = {
-  title: 'Contacts | Syllabus Sense',
+  title: 'Contacts',
   description: 'Professors and TAs across your courses, in one place.',
 };
 
