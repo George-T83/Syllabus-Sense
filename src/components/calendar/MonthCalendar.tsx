@@ -14,6 +14,7 @@ import {
   addDays,
   addMonths,
   getMonthGrid,
+  MAX_RANGE_DAYS,
   getWeekDays,
   groupItemsByDay,
   isSameDay,
@@ -373,6 +374,9 @@ export function MonthCalendar() {
       if (!maxDate || day > maxDate) maxDate = day;
     }
     if (!maxDate || maxDate < today) return null;
+    // A task dated years out must not turn this into a multi-million-step scan.
+    const horizon = addDays(today, MAX_RANGE_DAYS);
+    if (maxDate > horizon) maxDate = horizon;
 
     let best: { start: Date; end: Date; hours: number } | null = null;
     for (let cursor = today; cursor <= maxDate; cursor = addDays(cursor, 1)) {
