@@ -63,6 +63,7 @@ import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmail
 import { ContactShareModal } from '@/components/contacts/ContactShareModal';
 import { ScheduleOfficeVisitModal } from '@/components/contacts/ScheduleOfficeVisitModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { validateContactFields } from '@/lib/validation/contact';
 
 export function ContactsListView() {
   const { state, dispatch } = useAppState();
@@ -582,8 +583,8 @@ function ContactFormModal({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    const fieldErrors: Partial<Record<keyof ContactFormValues, string>> = {};
-    if (!values.fullName.trim()) fieldErrors.fullName = 'Full name is required';
+    const fieldErrors: Partial<Record<keyof ContactFormValues, string>> =
+      validateContactFields(values);
     if (!initialContact && !values.courseId) fieldErrors.courseId = 'Choose a course';
     if (Object.keys(fieldErrors).length) {
       setErrors(fieldErrors);
@@ -720,6 +721,7 @@ function ContactFormModal({
                     id="title"
                     label="Title"
                     value={values.title}
+                    error={errors.title}
                     onChange={(v) => updateField('title', v)}
                     placeholder="Associate Professor of Computer Science"
                   />
@@ -727,6 +729,7 @@ function ContactFormModal({
                     id="howToAddress"
                     label="Address As"
                     value={values.howToAddress}
+                    error={errors.howToAddress}
                     onChange={(v) => updateField('howToAddress', v)}
                     placeholder="Dr. Chen"
                   />
@@ -734,6 +737,7 @@ function ContactFormModal({
                     id="email"
                     label="Email"
                     value={values.email}
+                    error={errors.email}
                     onChange={(v) => updateField('email', v)}
                     placeholder="a.chen@university.edu"
                   />
@@ -741,6 +745,7 @@ function ContactFormModal({
                     id="officeHours"
                     label="Office Hours"
                     value={values.officeHours}
+                    error={errors.officeHours}
                     onChange={(v) => updateField('officeHours', v)}
                     placeholder="Tue/Thu 2-3pm, or by appointment"
                   />
@@ -748,6 +753,7 @@ function ContactFormModal({
                     id="officeLocation"
                     label="Office Location"
                     value={values.officeLocation}
+                    error={errors.officeLocation}
                     onChange={(v) => updateField('officeLocation', v)}
                     placeholder="Science Hall 214"
                   />
