@@ -138,6 +138,10 @@ function renderAutofillModal(props: { open: boolean; onClose: () => void }) {
   );
 }
 
+function fillCredits(value = '3') {
+  fireEvent.change(screen.getByLabelText('Credit Hours'), { target: { value } });
+}
+
 describe('AI Review Contract & Client-Memory Guarantee', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -211,6 +215,7 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     fireEvent.click(within(labReportRow).getByRole('button', { name: 'Reject' }));
 
     // Click Add Course button
+    fillCredits();
     const saveButton = screen.getByRole('button', { name: /Add Course & \d+ Task/i });
     fireEvent.click(saveButton);
 
@@ -240,6 +245,7 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     fireEvent.change(titleInput, { target: { value: 'Advanced Cellular Biology' } });
 
     // Confirm save
+    fillCredits();
     const saveButton = screen.getByRole('button', { name: /Add Course & \d+ Task/i });
     fireEvent.click(saveButton);
 
@@ -270,6 +276,7 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     fireEvent.click(emailCheckbox);
 
     // Confirm save
+    fillCredits();
     const saveButton = screen.getByRole('button', { name: /Add Course & \d+ Task/i });
     fireEvent.click(saveButton);
 
@@ -281,6 +288,54 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     // email was unchecked, so it should not be populated on the contact
     expect(createdContacts[0].email).toBeUndefined();
     expect(createdContacts[0].fieldApprovals?.email).toBe(false);
+  });
+
+  describe('credit hours (B-90)', () => {
+    async function openReview() {
+      renderAutofillModal({ open: true, onClose: vi.fn() });
+      const file = new File(['%PDF-1.4 test syllabus'], 'bio201.pdf', { type: 'application/pdf' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+      await screen.findByDisplayValue('BIO 201', {}, { timeout: 3000 });
+    }
+    const clickSave = () =>
+      fireEvent.click(screen.getByRole('button', { name: /Add Course & \d+ Task/i }));
+
+    it('does not save a course with blank credit hours and says why', async () => {
+      await openReview();
+      clickSave();
+
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toMatch(/credit hours/i);
+      expect(alert.textContent).toMatch(/1-12/);
+      expect(document.activeElement).toBe(screen.getByLabelText('Credit Hours'));
+      expect(mockCreateCourseWithScheduleItems).not.toHaveBeenCalled();
+    });
+
+    it.each(['0', '13', '15', 'abc', '-3'])(
+      'rejects %s with the Add Course range message',
+      async (bad) => {
+        await openReview();
+        fillCredits(bad);
+        clickSave();
+
+        expect((await screen.findByRole('alert')).textContent).toBe('Enter 1-12');
+        expect(mockCreateCourseWithScheduleItems).not.toHaveBeenCalled();
+      },
+    );
+
+    it('clears the message once the student edits the field, then saves the number', async () => {
+      await openReview();
+      clickSave();
+      await screen.findByRole('alert');
+
+      fillCredits('4');
+      expect(screen.queryByRole('alert')).toBeNull();
+      clickSave();
+
+      await waitFor(() => expect(mockCreateCourseWithScheduleItems).toHaveBeenCalledTimes(1));
+      expect(mockCreateCourseWithScheduleItems.mock.calls[0][1].credits).toBe(4);
+    });
   });
 });
 
