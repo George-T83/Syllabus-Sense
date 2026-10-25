@@ -425,12 +425,12 @@ export function ProfileView() {
                   setName(e.target.value);
                   clearError();
                 }}
-                className="flex-1 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-w-0 flex-1 rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+                className="min-h-9 shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>
@@ -441,7 +441,7 @@ export function ProfileView() {
                   setName(user.displayName ?? '');
                   clearError();
                 }}
-                className="rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
+                className="min-h-9 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent"
               >
                 Cancel
               </button>
