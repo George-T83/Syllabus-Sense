@@ -3,7 +3,7 @@ import { MoodRecapView } from '@/components/mood/MoodRecapView';
 import { PageHeader } from '@/components/ui/PageHeader';
 
 export const metadata: Metadata = {
-  title: 'Mood Recap | Syllabus Sense',
+  title: 'Mood Recap',
   description: 'Your daily check-ins, how they trend, and how they line up with your workload.',
 };
 
