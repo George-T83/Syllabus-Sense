@@ -11,6 +11,8 @@ import { TaskRow } from '@/components/ui/TaskRow';
 import { useAppState, resolveActiveTerm } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import { RemoveSampleDataButton } from '@/components/sample/RemoveSampleDataButton';
+import { useSampleData } from '@/components/sample/useSampleData';
 import { db } from '@/lib/firebase/client';
 import { updateUserPreferences, type UserPreferences } from '@/lib/firestore/preferences';
 import { generateICS, createICSBlob, buildICSFilename } from '@/lib/export/ics';
@@ -27,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { GpaGoalRadial } from './GpaGoalRadial';
 import { StudyStreakCard } from './StudyStreakCard';
 import { DisplaySettings } from './DisplaySettings';
+import { CalendarFeedSection } from './CalendarFeedSection';
 import { buildGpaGoalCourses } from '@/lib/gpa/termCourses';
 import { LONG_DATE_YEAR_FORMATTER as dateFormatter } from '@/lib/dateFormatters';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -151,6 +154,7 @@ export function ProfileView() {
     useAuth();
   const { state, dispatch } = useAppState();
   const { showError } = useToast();
+  const sample = useSampleData();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.displayName ?? '');
@@ -418,7 +422,7 @@ export function ProfileView() {
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                className="min-h-9 rounded-full px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               >
                 Edit
               </button>
@@ -580,7 +584,7 @@ export function ProfileView() {
               aria-pressed={!preferences.avatarColor}
               title="Default gradient"
               className={cn(
-                'h-8 w-8 rounded-full bg-gradient-brand ring-2 ring-offset-2 ring-offset-card transition-shadow',
+                'h-9 w-9 rounded-full bg-gradient-brand ring-2 ring-offset-2 ring-offset-card transition-shadow',
                 !preferences.avatarColor ? 'ring-primary' : 'ring-transparent hover:ring-border',
               )}
             />
@@ -592,7 +596,7 @@ export function ProfileView() {
                 aria-pressed={preferences.avatarColor === preset.value}
                 title={preset.value.replace('bg-', '').replace('-500', '')}
                 className={cn(
-                  'h-8 w-8 rounded-full ring-2 ring-offset-2 ring-offset-card transition-shadow',
+                  'h-9 w-9 rounded-full ring-2 ring-offset-2 ring-offset-card transition-shadow',
                   preset.value,
                   preferences.avatarColor === preset.value
                     ? 'ring-primary'
@@ -922,7 +926,7 @@ export function ProfileView() {
               type="button"
               onClick={handleDownloadData}
               disabled={downloadingData}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               {downloadingData ? 'Preparing...' : 'Download everything (.json)'}
             </button>
@@ -930,7 +934,7 @@ export function ProfileView() {
               type="button"
               onClick={handleDownloadCalendar}
               disabled={state.scheduleItems.length === 0}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               Download schedule (.ics)
             </button>
@@ -938,11 +942,24 @@ export function ProfileView() {
               type="button"
               onClick={handleDownloadContacts}
               disabled={state.contacts.length === 0}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-9 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               Download contacts (.vcf)
             </button>
           </div>
+          {sample.hasSample && (
+            <div
+              className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-primary/5 px-3 py-2"
+              data-testid="sample-data-row"
+            >
+              <p className="text-xs text-muted-foreground">
+                Your account holds sample courses, tasks and contacts from &ldquo;Try a sample
+                semester&rdquo;. Nothing you added yourself is touched.
+              </p>
+              <RemoveSampleDataButton onRemove={sample.remove} removing={sample.removing} />
+            </div>
+          )}
+          <CalendarFeedSection />
         </div>
 
         {/* Account deletion - the only genuinely destructive action on this
@@ -966,7 +983,7 @@ export function ProfileView() {
                 setDeletePassword('');
                 clearError();
               }}
-              className="mt-3 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+              className="mt-3 min-h-9 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
             >
               Delete account
             </button>

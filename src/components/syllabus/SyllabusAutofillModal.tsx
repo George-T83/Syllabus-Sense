@@ -6,6 +6,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { syllabusContentType, validateSyllabusFile } from '@/lib/validation/syllabusFile';
+import { uploadPendingSyllabus, discardPendingSyllabus } from '@/lib/storage/pendingSyllabus';
+import { INLINE_UPLOAD_LIMIT_BYTES } from '@/lib/syllabus/pendingUpload';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { createContacts, updateContact } from '@/lib/firestore/contacts';
@@ -576,12 +578,27 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     try {
       if (!user) throw new Error('You must be signed in.');
       const idToken = await user.getIdToken();
-      const fileBase64 = await fileToBase64(selected);
-      const res = await fetch('/api/syllabus/extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ fileBase64, fileName: selected.name }),
-      });
+      // Small files go inline. Bigger ones are uploaded first and read from
+      // Storage, because the host rejects a request body over ~4.5MB.
+      let pendingPath: string | null = null;
+      let payload:
+        { fileBase64: string; fileName: string } | { storagePath: string; fileName: string };
+      if (selected.size > INLINE_UPLOAD_LIMIT_BYTES) {
+        pendingPath = await uploadPendingSyllabus(user.uid, selected);
+        payload = { storagePath: pendingPath, fileName: selected.name };
+      } else {
+        payload = { fileBase64: await fileToBase64(selected), fileName: selected.name };
+      }
+      let res: Response;
+      try {
+        res = await fetch('/api/syllabus/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+          body: JSON.stringify(payload),
+        });
+      } finally {
+        if (pendingPath) void discardPendingSyllabus(pendingPath);
+      }
       // Read a failure by its status, not its body: a platform-level 413 or
       // 502 isn't JSON, and the route's own text is not always for students.
       if (!res.ok) throw await aiRequestErrorFrom(res);
@@ -1528,7 +1545,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                     >
                       Syllabus file name
                     </label>
-                    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 focus-within:ring-2 focus-within:ring-primary">
                       <svg
                         className="h-4 w-4 shrink-0 text-muted-foreground"
                         fill="none"

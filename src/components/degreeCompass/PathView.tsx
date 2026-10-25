@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { DegreeCourseRow } from './DegreeCourseRow';
 import { CategoryProgressBar } from './CategoryProgressBar';
 import { DegreeRouteMap } from './DegreeRouteMap';
+import { WhatIfCard } from './WhatIfCard';
 import { computeCategoryProgress, groupCoursesByTerm } from '@/lib/degreeCompass/progress';
 import type { DegreeCourse, DegreeRequirementCategory } from '@/types/degreeCompass';
 
@@ -21,6 +22,7 @@ export function PathView({ categories, courses, onEditCourse, onDeleteCourse }: 
   return (
     <div className="space-y-4">
       <DegreeRouteMap categories={categories} courses={courses} />
+      <WhatIfCard categories={categories} courses={courses} />
       <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
         <div className="space-y-4">
           {terms.length === 0 ? (

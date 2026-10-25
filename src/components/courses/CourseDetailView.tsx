@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
+import { useUndoToast } from '@/hooks/useUndoToast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { updateCourse, deleteCourse } from '@/lib/firestore/courses';
@@ -214,6 +215,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
   const router = useRouter();
   const { showSuccess, showError, showWarning } = useToast();
+  const showUndo = useUndoToast();
   const syllabi = useSyllabi(user?.uid, courseId);
   const currentPrimarySyllabus = getPrimarySyllabus(syllabi) ?? null;
   const [syllabusDiff, setSyllabusDiff] = useState<{
@@ -394,7 +396,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
       setConfirmingDeleteItemId(null);
-      showSuccess('Task deleted', `"${item.title}" was removed.`);
+      showUndo('Task deleted', `"${item.title}" was removed.`, () =>
+        createScheduleItem(user.uid, item, dispatch),
+      );
     } catch (err) {
       showError('Could not delete task', err instanceof Error ? err.message : undefined);
     } finally {
@@ -486,7 +490,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     try {
       await deleteContact(user.uid, contact, dispatch);
       setConfirmingDeleteContactId(null);
-      showSuccess('Contact deleted', `${contact.fullName} was removed.`);
+      showUndo('Contact deleted', `${contact.fullName} was removed.`, () =>
+        createContact(user.uid, contact, dispatch),
+      );
     } catch (err) {
       showError('Could not delete contact', err instanceof Error ? err.message : undefined);
     } finally {
@@ -785,7 +791,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     href={rmpUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                    className="ml-auto inline-flex min-h-9 items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
                   >
                     Rate My Professor
                     <svg
@@ -850,7 +856,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 ) : (
                   <button
                     onClick={() => setConfirmingDeleteCourse(true)}
-                    className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                    className="inline-flex min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
                   >
                     Delete
                   </button>
@@ -1504,6 +1510,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     courseIcon={course.icon}
                     completed={item.completed}
                     progress={item.progress}
+                    steps={item.steps}
                     priority={item.priority}
                     assignedTo={item.assignedTo}
                     onToggleComplete={user ? () => handleToggleComplete(item) : undefined}

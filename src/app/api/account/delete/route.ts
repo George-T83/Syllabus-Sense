@@ -56,6 +56,10 @@ export async function POST(req: NextRequest) {
 
   try {
     await adminDb.recursiveDelete(adminDb.doc(`users/${user.uid}`));
+    // Calendar feed links live outside users/{uid}; remove them so the
+    // subscribed URL stops resolving.
+    const feeds = await adminDb.collection('calendarFeeds').where('uid', '==', user.uid).get();
+    await Promise.all(feeds.docs.map((d) => d.ref.delete()));
   } catch (err) {
     console.error('Failed to recursively delete Firestore data for account deletion:', err);
     return NextResponse.json({ error: 'Failed to delete your data. Try again.' }, { status: 500 });

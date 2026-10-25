@@ -29,6 +29,10 @@ if (projectId && clientEmail && privateKey) {
   const app: App = !getApps().length
     ? initializeApp({
         credential: cert({ projectId, clientEmail, privateKey: formattedPrivateKey }),
+        // Whichever admin module loads first creates the one default app, so
+        // it has to carry the bucket too: adminStorage's own options are
+        // ignored when this one got there first, and `bucket()` then throws.
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       })
     : getApp();
 

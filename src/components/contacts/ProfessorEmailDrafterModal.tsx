@@ -186,7 +186,7 @@ export function ProfessorEmailDrafterModal({
               className={cn(
                 'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
                 copied
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                   : 'bg-primary text-primary-foreground hover:opacity-90',
               )}
             >

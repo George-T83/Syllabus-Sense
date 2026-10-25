@@ -1,4 +1,5 @@
 import Logo from '@/components/layout/Logo';
+import { MAIN_CONTENT_ID } from '@/components/layout/SkipLink';
 import { ICON_PATHS, type IconKey } from '@/lib/icons';
 
 const PILLARS: { icon: IconKey; title: string; description: string }[] = [
@@ -34,7 +35,10 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
           centered block instead of being split top/bottom via
           justify-between, which pinned the headline near the top and left a
           dead gap before the pillars. */}
-      <div className="auth-panel hidden shrink-0 flex-col justify-center p-10 text-white md:flex md:w-[42%] lg:w-1/2">
+      <aside
+        aria-label="About Syllabus Sense"
+        className="auth-panel hidden shrink-0 flex-col justify-center p-10 text-white md:flex md:w-[42%] lg:w-1/2"
+      >
         <div className="max-w-sm">
           {/* The panel is saturated brand color in both themes, so its type is
               hardcoded white rather than theme tokens - except the wordmark
@@ -81,9 +85,13 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
             ))}
           </ul>
         </div>
-      </div>
+      </aside>
 
-      <div className="auth-form-side flex flex-1 flex-col items-center px-4 py-8 md:justify-center md:bg-background/70 md:py-12 dark:md:bg-transparent">
+      <main
+        id={MAIN_CONTENT_ID}
+        tabIndex={-1}
+        className="auth-form-side outline-none flex flex-1 flex-col items-center px-4 py-8 md:justify-center md:bg-background/70 md:py-12 dark:md:bg-transparent"
+      >
         <div className="w-full max-w-sm">
           {/* VA-1: the pitch above was `hidden md:flex` - completely absent
               on mobile, where most first-time visitors land. This gives
@@ -141,7 +149,7 @@ export default function AuthGroupLayout({ children }: { children: React.ReactNod
 
           {children}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

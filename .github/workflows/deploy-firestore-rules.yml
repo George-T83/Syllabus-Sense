@@ -1,10 +1,10 @@
-name: Deploy Firestore Rules
+name: Deploy Firebase Rules
 
-# Runs only when the rules or indexes files themselves change on main, and
+# Runs only when the rules or indexes files (Firestore or Storage) themselves change on main, and
 # only after they've already passed CI as part of that merge - this is not
 # a substitute for the "Lint, Build, and Test" check, just the step nothing
 # else in this repo performs: pushing firestore.rules/firestore.indexes.json
-# to the live Firebase project. Without this, a rule added in code (e.g. a
+# (and storage.rules) to the live Firebase project. Without this, a rule added in code (e.g. a
 # new top-level collection) can sit un-deployed indefinitely, silently
 # denying reads/writes for real users while the rest of the app works fine.
 on:
@@ -14,6 +14,7 @@ on:
     paths:
       - firestore.rules
       - firestore.indexes.json
+      - storage.rules
 
 jobs:
   deploy:
@@ -37,8 +38,8 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      - name: Deploy Firestore rules and indexes
-        run: npx firebase deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT_ID" --non-interactive
+      - name: Deploy Firestore rules, indexes and Storage rules
+        run: npx firebase deploy --only firestore:rules,firestore:indexes,storage --project "$FIREBASE_PROJECT_ID" --non-interactive
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}

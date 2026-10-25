@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-syllabus-sense-rules-test \"vitest run src/lib/firestore/__tests__/rules.spec.ts src/lib/firestore/__tests__/storageRules.spec.ts\"",
     "test:e2e": "playwright test",
+    "test:e2e:emulated": "node scripts/run-e2e.mjs",
     "emulators": "firebase emulators:start"
   },
   "lint-staged": {
@@ -25,11 +26,11 @@
   "dependencies": {
     "@alloc/quick-lru": "^5.2.0",
     "@anthropic-ai/sdk": "^0.117.1",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "firebase": "^12.17.1",
     "firebase-admin": "^14.2.0",
     "mammoth": "^1.12.1",
-    "next": "15.5.27",
+    "next": "15.5.28",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^6.2.108",
     "react": "^18",
@@ -46,8 +47,9 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^6.0.5",
+    "axe-core": "4.13.0",
     "eslint": "^8",
-    "eslint-config-next": "15.5.27",
+    "eslint-config-next": "15.5.28",
     "eslint-config-prettier": "^10.1.8",
     "firebase-tools": "^15.28.2",
     "husky": "^9.1.7",

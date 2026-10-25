@@ -14,6 +14,8 @@ import { useToast } from '@/components/ui/Toast';
 import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
+import { SampleDataBanner } from '@/components/sample/SampleDataBanner';
+import { useSampleData } from '@/components/sample/useSampleData';
 import { createScheduleItem, updateScheduleItem } from '@/lib/firestore/scheduleItems';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
 import { TaskFormModal } from '@/components/tasks/TaskFormModal';
@@ -62,7 +64,7 @@ function QuietLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}
-      className="inline-flex shrink-0 items-center gap-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
+      className="-my-2 inline-flex min-h-9 shrink-0 items-center gap-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
     >
       {children}
       <svg
@@ -85,6 +87,7 @@ export function DashboardView() {
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [autofillOpen, setAutofillOpen] = useState(false);
+  const sample = useSampleData();
 
   useEffect(() => {
     // CommandPalette's "Add New Task" action - the Tasks page itself has no
@@ -260,6 +263,14 @@ export function DashboardView() {
           )}
         </header>
 
+        {!dataLoading && sample.hasSample && (
+          <SampleDataBanner
+            onRemove={sample.remove}
+            removing={sample.removing}
+            onUploadSyllabus={() => setAutofillOpen(true)}
+          />
+        )}
+
         {showHero && (
           <NowHeroCard
             hero={nowHero}
@@ -283,6 +294,7 @@ export function DashboardView() {
           onUploadSyllabus={() => setAutofillOpen(true)}
           onAddCourse={() => setAddCourseOpen(true)}
           onAddTask={() => setAddTaskOpen(true)}
+          onTrySample={() => void sample.load()}
           dismissed={checklistDismissed}
           onDismiss={dismissChecklist}
         />
@@ -370,6 +382,7 @@ export function DashboardView() {
                           courseIcon={course?.icon}
                           completed={item.completed}
                           progress={item.progress}
+                          steps={item.steps}
                           priority={item.priority}
                           assignedTo={item.assignedTo}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
@@ -631,6 +644,7 @@ export function DashboardView() {
                         courseIcon={course?.icon}
                         completed={item.completed}
                         progress={item.progress}
+                        steps={item.steps}
                         priority={item.priority}
                         onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
                         trailing={

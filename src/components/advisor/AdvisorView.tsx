@@ -12,6 +12,7 @@ import { summarizeAdvisorContext } from '@/lib/advisor/buildContext';
 import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from './AdvisorWarningCard';
 import { cn } from '@/lib/utils';
+import { withoutSample } from '@/lib/sample/sampleSemester';
 import { isOverdue } from '@/lib/calendar/dates';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
@@ -97,8 +98,10 @@ export function AdvisorView() {
     };
 
     const now = Date.now();
-    const pendingTaskCount = state.scheduleItems.filter((i) => !i.completed).length;
-    const overdueTaskCount = state.scheduleItems.filter((i) => isOverdue(i, now)).length;
+    const pendingTaskCount = withoutSample(state.scheduleItems).filter((i) => !i.completed).length;
+    const overdueTaskCount = withoutSample(state.scheduleItems).filter((i) =>
+      isOverdue(i, now),
+    ).length;
 
     try {
       await appendAdvisorMessage(user.uid, userMessage);
@@ -117,7 +120,11 @@ export function AdvisorView() {
           history,
           degreeProfile,
           degreeCourses,
-          courses: state.courses.map((c) => ({ code: c.code, title: c.title, term: c.term })),
+          courses: withoutSample(state.courses).map((c) => ({
+            code: c.code,
+            title: c.title,
+            term: c.term,
+          })),
           pendingTaskCount,
           overdueTaskCount,
         }),
@@ -196,6 +203,7 @@ export function AdvisorView() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            aria-label="Ask the advisor"
             placeholder="Ask about your degree, GPA, or what to take next…"
             disabled={sending}
             className="min-h-[44px] flex-1 rounded-full border border-border bg-background px-4 py-2 text-body-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"

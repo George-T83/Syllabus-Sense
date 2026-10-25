@@ -294,7 +294,7 @@ export function WorkloadOverviewDashboard({
                                 type="button"
                                 title="Shift back 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, -1)}
-                                className="rounded border border-border px-1 py-0.5 text-xs font-semibold hover:bg-accent"
+                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
                               >
                                 -1d
                               </button>
@@ -304,7 +304,7 @@ export function WorkloadOverviewDashboard({
                                 onClick={() =>
                                   handleShiftTaskDate(item.id, breakdown.today.dateStr)
                                 }
-                                className="rounded border border-border px-1 py-0.5 text-xs font-semibold hover:bg-accent"
+                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
                               >
                                 Today
                               </button>
@@ -312,7 +312,7 @@ export function WorkloadOverviewDashboard({
                                 type="button"
                                 title="Shift ahead 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, 1)}
-                                className="rounded border border-border px-1 py-0.5 text-xs font-semibold hover:bg-accent"
+                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
                               >
                                 +1d
                               </button>

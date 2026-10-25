@@ -733,7 +733,7 @@ export function MonthCalendar() {
             {monthStats.busiestDay && (
               <button
                 onClick={() => selectDay(monthStats.busiestDay!.day)}
-                className="ml-auto flex items-center gap-1.5 font-semibold text-primary hover:underline"
+                className="ml-auto flex min-h-9 items-center gap-1.5 font-semibold text-primary hover:underline"
               >
                 <span
                   className={cn(
@@ -1000,6 +1000,7 @@ export function MonthCalendar() {
                           courseIcon={course?.icon}
                           completed={item.completed}
                           progress={item.progress}
+                          steps={item.steps}
                           priority={item.priority}
                           assignedTo={item.assignedTo}
                           onToggleComplete={user ? () => handleToggleComplete(item) : undefined}
@@ -1209,6 +1210,7 @@ function DayDetailCard({
                       courseIcon={course?.icon}
                       completed={item.completed}
                       progress={item.progress}
+                      steps={item.steps}
                       priority={item.priority}
                       assignedTo={item.assignedTo}
                       onToggleComplete={onToggleComplete ? () => onToggleComplete(item) : undefined}

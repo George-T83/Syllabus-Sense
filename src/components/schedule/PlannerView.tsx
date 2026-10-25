@@ -7,6 +7,7 @@ import { SectionIcon } from '@/components/ui/SectionIcon';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
+import { useUndoToast } from '@/hooks/useUndoToast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -262,6 +263,7 @@ function PlannedTaskRow({
       courseIcon={course?.icon}
       completed={item.completed}
       progress={item.progress}
+      steps={item.steps}
       priority={item.priority}
       assignedTo={item.assignedTo}
       onToggleComplete={onToggleComplete}
@@ -342,6 +344,7 @@ export function PlannerView() {
   const { state, dispatch } = useAppState();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
+  const showUndo = useUndoToast();
   const { courses, scheduleItems } = state;
 
   const [courseFilter, setCourseFilter] = useState('all');
@@ -588,7 +591,9 @@ export function PlannerView() {
     try {
       await deleteScheduleItem(user.uid, item, dispatch);
       setConfirmingDeleteId(null);
-      showSuccess('Task deleted', `"${item.title}" was removed.`);
+      showUndo('Task deleted', `"${item.title}" was removed.`, () =>
+        createScheduleItem(user.uid, item, dispatch),
+      );
     } catch (err) {
       showError('Could not delete task', err instanceof Error ? err.message : undefined);
     }
@@ -617,6 +622,7 @@ export function PlannerView() {
         courseIcon={course?.icon}
         completed={item.completed}
         progress={item.progress}
+        steps={item.steps}
         priority={item.priority}
         gradeWeight={item.gradeWeight}
         assignedTo={item.assignedTo}
