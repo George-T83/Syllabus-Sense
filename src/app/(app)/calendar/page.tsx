@@ -4,7 +4,7 @@ import { MonthCalendar } from '@/components/calendar/MonthCalendar';
 import { PageHeader } from '@/components/ui/PageHeader';
 
 export const metadata: Metadata = {
-  title: 'Calendar | Syllabus Sense',
+  title: 'Calendar',
   description: 'A monthly calendar of everything due.',
 };
 

@@ -1,10 +1,14 @@
 import { z } from 'zod';
+import { isPlausibleDueDate } from './dateOnly';
 
 export const scheduleItemFormSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(200, 'Keep it under 200 characters'),
   type: z.enum(['assignment', 'exam', 'quiz', 'project', 'reading', 'other']),
   courseId: z.string().min(1, 'Select a course'),
-  dueDate: z.string().min(1, 'Due date is required'),
+  dueDate: z
+    .string()
+    .min(1, 'Due date is required')
+    .refine((v) => v === '' || isPlausibleDueDate(v), 'Enter a real date between 1990 and 2100'),
   estimatedHours: z
     .string()
     .optional()
