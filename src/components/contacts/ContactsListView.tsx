@@ -370,7 +370,9 @@ export function ContactsListView() {
             {personGroups.map(({ primary, records }) => (
               <Card
                 key={normalizeContactName(primary.fullName) || primary.id}
-                className="rounded-2xl p-4"
+                // Long unbroken text (a URL-like title, a run of letters) wraps inside the card
+                // instead of running past its edge.
+                className="min-w-0 rounded-2xl p-4 [overflow-wrap:anywhere]"
               >
                 <span
                   className={cn(
