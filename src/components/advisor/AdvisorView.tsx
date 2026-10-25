@@ -88,6 +88,13 @@ export function AdvisorView() {
 
   const sendMessage = async (text: string) => {
     if (!user || !text.trim() || sending) return;
+    // Offline, the Firestore write below never resolves (it waits for the
+    // server), so the chat sat on "Thinking..." forever. Say so up front and
+    // keep what was typed so it can be sent once the connection is back.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      showError("The Advisor couldn't answer", describeAiFailure(new TypeError('offline')).message);
+      return;
+    }
     setSending(true);
 
     const userMessage: AdvisorMessage = {
