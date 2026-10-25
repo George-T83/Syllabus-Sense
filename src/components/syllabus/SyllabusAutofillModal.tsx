@@ -1469,7 +1469,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                         <button
                           key={preset.value}
                           type="button"
-                          aria-label={preset.value}
+                          aria-label={`Select ${preset.label ?? preset.value} color`}
+                          aria-pressed={course.color === preset.value}
                           onClick={() => setCourse((c) => c && { ...c, color: preset.value })}
                           className={cn(
                             'h-7 w-7 rounded-full transition-all',
