@@ -126,7 +126,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-full bg-gradient-brand text-white text-sm font-semibold py-2.5 shadow-[0_10px_30px_-10px_rgba(91,61,245,0.8)] transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+              className="w-full rounded-full bg-gradient-brand text-white text-sm font-semibold py-2.5 shadow-[0_10px_30px_-10px_rgba(91,61,245,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] disabled:opacity-50"
             >
               {submitting ? 'Sending email...' : 'Send Reset Link'}
             </button>
@@ -195,7 +195,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-full bg-gradient-brand text-white text-sm font-semibold py-2.5 shadow-[0_10px_30px_-10px_rgba(91,61,245,0.8)] transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                className="w-full rounded-full bg-gradient-brand text-white text-sm font-semibold py-2.5 shadow-[0_10px_30px_-10px_rgba(91,61,245,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] disabled:opacity-50"
               >
                 {submitting ? 'Signing in...' : 'Sign In'}
               </button>

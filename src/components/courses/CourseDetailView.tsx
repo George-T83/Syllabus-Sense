@@ -276,6 +276,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   if (!course) {
     return (
       <div className="max-w-3xl space-y-4">
+        <h1 className="font-display text-2xl font-medium tracking-tight text-foreground">
+          Course not found
+        </h1>
         <p className="text-sm text-muted-foreground">
           This course doesn&apos;t exist or has been removed.
         </p>

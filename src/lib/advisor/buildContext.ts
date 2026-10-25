@@ -20,6 +20,8 @@ export interface AdvisorReasoningSummary {
 export interface AdvisorCourseSummary extends Pick<Course, 'code'> {
   title?: string;
   term?: string;
+  /** Set on courses from "Try a sample semester"; the server ignores them. */
+  sample?: boolean;
 }
 
 export interface AdvisorContextInput {

@@ -240,6 +240,9 @@ export function TaskDetailView({ taskId }: { taskId: string }) {
   if (!item) {
     return (
       <div className="max-w-2xl space-y-4">
+        <h1 className="font-display text-2xl font-medium tracking-tight text-foreground">
+          Task not found
+        </h1>
         <p className="text-sm text-muted-foreground">
           This task doesn&apos;t exist or has been removed.
         </p>

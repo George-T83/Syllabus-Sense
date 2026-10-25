@@ -1472,11 +1472,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                           aria-label={preset.value}
                           onClick={() => setCourse((c) => c && { ...c, color: preset.value })}
                           className={cn(
-                            'h-7 w-7 rounded-full transition-transform',
+                            'h-7 w-7 rounded-full transition-all',
                             preset.value,
                             course.color === preset.value
                               ? 'ring-2 ring-offset-2 ring-primary ring-offset-card scale-110'
-                              : 'hover:scale-110',
+                              : 'hover:-translate-y-0.5 hover:shadow-lg',
                           )}
                         />
                       ))}
@@ -1484,7 +1484,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                         aria-label="Custom color"
                         title="Custom color"
                         className={cn(
-                          'relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-transform hover:scale-110',
+                          'relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-all hover:-translate-y-0.5 hover:shadow-lg',
                           course.color.startsWith('#') &&
                             'border-solid ring-2 ring-offset-2 ring-primary ring-offset-card scale-110',
                         )}
