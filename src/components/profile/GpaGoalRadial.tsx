@@ -112,7 +112,7 @@ export function GpaGoalRadial({
         : 'text-load-low';
 
   return (
-    <div className="space-y-6 w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6 w-full max-w-5xl mx-auto py-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
         <div className="flex items-center gap-3">
@@ -386,8 +386,8 @@ export function GpaGoalRadial({
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-border bg-muted/20">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/80 text-muted-foreground font-semibold border-b border-border">
+                <table className="w-full text-left text-xs max-sm:block">
+                  <thead className="bg-muted/80 text-muted-foreground font-semibold border-b border-border max-sm:hidden">
                     <tr>
                       <th className="px-3.5 py-2.5">Course</th>
                       <th className="px-3.5 py-2.5">Credits</th>
@@ -395,15 +395,18 @@ export function GpaGoalRadial({
                       <th className="px-3.5 py-2.5 text-right">Quality Points</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/60">
+                  <tbody className="divide-y divide-border/60 max-sm:block">
                     {rows.map((course) => {
                       const points =
                         course.grade === null
                           ? null
                           : GRADE_POINT_MAP[course.grade] * course.credits;
                       return (
-                        <tr key={course.courseId} className="hover:bg-muted/40 transition-colors">
-                          <td className="px-3.5 py-2.5 font-medium text-foreground">
+                        <tr
+                          key={course.courseId}
+                          className="hover:bg-muted/40 transition-colors max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-3 max-sm:gap-y-2 max-sm:p-3"
+                        >
+                          <td className="px-3.5 py-2.5 font-medium text-foreground max-sm:col-span-2 max-sm:p-0">
                             <span className="font-bold text-indigo-600 dark:text-indigo-400 block">
                               {course.courseCode}
                             </span>
@@ -414,7 +417,10 @@ export function GpaGoalRadial({
                               {course.standingNote ?? 'No grades entered yet'}
                             </span>
                           </td>
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-3.5 py-2.5 max-sm:p-0">
+                            <span className="mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-sm:block">
+                              Credits
+                            </span>
                             <input
                               type="number"
                               min="0"
@@ -424,10 +430,13 @@ export function GpaGoalRadial({
                                 handleCreditsChange(course.courseId, Number(e.target.value))
                               }
                               aria-label={`${course.courseCode} credits`}
-                              className="min-h-10 w-16 px-2 py-1 bg-background border border-border rounded-lg text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              className="min-h-10 w-16 max-sm:w-full px-2 py-1 bg-background border border-border rounded-lg text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             />
                           </td>
-                          <td className="px-3.5 py-2.5">
+                          <td className="px-3.5 py-2.5 max-sm:p-0">
+                            <span className="mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-sm:block">
+                              What-if grade
+                            </span>
                             <select
                               value={course.grade ?? ''}
                               onChange={(e) =>
@@ -437,7 +446,7 @@ export function GpaGoalRadial({
                                 )
                               }
                               aria-label={`${course.courseCode} grade`}
-                              className="px-2 py-1 bg-background border border-border rounded-lg text-foreground font-bold text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer min-h-10"
+                              className="px-2 py-1 bg-background border border-border rounded-lg text-foreground font-bold text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer min-h-10 max-sm:w-full"
                             >
                               <option value="">Not graded yet</option>
                               <option value="A+">A+ (4.0)</option>
@@ -454,7 +463,10 @@ export function GpaGoalRadial({
                               <option value="F">F (0.0)</option>
                             </select>
                           </td>
-                          <td className="px-3.5 py-2.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                          <td className="px-3.5 py-2.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400 max-sm:col-span-2 max-sm:flex max-sm:items-center max-sm:justify-between max-sm:p-0">
+                            <span className="hidden font-sans text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-sm:inline">
+                              Quality points
+                            </span>
                             {points === null ? '\u2014' : points.toFixed(1)}
                           </td>
                         </tr>
