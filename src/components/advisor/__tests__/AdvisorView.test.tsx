@@ -99,6 +99,22 @@ afterEach(() => {
 });
 
 describe('AdvisorView first visit', () => {
+  it('says so straight away when the device is offline instead of hanging on Thinking', async () => {
+    const onLine = vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    try {
+      renderAdvisor();
+      ask('What is due this week?');
+      expect(await screen.findByText("The Advisor couldn't answer")).toBeDefined();
+      expect(screen.getByText(/Check your connection/)).toBeDefined();
+      expect(appendAdvisorMessage).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(screen.queryByText('Thinking…')).toBeNull();
+      expect(inputBox().value).toBe('What is due this week?');
+    } finally {
+      onLine.mockRestore();
+    }
+  });
+
   it('greets a student with no history and starts with Send disabled', () => {
     renderAdvisor();
     expect(screen.getByText(/I'm your AI Advisor/)).toBeDefined();

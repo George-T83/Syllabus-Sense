@@ -17,5 +17,9 @@ export function buildCalendarFeed(items: ScheduleItem[], courses: Course[], now:
       return false;
     }
   });
-  return generateICS(renderable, courses, now);
+  // The link is the only credential, so private task notes stay out of it.
+  return generateICS(renderable, courses, now, {
+    calendarName: 'Syllabus Sense',
+    includeNotes: false,
+  });
 }

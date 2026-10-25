@@ -55,7 +55,7 @@ export function FloatingActionPill({
         aria-label={ariaLabel}
         title={title}
         className={cn(
-          'flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2',
+          'flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2',
           colorClassName,
         )}
       >

@@ -63,6 +63,7 @@ import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmail
 import { ContactShareModal } from '@/components/contacts/ContactShareModal';
 import { ScheduleOfficeVisitModal } from '@/components/contacts/ScheduleOfficeVisitModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { validateContactFields } from '@/lib/validation/contact';
 
 export function ContactsListView() {
   const { state, dispatch } = useAppState();
@@ -432,6 +433,11 @@ export function ContactsListView() {
                               <>
                                 {(record.officeHours || record.role === 'classmate') && (
                                   <button
+                                    aria-label={`${
+                                      record.role === 'classmate'
+                                        ? 'Schedule Study Session'
+                                        : 'Schedule Visit'
+                                    } with ${record.fullName}`}
                                     onClick={() => setSchedulingContact(record)}
                                     className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                   >
@@ -441,24 +447,28 @@ export function ContactsListView() {
                                   </button>
                                 )}
                                 <button
+                                  aria-label={`Draft email to ${record.fullName}`}
                                   onClick={() => setDrafterContact(record)}
                                   className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Draft Email
                                 </button>
                                 <button
+                                  aria-label={`vCard/QR for ${record.fullName}`}
                                   onClick={() => setShareContact(record)}
                                   className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   vCard/QR
                                 </button>
                                 <button
+                                  aria-label={`Edit ${record.fullName}`}
                                   onClick={() => openEdit(record)}
                                   className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Edit
                                 </button>
                                 <button
+                                  aria-label={`Delete ${record.fullName}`}
                                   onClick={() => setConfirmingDeleteId(record.id)}
                                   className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-destructive transition-colors hover:bg-destructive/10"
                                 >
@@ -573,8 +583,8 @@ function ContactFormModal({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    const fieldErrors: Partial<Record<keyof ContactFormValues, string>> = {};
-    if (!values.fullName.trim()) fieldErrors.fullName = 'Full name is required';
+    const fieldErrors: Partial<Record<keyof ContactFormValues, string>> =
+      validateContactFields(values);
     if (!initialContact && !values.courseId) fieldErrors.courseId = 'Choose a course';
     if (Object.keys(fieldErrors).length) {
       setErrors(fieldErrors);
@@ -597,8 +607,11 @@ function ContactFormModal({
   };
 
   return (
+    // The overlay scrolls and the dialog centres itself with auto margins, so a
+    // dialog taller than the screen (a 768px laptop, a phone with the keyboard
+    // up) can be scrolled to its save button instead of being clipped.
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-[60] flex overflow-y-auto bg-black/40 px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="contact-form-title"
@@ -607,7 +620,7 @@ function ContactFormModal({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="relative w-full max-w-md outline-none"
+        className="relative m-auto w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <Card accent="none" opaque>
@@ -708,6 +721,7 @@ function ContactFormModal({
                     id="title"
                     label="Title"
                     value={values.title}
+                    error={errors.title}
                     onChange={(v) => updateField('title', v)}
                     placeholder="Associate Professor of Computer Science"
                   />
@@ -715,6 +729,7 @@ function ContactFormModal({
                     id="howToAddress"
                     label="Address As"
                     value={values.howToAddress}
+                    error={errors.howToAddress}
                     onChange={(v) => updateField('howToAddress', v)}
                     placeholder="Dr. Chen"
                   />
@@ -722,6 +737,7 @@ function ContactFormModal({
                     id="email"
                     label="Email"
                     value={values.email}
+                    error={errors.email}
                     onChange={(v) => updateField('email', v)}
                     placeholder="a.chen@university.edu"
                   />
@@ -729,6 +745,7 @@ function ContactFormModal({
                     id="officeHours"
                     label="Office Hours"
                     value={values.officeHours}
+                    error={errors.officeHours}
                     onChange={(v) => updateField('officeHours', v)}
                     placeholder="Tue/Thu 2-3pm, or by appointment"
                   />
@@ -736,6 +753,7 @@ function ContactFormModal({
                     id="officeLocation"
                     label="Office Location"
                     value={values.officeLocation}
+                    error={errors.officeLocation}
                     onChange={(v) => updateField('officeLocation', v)}
                     placeholder="Science Hall 214"
                   />

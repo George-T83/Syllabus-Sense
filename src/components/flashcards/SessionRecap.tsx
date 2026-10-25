@@ -228,7 +228,7 @@ export function SessionRecap({
         <button
           type="button"
           onClick={onDone}
-          className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-gradient-brand px-8 text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(91,61,245,0.8)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
+          className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-gradient-brand px-8 text-sm font-semibold text-white shadow-[0_12px_40px_-12px_rgba(91,61,245,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
         >
           Done
         </button>

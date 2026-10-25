@@ -80,7 +80,7 @@ export function MoodCheckInCard() {
                 'flex h-12 w-12 items-center justify-center rounded-2xl text-2xl transition-all disabled:cursor-not-allowed disabled:opacity-60',
                 isSelected
                   ? 'bg-primary/10 ring-2 ring-primary scale-110'
-                  : 'hover:bg-accent hover:scale-105',
+                  : 'hover:bg-accent hover:-translate-y-0.5 hover:shadow-lg',
               )}
             >
               {option.emoji}

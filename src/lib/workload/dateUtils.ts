@@ -59,10 +59,13 @@ export function diffInDays(a: Date, b: Date): number {
   return Math.round((a.getTime() - b.getTime()) / MS_PER_DAY);
 }
 
-/** Returns every UTC-midnight date from `start` to `end`, inclusive, in ascending order. */
+/** Longest run enumerateDays will build; a far-future date must not allocate millions of days. */
+export const MAX_ENUMERATED_DAYS = 1830;
+
+/** Returns every UTC-midnight date from `start` to `end`, inclusive, in ascending order (at most MAX_ENUMERATED_DAYS). */
 export function enumerateDays(start: Date, end: Date): Date[] {
   const days: Date[] = [];
-  const span = diffInDays(end, start);
+  const span = Math.min(diffInDays(end, start), MAX_ENUMERATED_DAYS - 1);
   if (span < 0) return days;
   for (let i = 0; i <= span; i++) {
     days.push(addDays(start, i));
@@ -77,7 +80,7 @@ export function enumerateDays(start: Date, end: Date): Date[] {
 export function isWithinSemesterRange(
   date: string | Date,
   semesterStart: string | Date,
-  semesterEnd: string | Date
+  semesterEnd: string | Date,
 ): boolean {
   const target = toDateOnly(date).getTime();
   const start = toDateOnly(semesterStart).getTime();
@@ -91,7 +94,7 @@ export function isWithinSemesterRange(
  */
 export function getSemesterDaysRemaining(
   referenceDate: string | Date,
-  semesterEnd: string | Date
+  semesterEnd: string | Date,
 ): number {
   const ref = toDateOnly(referenceDate);
   const end = toDateOnly(semesterEnd);
@@ -105,10 +108,9 @@ export function getSemesterDaysRemaining(
 export function isSemesterTransitionWindow(
   date: string | Date,
   semesterBoundary: string | Date,
-  windowDays: number = 7
+  windowDays: number = 7,
 ): boolean {
   const target = toDateOnly(date);
   const boundary = toDateOnly(semesterBoundary);
   return Math.abs(diffInDays(target, boundary)) <= windowDays;
 }
-

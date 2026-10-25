@@ -303,11 +303,11 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                           aria-pressed={values.color === preset.value}
                           onClick={() => setValues((s) => ({ ...s, color: preset.value }))}
                           className={cn(
-                            'h-7 w-7 rounded-full transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                            'h-7 w-7 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                             preset.value,
                             values.color === preset.value
                               ? 'ring-2 ring-offset-2 ring-primary ring-offset-card scale-110'
-                              : 'hover:scale-110',
+                              : 'hover:-translate-y-0.5 hover:shadow-lg',
                           )}
                         />
                       ))}
@@ -315,7 +315,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                         aria-label="Custom color"
                         title="Custom color"
                         className={cn(
-                          'relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-transform hover:scale-110',
+                          'relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-all hover:-translate-y-0.5 hover:shadow-lg',
                           isCustomColor(values.color) &&
                             'border-solid ring-2 ring-offset-2 ring-primary ring-offset-card scale-110',
                         )}

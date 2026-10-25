@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAppState } from '@/context/AppStateContext';
 import { useTheme } from '@/context/ThemeProvider';
 import { usePlatformKey } from '@/hooks/usePlatformKey';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import { matchesShortcut } from '@/lib/shortcuts';
 import { isCardDue } from '@/lib/flashcards/sm2';
 import { parseDayKey } from '@/lib/calendar/dates';
@@ -50,7 +51,6 @@ export function CommandPalette({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
 
   const openPalette = useCallback(() => {
     if (isControlled) {
@@ -69,6 +69,10 @@ export function CommandPalette({
     setQuery('');
     setSelectedIndex(0);
   }, [isControlled, controlledOnClose]);
+
+  // Keeps Tab inside the palette, closes on Escape, locks page scroll, and
+  // hands focus back to whatever opened it.
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, closePalette);
 
   // Global hotkey: Cmd+K / Ctrl+K. Not Ctrl+P - that is the browser's Print.
   useEffect(() => {

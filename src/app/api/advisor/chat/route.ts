@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
 import { buildAdvisorSystemPrompt, buildAdvisorTool } from '@/lib/ai/advisorTool';
+import { withoutSample } from '@/lib/sample/sampleSemester';
 import { buildAdvisorContextBlock, type AdvisorContextInput } from '@/lib/advisor/buildContext';
 import { generateOfflineAdvisorReply } from '@/lib/advisor/offlineAdvisor';
 import { guardrailReply } from '@/lib/advisor/guardrails';
@@ -20,7 +21,7 @@ interface AdvisorChatRequestBody {
   history?: { role: 'user' | 'assistant'; content: string }[];
   degreeProfile?: DegreeProfile | null;
   degreeCourses?: DegreeCourse[];
-  courses?: { code: string; title?: string; term?: string }[];
+  courses?: { code: string; title?: string; term?: string; sample?: boolean }[];
   pendingTaskCount?: number;
   overdueTaskCount?: number;
 }
@@ -66,7 +67,9 @@ export async function POST(req: NextRequest) {
   const contextInput: AdvisorContextInput = {
     degreeProfile: body.degreeProfile ?? null,
     degreeCourses: body.degreeCourses ?? [],
-    courses: body.courses ?? [],
+    // Sample courses are made-up data; never let one reach the model, even
+    // if a client forgets to filter it out.
+    courses: withoutSample(body.courses ?? []),
     pendingTaskCount: body.pendingTaskCount ?? 0,
     overdueTaskCount: body.overdueTaskCount ?? 0,
   };
