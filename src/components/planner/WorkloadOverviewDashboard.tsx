@@ -322,7 +322,7 @@ export function WorkloadOverviewDashboard({
                               aria-label={`Shift date for ${item.title}`}
                               value={activeDay.dateStr}
                               onChange={(e) => handleShiftTaskDate(item.id, e.target.value)}
-                              className="min-w-0 rounded border border-border bg-input px-1.5 py-0.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="min-h-10 min-w-0 rounded border border-border bg-input px-1.5 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </div>
                         </div>
