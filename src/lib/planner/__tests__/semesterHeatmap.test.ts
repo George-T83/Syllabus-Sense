@@ -14,6 +14,17 @@ function item(overrides: Partial<ScheduleItem> & Pick<ScheduleItem, 'dueDate'>):
 }
 
 describe('computeSemesterHeatmap', () => {
+  it('stays bounded when one item is dated 9999-12-31', () => {
+    const started = Date.now();
+    const days = computeSemesterHeatmap([
+      item({ dueDate: '2026-09-01', estimatedHours: 1 }),
+      item({ dueDate: '9999-12-31', estimatedHours: 1 }),
+    ]);
+    expect(days.length).toBeLessThanOrEqual(2000);
+    expect(days[0].dateKey).toBe('2026-09-01');
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   it('returns an empty array when there are no dated items', () => {
     expect(computeSemesterHeatmap([])).toEqual([]);
   });
