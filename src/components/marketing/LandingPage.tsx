@@ -58,7 +58,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/signup"
-              className="whitespace-nowrap rounded-full bg-gradient-brand px-3.5 py-2 text-sm font-semibold text-white sm:px-4 shadow-[0_8px_24px_-10px_rgba(91,61,245,0.8)] transition-transform hover:scale-[1.03]"
+              className="whitespace-nowrap rounded-full bg-gradient-brand px-3.5 py-2 text-sm font-semibold text-white sm:px-4 shadow-[0_8px_24px_-10px_rgba(91,61,245,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
               Sign up
             </Link>
@@ -83,7 +83,7 @@ export default function LandingPage() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/signup"
-                  className="inline-flex items-center justify-center rounded-full bg-gradient-brand px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_32px_-12px_rgba(91,61,245,0.85)] transition-transform hover:scale-[1.03]"
+                  className="inline-flex items-center justify-center rounded-full bg-gradient-brand px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_32px_-12px_rgba(91,61,245,0.85)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   Get started free
                 </Link>
@@ -155,7 +155,7 @@ export default function LandingPage() {
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#3a22c0] shadow-card transition-transform hover:scale-[1.03]"
+                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#3a22c0] shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
               >
                 Sign up free
               </Link>
