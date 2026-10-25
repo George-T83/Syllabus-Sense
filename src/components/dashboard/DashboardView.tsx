@@ -681,7 +681,7 @@ export function DashboardView() {
 
             <Link href="/calendar" className="block">
               <Card hoverable className="flex items-center justify-center rounded-2xl p-4">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
                   View full calendar
                   <svg
                     className="h-4 w-4"

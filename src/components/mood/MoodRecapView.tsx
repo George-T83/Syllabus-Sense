@@ -359,7 +359,7 @@ export function MoodRecapView() {
                       title={`${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} · ${getMoodOption(cell.mood).label}`}
                       aria-label={`Open ${FULL_DATE_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - felt ${getMoodOption(cell.mood).label.toLowerCase()}`}
                       className={cn(
-                        'aspect-square h-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
+                        'aspect-square h-full rounded-[2px] transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
                         MOOD_SWATCH_CLASS[cell.mood],
                       )}
                     />
