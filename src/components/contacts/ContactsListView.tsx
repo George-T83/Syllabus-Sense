@@ -419,7 +419,7 @@ export function ContactsListView() {
                               <>
                                 <RowActionButton
                                   tone="destructive"
-                                  className="min-h-11"
+                                  className="min-h-[44px] min-w-[44px]"
                                   onClick={() => handleDelete(record)}
                                 >
                                   Confirm
@@ -435,7 +435,7 @@ export function ContactsListView() {
                               <>
                                 {(record.officeHours || record.role === 'classmate') && (
                                   <RowActionButton
-                                    className="min-h-11"
+                                    className="min-h-[44px] min-w-[44px]"
                                     aria-label={`${
                                       record.role === 'classmate'
                                         ? 'Schedule Study Session'
@@ -449,21 +449,21 @@ export function ContactsListView() {
                                   </RowActionButton>
                                 )}
                                 <RowActionButton
-                                  className="min-h-11"
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Draft email to ${record.fullName}`}
                                   onClick={() => setDrafterContact(record)}
                                 >
                                   Draft Email
                                 </RowActionButton>
                                 <RowActionButton
-                                  className="min-h-11"
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`vCard/QR for ${record.fullName}`}
                                   onClick={() => setShareContact(record)}
                                 >
                                   vCard/QR
                                 </RowActionButton>
                                 <RowActionButton
-                                  className="min-h-11"
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Edit ${record.fullName}`}
                                   onClick={() => openEdit(record)}
                                 >
@@ -471,7 +471,7 @@ export function ContactsListView() {
                                 </RowActionButton>
                                 <RowActionButton
                                   tone="destructive"
-                                  className="min-h-11"
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Delete ${record.fullName}`}
                                   onClick={() => setConfirmingDeleteId(record.id)}
                                 >
