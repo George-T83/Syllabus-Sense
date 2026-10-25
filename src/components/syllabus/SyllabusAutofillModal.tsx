@@ -2120,6 +2120,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                                 </button>
                               </div>
                               <select
+                                aria-label={`Type of item ${i + 1}`}
                                 value={it.type}
                                 onChange={(e) =>
                                   updateItem(it.key, { type: e.target.value as AssignmentType })
