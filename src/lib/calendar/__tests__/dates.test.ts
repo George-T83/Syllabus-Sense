@@ -3,12 +3,20 @@ import {
   daysUntilDue,
   dueInstant,
   eachDayOfRange,
+  MAX_RANGE_DAYS,
   isOverdue,
   parseDayKey,
   toDayKey,
 } from '../dates';
 
 describe('eachDayOfRange', () => {
+  it('stops at MAX_RANGE_DAYS so a year-9999 end date cannot allocate millions of days', () => {
+    const started = Date.now();
+    const days = eachDayOfRange(parseDayKey('2026-01-01'), parseDayKey('9999-12-31'));
+    expect(days).toHaveLength(MAX_RANGE_DAYS);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   it('returns every day inclusive of both endpoints', () => {
     const start = new Date(2026, 8, 1); // Sep 1, 2026 (local)
     const end = new Date(2026, 8, 4); // Sep 4, 2026 (local)
