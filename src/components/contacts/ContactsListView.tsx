@@ -433,6 +433,11 @@ export function ContactsListView() {
                               <>
                                 {(record.officeHours || record.role === 'classmate') && (
                                   <button
+                                    aria-label={`${
+                                      record.role === 'classmate'
+                                        ? 'Schedule Study Session'
+                                        : 'Schedule Visit'
+                                    } with ${record.fullName}`}
                                     onClick={() => setSchedulingContact(record)}
                                     className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                   >
@@ -442,24 +447,28 @@ export function ContactsListView() {
                                   </button>
                                 )}
                                 <button
+                                  aria-label={`Draft email to ${record.fullName}`}
                                   onClick={() => setDrafterContact(record)}
                                   className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Draft Email
                                 </button>
                                 <button
+                                  aria-label={`vCard/QR for ${record.fullName}`}
                                   onClick={() => setShareContact(record)}
                                   className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   vCard/QR
                                 </button>
                                 <button
+                                  aria-label={`Edit ${record.fullName}`}
                                   onClick={() => openEdit(record)}
                                   className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Edit
                                 </button>
                                 <button
+                                  aria-label={`Delete ${record.fullName}`}
                                   onClick={() => setConfirmingDeleteId(record.id)}
                                   className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-destructive transition-colors hover:bg-destructive/10"
                                 >
@@ -598,8 +607,11 @@ function ContactFormModal({
   };
 
   return (
+    // The overlay scrolls and the dialog centres itself with auto margins, so a
+    // dialog taller than the screen (a 768px laptop, a phone with the keyboard
+    // up) can be scrolled to its save button instead of being clipped.
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-[60] flex overflow-y-auto bg-black/40 px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="contact-form-title"
@@ -608,7 +620,7 @@ function ContactFormModal({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="relative w-full max-w-md outline-none"
+        className="relative m-auto w-full max-w-md outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <Card accent="none" opaque>

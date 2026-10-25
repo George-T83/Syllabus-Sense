@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/requireUser';
+import { createRateLimiter } from '@/lib/rateLimit';
 import { detectSyllabusFileKind, extractRawSyllabusText } from '@/lib/syllabus/extractRawText';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+/** 20 extractions a minute per account: a syllabus version diff needs two. */
+const checkRate = createRateLimiter(20, 60_000);
 
 /**
  * Plain text extraction only - no Anthropic call. Backs the syllabus
@@ -18,6 +22,14 @@ export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const rate = checkRate(user.uid);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Try again in a moment.' },
+      { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } },
+    );
   }
 
   let body: { fileBase64?: string };

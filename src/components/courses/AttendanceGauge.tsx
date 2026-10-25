@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import { RingGauge, type RingGaugeLevel } from '@/components/ui/RingGauge';
 import type { AbsenceRecord, AttendancePolicy } from '@/types/schedule';
 
@@ -59,6 +60,11 @@ export function AttendanceGauge({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAbsences]);
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
+  // Moves focus into the dialog, keeps Tab inside it, closes on Escape and
+  // hands focus back to the Log absence button.
+  const logModalRef = useModalA11y<HTMLDivElement>(isLoggingModalOpen, () =>
+    setIsLoggingModalOpen(false),
+  );
   const [newDate, setNewDate] = useState(todayKey);
   const [newType, setNewType] = useState<'excused' | 'unexcused'>('unexcused');
   const [newReason, setNewReason] = useState('');
@@ -406,6 +412,7 @@ export function AttendanceGauge({
       {/* Log Absence Modal */}
       {isLoggingModalOpen && (
         <div
+          ref={logModalRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="log-absence-title"

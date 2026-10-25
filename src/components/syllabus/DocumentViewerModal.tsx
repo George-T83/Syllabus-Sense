@@ -91,16 +91,18 @@ function useDocxHtml(syllabus: SyllabusUpload | null, active: boolean, authToken
 
 export function DocumentViewerModal({ syllabus, onClose }: DocumentViewerModalProps) {
   const open = syllabus !== null;
-  const containerRef = useModalA11y<HTMLDivElement>(open, onClose);
-  const kind = syllabus ? getKind(syllabus.fileName) : 'unsupported';
-  const { user } = useAuth();
-
   // Portalled to document.body: this modal is nested inside course-detail
   // Cards that use backdrop-blur (same containing-block effect as filter/
   // transform), which breaks position:fixed for descendants and pins the
   // "fullscreen" overlay to that ancestor's box instead of the viewport.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // The dialog element only exists once it has been portalled, so the focus
+  // handling must wait for `mounted`. Started earlier, it ran while the
+  // container was still null and never moved focus in or trapped Tab.
+  const containerRef = useModalA11y<HTMLDivElement>(open && mounted, onClose);
+  const kind = syllabus ? getKind(syllabus.fileName) : 'unsupported';
+  const { user } = useAuth();
 
   // The file proxy requires a fresh ID token per request - fetched once
   // when the viewer opens and reused for the viewer's own fetches; Open/

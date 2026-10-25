@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CardActionButton } from '@/components/ui/CardAction';
+import { CardActionButton, CardActionLink } from '@/components/ui/CardAction';
 import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
@@ -59,6 +59,10 @@ export function CalendarFeedSection() {
   const feedUrl =
     token && typeof window !== 'undefined' ? `${window.location.origin}/api/calendar/${token}` : '';
 
+  // webcal:// opens the phone's or computer's calendar app straight to the
+  // subscribe prompt, instead of making the student paste the https link.
+  const webcalUrl = feedUrl.replace(/^https?:/, 'webcal:');
+
   const createOrReset = async (isReset: boolean) => {
     setBusy(true);
     try {
@@ -104,7 +108,8 @@ export function CalendarFeedSection() {
       <h4 className="text-sm font-semibold text-foreground">Calendar feed</h4>
       <p className="mt-1 text-sm text-muted-foreground">
         Add your schedule to Google, Apple or Outlook Calendar once and it stays up to date. Anyone
-        with the link can see your course names, due dates and notes, so do not share it.
+        with the link can see your course names and due dates, so do not share it. Your task notes
+        are never included.
       </p>
 
       {status === 'unavailable' ? (
@@ -143,7 +148,10 @@ export function CalendarFeedSection() {
               />
             ) : (
               <>
-                <CardActionButton variant="solid" onClick={copy} disabled={busy}>
+                <CardActionLink variant="solid" href={webcalUrl} aria-disabled={busy}>
+                  Add to calendar app
+                </CardActionLink>
+                <CardActionButton onClick={copy} disabled={busy}>
                   Copy link
                 </CardActionButton>
                 <CardActionButton onClick={() => setConfirmingReset(true)} disabled={busy}>

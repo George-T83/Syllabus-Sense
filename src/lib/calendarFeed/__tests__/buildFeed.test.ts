@@ -18,9 +18,25 @@ const item = (over: Partial<ScheduleItem>): ScheduleItem =>
   }) as ScheduleItem;
 
 describe('buildCalendarFeed', () => {
-  it('produces the same output as the download generator for valid items', () => {
+  it('produces the same output as the download generator, named and without notes', () => {
     const items = [item({}), item({ id: 'i2', title: 'Midterm', dueDate: '2026-11-02T15:00:00Z' })];
-    expect(buildCalendarFeed(items, [course], NOW)).toBe(generateICS(items, [course], NOW));
+    expect(buildCalendarFeed(items, [course], NOW)).toBe(
+      generateICS(items, [course], NOW, { calendarName: 'Syllabus Sense', includeNotes: false }),
+    );
+  });
+
+  it('names the calendar so it does not appear in the app as an unnamed subscription', () => {
+    const ics = buildCalendarFeed([item({})], [course], NOW);
+    expect(ics).toContain('X-WR-CALNAME:Syllabus Sense\r\n');
+    expect(ics).toContain('NAME:Syllabus Sense\r\n');
+  });
+
+  it('never includes private task notes, while the download still can', () => {
+    const items = [item({ notes: 'ask Dr. Lee about my accommodation' })];
+    expect(buildCalendarFeed(items, [course], NOW)).not.toContain('accommodation');
+    expect(generateICS(items, [course], NOW)).toContain('accommodation');
+    // The instructor line is course information, not a private note.
+    expect(buildCalendarFeed(items, [course], NOW)).toContain('Instructor: Dr. Lee');
   });
 
   it('produces a valid, CRLF-terminated VCALENDAR with one VEVENT per item', () => {

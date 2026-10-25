@@ -122,7 +122,7 @@ export function SemesterHeatmapCard() {
                     title={`${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} · ${cell.hours}h due`}
                     aria-label={`Open ${DAY_FORMATTER.format(parseDayKey(cell.dateKey))} in Calendar - ${cell.hours}h due`}
                     className={cn(
-                      'aspect-square h-full rounded-[2px] transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
+                      'aspect-square h-full rounded-[2px] transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-1 hover:ring-foreground/40 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40',
                       cell.hours > 0 ? WORKLOAD_SWATCH_CLASS[cell.level] : 'bg-muted-foreground/15',
                     )}
                   />

@@ -48,6 +48,26 @@ describe('GET /api/calendar/[token]', () => {
     ]);
   });
 
+  it('leaves sample-semester courses and tasks out of the feed', async () => {
+    state.store.set(`users/${UID}/courses/s1`, {
+      code: 'SAMPLE 100',
+      title: 'Intro',
+      sample: true,
+    });
+    state.store.set(`users/${UID}/scheduleItems/si1`, {
+      courseId: 's1',
+      title: 'Sample Quiz One',
+      type: 'quiz',
+      dueDate: '2026-10-22',
+      sample: true,
+    });
+    const res = await call(TOKEN);
+    const ics = await res.text();
+    expect(ics).toContain('Problem Set 1');
+    expect(ics).not.toContain('Sample Quiz One');
+    expect(ics).not.toContain('SAMPLE 100');
+  });
+
   it('returns 404 with no body for a malformed token, without reading Firestore', async () => {
     for (const bad of ['short', 'a.b', 'x'.repeat(33), '..%2Fetc', '!'.repeat(32)]) {
       const res = await call(bad);
