@@ -154,6 +154,46 @@ describe('CommandPalette (Item 34)', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('keeps Tab inside the palette instead of letting focus leave it', () => {
+    renderWithProviders(
+      <>
+        <button>Behind the palette</button>
+        <CommandPalette isOpen={true} onClose={vi.fn()} />
+      </>,
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Command palette' });
+    const focusables = Array.from(
+      dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'),
+    );
+    const last = focusables[focusables.length - 1];
+    last.focus();
+    fireEvent.keyDown(last, { key: 'Tab' });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(screen.getByRole('button', { name: 'Behind the palette' })).not.toBe(
+      document.activeElement,
+    );
+  });
+
+  it('gives focus back to the control that opened it', () => {
+    function Harness() {
+      const [open, setOpen] = React.useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open palette</button>
+          <CommandPalette isOpen={open} onClose={() => setOpen(false)} />
+        </>
+      );
+    }
+    renderWithProviders(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Open palette' });
+    opener.focus();
+    fireEvent.click(opener);
+    expect(screen.getByRole('dialog', { name: 'Command palette' })).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
   it('closes when Escape key is pressed', () => {
     const onClose = vi.fn();
     renderWithProviders(<CommandPalette isOpen={true} onClose={onClose} />);
