@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useUndoToast } from '@/hooks/useUndoToast';
 import { useAppState } from '@/context/AppStateContext';
 import { useAuth } from '@/context/AuthContext';
-import { updateCourse, deleteCourse } from '@/lib/firestore/courses';
+import { updateCourse, deleteCourseWithUndo } from '@/lib/firestore/courses';
 import {
   createScheduleItem,
   updateScheduleItem,
@@ -228,7 +228,6 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [confirmingDeleteCourse, setConfirmingDeleteCourse] = useState(false);
-  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
   const [confirmingDeleteItemId, setConfirmingDeleteItemId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [confirmingDeleteObjectiveIndex, setConfirmingDeleteObjectiveIndex] = useState<
@@ -314,25 +313,29 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     await updateCourse(user.uid, course, updatedCourse, dispatch, courseContacts);
   };
 
-  const handleDeleteCourse = async () => {
+  const handleDeleteCourse = () => {
     if (!user) return;
-    setIsDeletingCourse(true);
-    try {
-      const { failedFiles } = await deleteCourse(user.uid, course, items, dispatch, courseContacts);
-      if (failedFiles > 0) {
-        showWarning(
-          'Course deleted, but not all files',
-          `${failedFiles} uploaded ${failedFiles === 1 ? 'file' : 'files'} for ${course.code} couldn't be removed from storage.`,
-        );
-      } else {
-        showSuccess('Course deleted', `${course.code} and everything in it was removed.`);
-      }
-      router.push('/dashboard');
-    } catch (err) {
-      showError('Could not delete course', err instanceof Error ? err.message : undefined);
-    } finally {
-      setIsDeletingCourse(false);
-    }
+    const pending = deleteCourseWithUndo(
+      user.uid,
+      course,
+      items,
+      dispatch,
+      courseContacts,
+      ({ result, error }) => {
+        if (error) {
+          showError('Could not delete course', error instanceof Error ? error.message : undefined);
+        } else if (result && result.failedFiles > 0) {
+          showWarning(
+            'Course deleted, but not all files',
+            `${result.failedFiles} uploaded ${result.failedFiles === 1 ? 'file' : 'files'} for ${course.code} couldn't be removed from storage.`,
+          );
+        }
+      },
+    );
+    showUndo('Course deleted', `${course.code} and everything in it will be removed.`, async () =>
+      pending.undo(),
+    );
+    router.push('/dashboard');
   };
 
   const handleAddTask = async (values: ScheduleItemFormValues) => {
@@ -847,7 +850,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
               <div className="ml-auto">
                 {confirmingDeleteCourse ? (
                   <ConfirmDeleteInline
-                    deleting={isDeletingCourse}
+                    deleting={false}
                     onConfirm={handleDeleteCourse}
                     onCancel={() => setConfirmingDeleteCourse(false)}
                     size="lg"
