@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPlausibleDueDate } from '@/lib/validation/dateOnly';
 import { COURSE_COLOR_PRESETS } from '@/lib/courseColors';
 import { COURSE_ICON_PRESETS } from '@/lib/courseIcons';
 
@@ -63,6 +64,7 @@ export const extractedScheduleItemSchema = z.object({
   dueDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isPlausibleDueDate, 'Not a real calendar date')
     .nullable(),
   dateConfidence: z.enum(['exact', 'approximate', 'unknown']),
   gradeWeight: z.number().min(0).max(100).nullable().optional(),

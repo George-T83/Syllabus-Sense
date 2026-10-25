@@ -81,6 +81,7 @@ export function scheduleItemToVEvent(
   item: ScheduleItem,
   course: Course | undefined,
   now: Date,
+  includeNotes = true,
 ): string {
   const { start, end, allDay } = getEventWindow(item);
 
@@ -88,7 +89,7 @@ export function scheduleItemToVEvent(
 
   const descriptionParts: string[] = [];
   if (course?.instructor) descriptionParts.push(`Instructor: ${course.instructor}`);
-  if (item.notes) descriptionParts.push(item.notes);
+  if (includeNotes && item.notes) descriptionParts.push(item.notes);
   const description = descriptionParts.join('\n');
 
   const lines: string[] = [
@@ -127,7 +128,22 @@ export function scheduleItemToVEvent(
  * @param now      The current timestamp, used for DTSTAMP. Passed explicitly
  *                 so output is deterministic in tests.
  */
-export function generateICS(items: ScheduleItem[], courses: Course[], now: Date): string {
+export interface GenerateICSOptions {
+  /** Shown by calendar apps as the calendar's name (X-WR-CALNAME / NAME). */
+  calendarName?: string;
+  /** Leave a task's private notes out of each event. Defaults to true, the
+   * right behaviour for a file the student downloads for themselves; the
+   * subscribed feed turns it off because anyone holding its link can read it. */
+  includeNotes?: boolean;
+}
+
+export function generateICS(
+  items: ScheduleItem[],
+  courses: Course[],
+  now: Date,
+  options: GenerateICSOptions = {},
+): string {
+  const includeNotes = options.includeNotes ?? true;
   const coursesById = new Map(courses.map((c) => [c.id, c]));
 
   const lines: string[] = [
@@ -136,9 +152,13 @@ export function generateICS(items: ScheduleItem[], courses: Course[], now: Date)
     buildContentLine('PRODID', PRODID),
     buildContentLine('CALSCALE', 'GREGORIAN'),
   ];
+  if (options.calendarName) {
+    lines.push(buildContentLine('X-WR-CALNAME', escapeICSText(options.calendarName)));
+    lines.push(buildContentLine('NAME', escapeICSText(options.calendarName)));
+  }
 
   for (const item of items) {
-    lines.push(scheduleItemToVEvent(item, coursesById.get(item.courseId), now));
+    lines.push(scheduleItemToVEvent(item, coursesById.get(item.courseId), now, includeNotes));
   }
 
   lines.push('END:VCALENDAR');

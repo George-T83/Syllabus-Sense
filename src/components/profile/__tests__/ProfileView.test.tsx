@@ -175,3 +175,14 @@ describe('ProfileView - data export section', () => {
     expect(copy).toMatch(/uploaded syllabus files themselves are not in the file/i);
   });
 });
+
+describe('ProfileView - no unshipped features', () => {
+  it('shows no Notifications section, "Coming soon" badges or switches that do nothing', () => {
+    renderWithProviders();
+    expect(screen.queryByTestId('notifications-card')).toBeNull();
+    expect(screen.queryByText(/coming soon/i)).toBeNull();
+    expect(screen.queryAllByRole('switch').filter((s) => s.hasAttribute('disabled'))).toEqual([]);
+    expect(screen.queryByText('Daily digest email')).toBeNull();
+    expect(screen.queryByText('Canvas sync')).toBeNull();
+  });
+});

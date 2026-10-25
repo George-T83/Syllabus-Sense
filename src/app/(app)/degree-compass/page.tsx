@@ -3,7 +3,7 @@ import { DegreeCompassView } from '@/components/degreeCompass/DegreeCompassView'
 import { PageHeader } from '@/components/ui/PageHeader';
 
 export const metadata: Metadata = {
-  title: 'Degree Compass | Syllabus Sense',
+  title: 'Degree Compass',
   description: 'Track your progress toward graduation across every term.',
 };
 
