@@ -4,8 +4,19 @@
  * runs `playwright test`, and shuts the emulators down again.
  */
 import { spawn } from 'node:child_process';
+import { generateKeyPairSync } from 'node:crypto';
 
 const PROJECT = 'demo-syllabus-sense';
+
+// The server routes that read or write Firestore on a student's behalf (the
+// calendar feed, the daily AI usage count, account deletion) only start with
+// admin credentials. Against the emulators nothing checks them, so a
+// throwaway key made here is enough.
+const { privateKey } = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+});
 
 const env = {
   ...process.env,
@@ -18,6 +29,8 @@ const env = {
   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '1',
   NEXT_PUBLIC_FIREBASE_APP_ID: '1:1:web:1',
   FIREBASE_ADMIN_PROJECT_ID: PROJECT,
+  FIREBASE_ADMIN_CLIENT_EMAIL: `e2e@${PROJECT}.iam.gserviceaccount.com`,
+  FIREBASE_ADMIN_PRIVATE_KEY: privateKey.replace(/\n/g, '\\n'),
   GCLOUD_PROJECT: PROJECT,
   FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
   FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',

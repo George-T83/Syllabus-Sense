@@ -81,6 +81,35 @@ test.describe('signed-in student', () => {
     await expect(page.getByText('Reading: Chapter 3').first()).toBeVisible();
   });
 
+  test('the calendar feed link serves the schedule, and Reset stops the old link', async ({
+    page,
+    request,
+  }) => {
+    const { email } = await seedStudent('feed');
+    await signIn(page, email);
+    await page.goto('/profile');
+    await page.getByRole('button', { name: 'Create link' }).click();
+    const box = page.getByRole('textbox', { name: 'Calendar feed link' });
+    await expect(box).toBeVisible({ timeout: 30_000 });
+    const link = await box.inputValue();
+
+    const feed = await request.get(link);
+    expect(feed.status()).toBe(200);
+    expect(feed.headers()['content-type']).toContain('text/calendar');
+    const body = await feed.text();
+    expect(body).toContain('BEGIN:VCALENDAR');
+    expect(body).toContain('Problem Set 5');
+
+    expect(
+      (await request.get(new URL('/api/calendar/' + 'x'.repeat(32), link).toString())).status(),
+    ).toBe(404);
+
+    await page.getByRole('button', { name: 'Reset link' }).click();
+    await page.getByRole('button', { name: 'Reset', exact: true }).click();
+    await expect(box).not.toHaveValue(link, { timeout: 30_000 });
+    expect((await request.get(link)).status()).toBe(404);
+  });
+
   test("one student's data is not visible to another", async ({ page }) => {
     await seedStudent('other');
     const { email } = await seedStudent('mine');
