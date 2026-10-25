@@ -4,7 +4,7 @@ import { AdvisorView } from '@/components/advisor/AdvisorView';
 import { PageHeader } from '@/components/ui/PageHeader';
 
 export const metadata: Metadata = {
-  title: 'Advisor | Syllabus Sense',
+  title: 'Advisor',
   description: 'A standing conversation about your whole degree.',
 };
 

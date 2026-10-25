@@ -104,7 +104,15 @@ export function addMonths(date: Date, months: number): Date {
 }
 
 /**
- * Every local-midnight day from `start` to `end`, inclusive, ascending.
+ * Upper bound on how many days a single range expansion may produce (about
+ * five years). A task dated 9999-12-31 would otherwise ask for ~2.9 million
+ * Date objects and freeze the tab; nothing in the app draws a longer range.
+ */
+export const MAX_RANGE_DAYS = 1830;
+
+/**
+ * Every local-midnight day from `start` to `end`, inclusive, ascending,
+ * stopping after MAX_RANGE_DAYS days.
  * Several features (the semester heatmap, the mood recap calendar) each
  * hand-rolled their own `while (cursor <= end) { ...; cursor.setDate(...) }`
  * loop over a date range - this is that loop, written once.
@@ -113,7 +121,7 @@ export function eachDayOfRange(start: Date, end: Date): Date[] {
   const days: Date[] = [];
   for (
     let cursor = startOfDay(start);
-    cursor.getTime() <= end.getTime();
+    cursor.getTime() <= end.getTime() && days.length < MAX_RANGE_DAYS;
     cursor = addDays(cursor, 1)
   ) {
     days.push(cursor);

@@ -56,6 +56,14 @@ describe('CalendarFeedSection', () => {
     );
   });
 
+  it('offers a webcal:// link that opens the calendar app, and says notes are never included', async () => {
+    mockFetch(() => ({ token: TOKEN_A }));
+    renderSection();
+    const add = (await screen.findByText('Add to calendar app')).closest('a') as HTMLAnchorElement;
+    expect(add.getAttribute('href')).toMatch(new RegExp(`^webcal://.+/api/calendar/${TOKEN_A}$`));
+    expect(screen.getByText(/task\s+notes are never included/i)).toBeTruthy();
+  });
+
   it('asks for confirmation before resetting, then swaps in the new link', async () => {
     mockFetch((method) => (method === 'POST' ? { token: TOKEN_B } : { token: TOKEN_A }));
     renderSection();

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { QuizzesView } from '@/components/quizzes/QuizzesView';
 
 export const metadata: Metadata = {
-  title: 'Practice Quizzes | Syllabus Sense',
+  title: 'Practice Quizzes',
   description: 'AI-generated multiple-choice practice quizzes from your syllabi.',
 };
 
