@@ -11,6 +11,8 @@ export interface ChatRequestBody {
   location?: string;
   fileBase64?: string;
   fileName?: string;
+  /** The student's current day as `YYYY-MM-DD`, from their browser. */
+  todayKey?: string;
 }
 
 interface Topic {
