@@ -708,7 +708,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             style={courseSwatch(course.color).style}
           />
           <div className="p-6">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-4">
                 <span
                   className={cn(
@@ -733,7 +733,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 </div>
               </div>
               {items.length > 0 && (
-                <div className="flex shrink-0 flex-col items-center gap-1">
+                <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:gap-1">
                   {items.length < RING_MIN_TASK_COUNT ? (
                     // Too few tracked tasks for a percentage to mean anything -
                     // a muted dashed outline stands in for the bold gradient
@@ -758,7 +758,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                       <span className="text-xs font-bold text-foreground">{progressPct}%</span>
                     </RingGauge>
                   )}
-                  <span className="max-w-[88px] text-center text-xs leading-tight text-muted-foreground">
+                  <span className="text-left text-xs leading-tight text-muted-foreground sm:max-w-[88px] sm:text-center">
                     {completedCount} of {items.length} tracked task{items.length === 1 ? '' : 's'}{' '}
                     done
                   </span>
