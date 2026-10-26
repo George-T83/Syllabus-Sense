@@ -396,6 +396,24 @@ describe('WorkloadOverviewDashboard Component Suite (Tier 1-4)', () => {
       expect(screen.getByText('Completed Synthesis Notes').className).toContain('line-through');
     });
 
+    it('gives the checkbox a 44px touch target while the visible box stays small', () => {
+      renderDashboard([
+        createItem({
+          id: 'tap-task',
+          title: 'Tap me',
+          dueDate: getRelativeDateStr(0),
+          estimatedHours: 1,
+          completed: false,
+          type: 'reading',
+        }),
+      ]);
+      const checkbox = screen.getByRole('checkbox', { name: 'Mark Tap me as done' });
+      const label = checkbox.closest('label');
+      expect(label?.className).toContain('h-11');
+      expect(label?.className).toContain('w-11');
+      expect(checkbox.className).toContain('inset-0');
+    });
+
     it('F7-2: clicking checkbox on uncompleted task calls updateScheduleItem to complete it', async () => {
       const updateSpy = vi
         .spyOn(scheduleItemsLib, 'updateScheduleItem')
