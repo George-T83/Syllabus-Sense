@@ -63,6 +63,7 @@ import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmail
 import { ContactShareModal } from '@/components/contacts/ContactShareModal';
 import { ScheduleOfficeVisitModal } from '@/components/contacts/ScheduleOfficeVisitModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { RowActionButton } from '@/components/ui/RowActionButton';
 import { validateContactFields } from '@/lib/validation/contact';
 
 export function ContactsListView() {
@@ -409,19 +410,20 @@ export function ContactsListView() {
                   <ul className="space-y-2">
                     {records.map((record) => (
                       <li key={record.id} className="text-xs">
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <span className="font-medium text-foreground">
                             {courseLabel(courseById.get(record.courseId))}
                           </span>
-                          <div className="flex flex-wrap items-center justify-end gap-2">
+                          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                             {confirmingDeleteId === record.id ? (
                               <>
-                                <button
+                                <RowActionButton
+                                  tone="destructive"
+                                  className="min-h-[44px] min-w-[44px]"
                                   onClick={() => handleDelete(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-destructive/10 px-3 font-semibold text-destructive transition-colors hover:bg-destructive/20"
                                 >
                                   Confirm
-                                </button>
+                                </RowActionButton>
                                 <button
                                   onClick={() => setConfirmingDeleteId(null)}
                                   className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 text-muted-foreground transition-colors hover:bg-accent"
@@ -432,48 +434,49 @@ export function ContactsListView() {
                             ) : (
                               <>
                                 {(record.officeHours || record.role === 'classmate') && (
-                                  <button
+                                  <RowActionButton
+                                    className="min-h-[44px] min-w-[44px]"
                                     aria-label={`${
                                       record.role === 'classmate'
                                         ? 'Schedule Study Session'
                                         : 'Schedule Visit'
                                     } with ${record.fullName}`}
                                     onClick={() => setSchedulingContact(record)}
-                                    className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                   >
                                     {record.role === 'classmate'
                                       ? 'Schedule Study Session'
                                       : 'Schedule Visit'}
-                                  </button>
+                                  </RowActionButton>
                                 )}
-                                <button
+                                <RowActionButton
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Draft email to ${record.fullName}`}
                                   onClick={() => setDrafterContact(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Draft Email
-                                </button>
-                                <button
+                                </RowActionButton>
+                                <RowActionButton
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`vCard/QR for ${record.fullName}`}
                                   onClick={() => setShareContact(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   vCard/QR
-                                </button>
-                                <button
+                                </RowActionButton>
+                                <RowActionButton
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Edit ${record.fullName}`}
                                   onClick={() => openEdit(record)}
-                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Edit
-                                </button>
-                                <button
+                                </RowActionButton>
+                                <RowActionButton
+                                  tone="destructive"
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Delete ${record.fullName}`}
                                   onClick={() => setConfirmingDeleteId(record.id)}
-                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-destructive transition-colors hover:bg-destructive/10"
                                 >
                                   Delete
-                                </button>
+                                </RowActionButton>
                               </>
                             )}
                           </div>
