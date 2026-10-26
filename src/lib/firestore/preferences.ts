@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { MeetingTime } from '@/types/schedule';
+import type { SemesterDates } from '@/lib/mood/semesterRange';
 
 export interface UserPreferences {
   dailyDigest: boolean;
@@ -31,6 +32,12 @@ export interface UserPreferences {
    * without a second, parallel busy-time model. Undefined/absent means no
    * shifts on record, same as an empty array. */
   workShifts?: MeetingTime[];
+  /** First and last day of a term, by term label ("Fall 2026"), set by the
+   * student for the check-in history grid. Absent means the grid uses the
+   * standard dates for Spring, Summer and Fall; a term with neither has no
+   * grid until the student sets dates. `null` marks a range the student
+   * reset - Firestore merges maps, so removing a key would not stick. */
+  semesterDates?: Record<string, SemesterDates | null>;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
