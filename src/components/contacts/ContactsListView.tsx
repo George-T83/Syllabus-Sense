@@ -14,7 +14,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { useUndoToast } from '@/hooks/useUndoToast';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import { courseTermLabel, resolveActiveTerm } from '@/lib/terms/termResolve';
+import { termLabelKey } from '@/lib/terms/standardTerms';
 import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
@@ -107,21 +109,25 @@ export function ContactsListView() {
     [contacts],
   );
 
+  // Contacts carry their course's term label as text, so the active term is
+  // matched by label (ignoring case and spacing), not by id.
   const activeTerm = useMemo(
-    () => resolveActiveTerm(state.selectedTerm, courses),
-    [state.selectedTerm, courses],
+    () => resolveActiveTerm(state.selectedTerm, courses, state.terms),
+    [state.selectedTerm, courses, state.terms],
   );
-  const effectiveTermFilter = termFilter ?? activeTerm ?? 'all';
+  const activeTermLabel = activeTerm
+    ? (terms.find((t) => termLabelKey(t) === termLabelKey(activeTerm.label)) ?? activeTerm.label)
+    : null;
+  const effectiveTermFilter = termFilter ?? activeTermLabel ?? 'all';
+  const inFilterTerm = (c: Contact) =>
+    termLabelKey(c.term ?? '') === termLabelKey(effectiveTermFilter);
   const hiddenByTermCount =
-    effectiveTermFilter !== 'all'
-      ? contacts.filter((c) => c.term !== effectiveTermFilter).length
-      : 0;
+    effectiveTermFilter !== 'all' ? contacts.filter((c) => !inFilterTerm(c)).length : 0;
 
   const filteredContacts = useMemo(() => {
     let result = contacts.slice();
 
-    if (effectiveTermFilter !== 'all')
-      result = result.filter((c) => c.term === effectiveTermFilter);
+    if (effectiveTermFilter !== 'all') result = result.filter(inFilterTerm);
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -196,7 +202,9 @@ export function ContactsListView() {
       const newContact: Contact = {
         id: crypto.randomUUID(),
         courseId: values.courseId,
-        ...(course?.term ? { term: course.term } : {}),
+        ...(course && courseTermLabel(course, state.terms)
+          ? { term: courseTermLabel(course, state.terms) }
+          : {}),
         role: values.role,
         fullName: values.fullName.trim(),
         ...(values.title.trim() ? { title: values.title.trim() } : {}),

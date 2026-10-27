@@ -18,17 +18,13 @@ import {
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatTile } from '@/components/ui/StatTile';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
-import { useAuth } from '@/context/AuthContext';
+import { useAppState } from '@/context/AppStateContext';
 import { CardActionButton } from '@/components/ui/CardAction';
-import { SemesterDatesEditor } from '@/components/mood/SemesterDatesEditor';
-import { updateUserPreferences } from '@/lib/firestore/preferences';
-import {
-  buildSemesterGrid,
-  resolveSemesterRange,
-  standardSemesterDates,
-  type SemesterDates,
-} from '@/lib/mood/semesterRange';
+import { TermFormModal } from '@/components/terms/TermFormModal';
+import { buildTermGrid } from '@/lib/mood/termGrid';
+import { suggestTermLabel } from '@/lib/terms/standardTerms';
+import { planTermMigration } from '@/lib/terms/termMigration';
+import { resolveActiveTerm, termForSingleView } from '@/lib/terms/termResolve';
 import {
   computeMoodStreak,
   computeAverageMood,
@@ -75,7 +71,7 @@ const CHART_TOOLTIP_STYLE = {
 
 export function MoodRecapView() {
   const router = useRouter();
-  const { state, dispatch } = useAppState();
+  const { state } = useAppState();
   const entries = state.moodEntries;
 
   const streak = computeMoodStreak(entries);
@@ -87,41 +83,33 @@ export function MoodRecapView() {
   );
   const { best, worst } = useMemo(() => computeBestAndWorstDay(entries), [entries]);
 
-  // The grid always covers the active term's whole semester, first day to
-  // last. Its range comes from the term label (standard dates, or dates the
-  // student set), never from due dates or check-ins, so a student with one
-  // check-in still sees the full semester.
-  const { user } = useAuth();
+  // The grid always draws one term's whole run, its first day to its last,
+  // from the term object the student stored (see types/term.ts). Never from
+  // due dates or check-ins, so a student with one check-in still sees the
+  // full term.
   const todayKey = toDayKey(new Date());
-  const activeTerm = resolveActiveTerm(state.selectedTerm, state.courses);
-  const savedDates = state.preferences.semesterDates;
-  const resolution = useMemo(
-    () => resolveSemesterRange(activeTerm, todayKey, savedDates),
-    [activeTerm, todayKey, savedDates],
+  const term = useMemo(
+    () =>
+      termForSingleView(
+        resolveActiveTerm(state.selectedTerm, state.courses, state.terms),
+        state.terms,
+        todayKey,
+      ),
+    [state.selectedTerm, state.courses, state.terms, todayKey],
   );
-  const range = resolution.kind === 'ok' ? resolution.range : null;
-  const [editingDates, setEditingDates] = useState(false);
-
-  const saveSemesterDates = async (term: string, dates: SemesterDates | null) => {
-    const next = {
-      ...state.preferences,
-      semesterDates: { ...state.preferences.semesterDates, [term]: dates },
-    };
-    dispatch({ type: 'SET_PREFERENCES', payload: next });
-    setEditingDates(false);
-    if (!user) return;
-    try {
-      await updateUserPreferences(user.uid, next);
-    } catch {
-      // Non-fatal: the realtime listener shows whatever actually saved.
-    }
-  };
+  // Course terms still waiting for their dates (the student closed the
+  // prompt on load), offered here so the grid is never a dead end.
+  const undatedLabel = useMemo(
+    () => planTermMigration(state.courses, state.terms).unknownLabels[0],
+    [state.courses, state.terms],
+  );
+  const [termModal, setTermModal] = useState<'new' | 'edit' | null>(null);
 
   const grid = useMemo(() => {
-    if (!range) return { cells: [], outsideCount: 0 };
+    if (!term) return { cells: [], outsideCount: 0 };
     const moodByDay = new Map(trend.map((p) => [p.dateKey, p.mood as MoodValue]));
-    return buildSemesterGrid(range, moodByDay, todayKey);
-  }, [range, trend, todayKey]);
+    return buildTermGrid(term, moodByDay, todayKey);
+  }, [term, trend, todayKey]);
   const calendarCells = grid.cells;
   const columnCount = Math.ceil(calendarCells.length / 7);
 
@@ -143,7 +131,7 @@ export function MoodRecapView() {
       0,
       offsetInScroller - scroller.clientWidth / 2 + today.offsetWidth / 2,
     );
-  }, [range, hasEntries]);
+  }, [term, hasEntries]);
 
   // Month labels, positioned above the week-column where that month's first
   // visible cell falls - identical logic to the semester heatmap, so both
@@ -356,52 +344,34 @@ export function MoodRecapView() {
               Click a day to open it in Calendar and see what was going on.
             </p>
           </div>
-          {range && !editingDates && (
-            <CardActionButton variant="ghost" onClick={() => setEditingDates(true)}>
-              Adjust dates
+          {term && (
+            <CardActionButton variant="ghost" onClick={() => setTermModal('edit')}>
+              Edit term
             </CardActionButton>
           )}
         </div>
 
-        {range && (
-          <p className="mt-3 text-sm font-medium text-foreground" data-testid="semester-span">
-            {range.term} · {SHORT_DATE_FORMATTER.format(parseDayKey(range.start))} –{' '}
-            {SHORT_DATE_FORMATTER.format(parseDayKey(range.end))}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              {range.source === 'custom' ? 'Your dates' : 'Standard dates'}
-            </span>
+        {term && (
+          <p className="mt-3 text-sm font-medium text-foreground" data-testid="term-span">
+            {term.label} · {SHORT_DATE_FORMATTER.format(parseDayKey(term.startDate))} –{' '}
+            {SHORT_DATE_FORMATTER.format(parseDayKey(term.endDate))}
           </p>
         )}
 
-        {resolution.kind === 'unknown' && (
-          <div className="mt-3" data-testid="semester-unknown">
+        {!term && (
+          <div className="mt-3 space-y-3" data-testid="term-missing">
             <p className="text-sm text-foreground">
-              Syllabus Sense doesn&apos;t know when {resolution.term} starts and ends. Enter its
-              first and last day to see the full-semester grid.
+              {undatedLabel
+                ? `${undatedLabel} doesn’t have a first and last day yet, so there is no grid to draw.`
+                : 'The grid shows a whole term, first day to last. Create your term to see it.'}
             </p>
-            <SemesterDatesEditor
-              term={resolution.term}
-              initial={null}
-              onSave={(dates) => saveSemesterDates(resolution.term, dates)}
-            />
+            <CardActionButton variant="solid" withPlus onClick={() => setTermModal('new')}>
+              {undatedLabel ? `Set dates for ${undatedLabel}` : 'Create a term'}
+            </CardActionButton>
           </div>
         )}
 
-        {range && editingDates && (
-          <SemesterDatesEditor
-            term={range.term}
-            initial={{ start: range.start, end: range.end }}
-            onSave={(dates) => saveSemesterDates(range.term, dates)}
-            onCancel={() => setEditingDates(false)}
-            onUseStandard={
-              range.source === 'custom' && standardSemesterDates(range.term)
-                ? () => saveSemesterDates(range.term, null)
-                : undefined
-            }
-          />
-        )}
-
-        {range && (
+        {term && (
           <>
             <div className="mx-auto mt-4 flex w-max max-w-full gap-2">
               <div
@@ -510,6 +480,15 @@ export function MoodRecapView() {
           </>
         )}
       </Card>
+
+      <TermFormModal
+        open={termModal !== null}
+        onClose={() => setTermModal(null)}
+        initialTerm={termModal === 'edit' ? (term ?? undefined) : undefined}
+        suggestedLabel={
+          termModal === 'new' ? (undatedLabel ?? suggestTermLabel(todayKey)) : undefined
+        }
+      />
 
       {(best || worst) && (
         <div className="grid gap-4 sm:grid-cols-2">
