@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { TaskRow } from '@/components/ui/TaskRow';
-import { useAppState, resolveActiveTerm } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import { courseInTerm, resolveActiveTerm } from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { RemoveSampleDataButton } from '@/components/sample/RemoveSampleDataButton';
@@ -137,14 +138,16 @@ export function ProfileView() {
 
   // Same term scoping as the Courses page headline, so both start from the
   // same GPA: the active term's courses, or every course when no term applies.
-  const gpaTerm = resolveActiveTerm(state.selectedTerm, state.courses);
+  const gpaTerm = resolveActiveTerm(state.selectedTerm, state.courses, state.terms);
   const gpaGoalCourses = useMemo(
     () =>
       buildGpaGoalCourses(
-        gpaTerm ? state.courses.filter((c) => c.term === gpaTerm) : state.courses,
+        gpaTerm
+          ? state.courses.filter((c) => courseInTerm(c, gpaTerm, state.terms))
+          : state.courses,
         state.scheduleItems,
       ),
-    [gpaTerm, state.courses, state.scheduleItems],
+    [gpaTerm, state.courses, state.scheduleItems, state.terms],
   );
 
   // --- Account & Data: password change (email/password accounts only) ---
@@ -309,6 +312,7 @@ export function ProfileView() {
         quizzes: state.quizzes,
         quizAttempts: state.quizAttempts,
         moodEntries: state.moodEntries,
+        terms: state.terms,
         gradeScenarios,
         syllabi,
         degreeProfile: profileSnap.exists() ? (profileSnap.data() as DegreeProfile) : null,
@@ -476,7 +480,7 @@ export function ProfileView() {
         </div>
       </Card>
 
-      <GpaGoalRadial courses={gpaGoalCourses} termLabel={gpaTerm ?? undefined} />
+      <GpaGoalRadial courses={gpaGoalCourses} termLabel={gpaTerm?.label} />
 
       {/* ---------------------------------------------------------------
           Appearance - visual/cosmetic controls only. Dark mode stays in
