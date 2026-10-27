@@ -340,3 +340,57 @@ export async function deleteCourse(
     pendingCourseDeletions.delete(course.id);
   }
 }
+
+/** How long a deleted course can still be brought back. */
+export const COURSE_DELETE_UNDO_MS = 8000;
+
+export interface PendingCourseDeletion {
+  /** Brings the course back, with its tasks and contacts, if the window is still open. */
+  undo: () => void;
+}
+
+/**
+ * Deletes a course after an undo window instead of at once.
+ *
+ * A course delete is not reversible once it has run: it also removes the
+ * uploaded syllabus files and every flashcard, quiz and source. So rather
+ * than delete and try to rebuild, the course is hidden right away (and kept
+ * out of the live Firestore updates), and the real delete only starts when
+ * the window closes. `undo` inside the window puts the course back exactly as
+ * it was because nothing has been removed yet. If the tab is closed during
+ * the window the delete never runs and the course is simply still there next
+ * time, which is the safe way to fail.
+ */
+export function deleteCourseWithUndo(
+  userId: string,
+  course: Course,
+  relatedItems: ScheduleItem[],
+  dispatch: React.Dispatch<AppAction>,
+  relatedContacts: Contact[],
+  onFinished: (outcome: { result?: DeleteCourseResult; error?: unknown }) => void,
+  windowMs: number = COURSE_DELETE_UNDO_MS,
+): PendingCourseDeletion {
+  pendingCourseDeletions.add(course.id);
+  dispatch({ type: 'REMOVE_COURSE', payload: course.id });
+
+  const timer = setTimeout(() => {
+    // deleteCourse takes over the pending marker from here.
+    pendingCourseDeletions.delete(course.id);
+    deleteCourse(userId, course, relatedItems, dispatch, relatedContacts).then(
+      (result) => onFinished({ result }),
+      (error) => onFinished({ error }),
+    );
+  }, windowMs);
+
+  return {
+    undo: () => {
+      clearTimeout(timer);
+      pendingCourseDeletions.delete(course.id);
+      dispatch({ type: 'ADD_COURSE', payload: course });
+      relatedItems.forEach((item) => dispatch({ type: 'ADD_SCHEDULE_ITEM', payload: item }));
+      if (relatedContacts.length > 0) {
+        dispatch({ type: 'ADD_CONTACTS', payload: relatedContacts });
+      }
+    },
+  };
+}
