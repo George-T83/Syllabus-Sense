@@ -165,6 +165,13 @@ export default function SignupPage() {
           Continue with Google
         </button>
 
+        <p className="text-center text-xs text-muted-foreground">
+          Syllabi you upload are read by an AI service to find your deadlines.{' '}
+          <Link href="/privacy" className="font-medium text-primary hover:underline">
+            How your data is handled
+          </Link>
+        </p>
+
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
           <Link href="/login" className="font-semibold text-primary hover:underline">

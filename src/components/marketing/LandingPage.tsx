@@ -179,6 +179,12 @@ export default function LandingPage() {
             </span>
           </div>
           <span>Built for students who&apos;d rather plan the semester once, not weekly.</span>
+          <Link
+            href="/privacy"
+            className="inline-flex min-h-9 items-center hover:text-foreground hover:underline"
+          >
+            Privacy
+          </Link>
         </div>
       </footer>
     </div>
