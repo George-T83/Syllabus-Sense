@@ -12,6 +12,8 @@ import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { createContacts, updateContact } from '@/lib/firestore/contacts';
 import { courseFormSchema } from '@/lib/validation/course';
+import { TermPicker } from '@/components/terms/TermPicker';
+import { findTermByLabel, termFieldsFromForm } from '@/lib/terms/termResolve';
 import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
 import { sortByDateConfidence } from '@/lib/syllabus/sortByDateConfidence';
 import { useModalA11y } from '@/hooks/useModalA11y';
@@ -63,7 +65,12 @@ interface CourseDraft {
   code: string;
   title: string;
   instructor: string;
+  /** The term label the syllabus (or the chat) named. Stored courses take
+   * their term from `termId`; this is what the picker is asked to match or
+   * create. */
   term: string;
+  /** The student's chosen term (a term id), or '' while none is chosen. */
+  termId: string;
   color: string;
   icon: string;
   modality: CourseModality | undefined;
@@ -383,6 +390,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [termError, setTermError] = useState<string | null>(null);
   /** False when the failure is the file's (or the account's) and sending the
    * same request again cannot help, so "Try again" would only mislead. */
   const [errorRetryable, setErrorRetryable] = useState(true);
@@ -509,7 +517,14 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     if (!pendingDraft) return;
     // A draft saved before the Credit Hours field existed won't have
     // `credits` in localStorage despite the type now requiring it.
-    setCourse({ ...pendingDraft.course, credits: pendingDraft.course.credits ?? '' });
+    setCourse({
+      ...pendingDraft.course,
+      credits: pendingDraft.course.credits ?? '',
+      termId:
+        pendingDraft.course.termId ??
+        findTermByLabel(state.terms, pendingDraft.course.term)?.id ??
+        '',
+    });
     setItems(pendingDraft.items);
     setUnresolved(pendingDraft.unresolved);
     setFileName(pendingDraft.fileName);
@@ -610,6 +625,10 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         title: result.course.title,
         instructor: result.course.instructor ?? '',
         term: result.course.term ?? '',
+        // The term only counts once it is a term the student has: a label
+        // that matches one of theirs is picked, any other is offered for
+        // creation (with its dates to confirm) and never saved as bare text.
+        termId: findTermByLabel(state.terms, result.course.term ?? '')?.id ?? '',
         // Claude's subject-matched suggestion when it made one and it isn't
         // already taken by another of this term's courses; otherwise falls
         // back to whichever preset is least represented so extracted
@@ -719,6 +738,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       title: '',
       instructor: '',
       term: '',
+      termId: '',
       color: pickSuggestedCourseColor(state.courses, undefined, undefined),
       icon: pickSuggestedCourseIcon(state.courses, undefined, undefined),
       modality: undefined,
@@ -933,6 +953,9 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
           next[field] = value ?? '';
         }
       }
+      if (patch.term !== undefined) {
+        next.termId = findTermByLabel(state.terms, next.term)?.id ?? '';
+      }
       return next;
     });
 
@@ -962,6 +985,13 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     // so re-validate here with the same schemas the manual course/task forms
     // use - a hand-typed 500-character title shouldn't reach Firestore just
     // because it arrived via the autofiller instead of the regular form.
+    // A term named by the syllabus has to become one of the student's terms
+    // (with dates they have confirmed) before the course is saved.
+    if (course.term.trim() && !course.termId) {
+      setTermError(`Choose a term, or create “${course.term.trim()}” with its first and last day.`);
+      document.getElementById('autofill-course-term')?.focus();
+      return;
+    }
     const courseCheck = courseFormSchema.safeParse(course);
     if (!courseCheck.success) {
       setError(courseCheck.error.issues[0]?.message ?? 'Check the course details above.');
@@ -985,6 +1015,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       }
     }
 
+    const savedTermFields = termFieldsFromForm(course.termId, state.terms);
+
     setStep('saving');
     setError(null);
     try {
@@ -996,7 +1028,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         icon: course.icon,
         source: 'ai',
         ...(course.instructor ? { instructor: course.instructor } : {}),
-        ...(course.term ? { term: course.term } : {}),
+        ...savedTermFields,
         ...(course.credits ? { credits: Number(course.credits) } : {}),
         ...(course.modality ? { modality: course.modality } : {}),
         ...(course.meetingTimes.length ? { meetingTimes: course.meetingTimes } : {}),
@@ -1056,7 +1088,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
         contactDrafts,
         state.contacts,
         newCourse.id,
-        course.term || undefined,
+        savedTermFields.term,
       );
       try {
         if (newContacts.length > 0) {
@@ -1390,18 +1422,29 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                           value={course.code}
                           onChange={(v) => setCourse((c) => c && { ...c, code: v })}
                         />
-                        <TextField
-                          id="autofill-course-term"
-                          label="Term"
-                          value={course.term}
-                          onChange={(v) => setCourse((c) => c && { ...c, term: v })}
-                        />
                       </div>
                       <TextField
                         id="autofill-course-title"
                         label="Title"
                         value={course.title}
                         onChange={(v) => setCourse((c) => c && { ...c, title: v })}
+                      />
+                      <TermPicker
+                        id="autofill-course-term"
+                        value={course.termId}
+                        suggestedLabel={course.term}
+                        error={termError ?? undefined}
+                        onChange={(v) => {
+                          setTermError(null);
+                          setCourse(
+                            (c) =>
+                              c && {
+                                ...c,
+                                termId: v,
+                                term: state.terms.find((t) => t.id === v)?.label ?? c.term,
+                              },
+                          );
+                        }}
                       />
                     </div>
                   </div>
@@ -1469,7 +1512,8 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                         <button
                           key={preset.value}
                           type="button"
-                          aria-label={preset.value}
+                          aria-label={`Select ${preset.label ?? preset.value} color`}
+                          aria-pressed={course.color === preset.value}
                           onClick={() => setCourse((c) => c && { ...c, color: preset.value })}
                           className={cn(
                             'h-7 w-7 rounded-full transition-all',
@@ -2087,6 +2131,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                               layout (and order) is unchanged. */}
                           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                             <input
+                              aria-label={`Title of item ${i + 1}`}
                               value={it.title}
                               onChange={(e) => updateItem(it.key, { title: e.target.value })}
                               className="w-full min-w-0 rounded-md border border-border bg-input px-2 py-1 font-medium text-foreground sm:order-2 sm:flex-1"
@@ -2120,6 +2165,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                                 </button>
                               </div>
                               <select
+                                aria-label={`Type of item ${i + 1}`}
                                 value={it.type}
                                 onChange={(e) =>
                                   updateItem(it.key, { type: e.target.value as AssignmentType })
@@ -2134,6 +2180,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                               </select>
                               <input
                                 type="date"
+                                aria-label={`Due date of item ${i + 1}`}
                                 value={it.dueDate ?? ''}
                                 onChange={(e) =>
                                   updateItem(it.key, {
