@@ -28,6 +28,8 @@ export function StudyBlockSuggestionsCard() {
       state.scheduleItems,
       state.courses,
       state.preferences.workShifts ?? [],
+      new Date(),
+      state.terms,
     );
     const groups = new Map<string, StudyScheduleEntry[]>();
     for (const entry of suggestions) {
@@ -36,7 +38,7 @@ export function StudyBlockSuggestionsCard() {
       else groups.set(entry.dateKey, [entry]);
     }
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [state.scheduleItems, state.courses, state.preferences.workShifts]);
+  }, [state.scheduleItems, state.courses, state.preferences.workShifts, state.terms]);
 
   const courseById = useMemo(() => new Map(state.courses.map((c) => [c.id, c])), [state.courses]);
 

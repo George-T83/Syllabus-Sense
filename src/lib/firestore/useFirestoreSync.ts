@@ -20,6 +20,7 @@ import type { Source } from '@/types/source';
 import type { Flashcard } from '@/types/flashcard';
 import type { Quiz, QuizAttempt } from '@/types/quiz';
 import type { MoodEntry } from '@/types/mood';
+import type { Term } from '@/types/term';
 import { mockCourses, mockScheduleItems } from '@/lib/mock-data';
 
 /**
@@ -144,6 +145,13 @@ export function useFirestoreSync() {
       (docs) => dispatch({ type: 'SET_MOOD_ENTRIES', payload: docs }),
       onSyncError('mood entries'),
     );
+    const unsubTerms = subscribeCollection<Term>(
+      db,
+      user.uid,
+      'terms',
+      (docs) => dispatch({ type: 'SET_TERMS', payload: docs }),
+      onSyncError('terms'),
+    );
     // Same doc ProfileView writes to via updateUserPreferences - kept here
     // instead of a separate listener per consumer, so a change (from this
     // device or another) reaches every view that reads state.preferences
@@ -166,6 +174,7 @@ export function useFirestoreSync() {
       unsubQuizzes();
       unsubQuizAttempts();
       unsubMoodEntries();
+      unsubTerms();
       unsubPreferences();
     };
   }, [user, dispatch, showError]);

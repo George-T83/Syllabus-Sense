@@ -14,7 +14,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { useUndoToast } from '@/hooks/useUndoToast';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import { courseTermLabel, resolveActiveTerm } from '@/lib/terms/termResolve';
+import { termLabelKey } from '@/lib/terms/standardTerms';
 import { useAuth } from '@/context/AuthContext';
 import { createContact, updateContact, deleteContact } from '@/lib/firestore/contacts';
 import { createScheduleItem } from '@/lib/firestore/scheduleItems';
@@ -63,6 +65,7 @@ import { ProfessorEmailDrafterModal } from '@/components/contacts/ProfessorEmail
 import { ContactShareModal } from '@/components/contacts/ContactShareModal';
 import { ScheduleOfficeVisitModal } from '@/components/contacts/ScheduleOfficeVisitModal';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { RowActionButton } from '@/components/ui/RowActionButton';
 import { validateContactFields } from '@/lib/validation/contact';
 
 export function ContactsListView() {
@@ -106,21 +109,25 @@ export function ContactsListView() {
     [contacts],
   );
 
+  // Contacts carry their course's term label as text, so the active term is
+  // matched by label (ignoring case and spacing), not by id.
   const activeTerm = useMemo(
-    () => resolveActiveTerm(state.selectedTerm, courses),
-    [state.selectedTerm, courses],
+    () => resolveActiveTerm(state.selectedTerm, courses, state.terms),
+    [state.selectedTerm, courses, state.terms],
   );
-  const effectiveTermFilter = termFilter ?? activeTerm ?? 'all';
+  const activeTermLabel = activeTerm
+    ? (terms.find((t) => termLabelKey(t) === termLabelKey(activeTerm.label)) ?? activeTerm.label)
+    : null;
+  const effectiveTermFilter = termFilter ?? activeTermLabel ?? 'all';
+  const inFilterTerm = (c: Contact) =>
+    termLabelKey(c.term ?? '') === termLabelKey(effectiveTermFilter);
   const hiddenByTermCount =
-    effectiveTermFilter !== 'all'
-      ? contacts.filter((c) => c.term !== effectiveTermFilter).length
-      : 0;
+    effectiveTermFilter !== 'all' ? contacts.filter((c) => !inFilterTerm(c)).length : 0;
 
   const filteredContacts = useMemo(() => {
     let result = contacts.slice();
 
-    if (effectiveTermFilter !== 'all')
-      result = result.filter((c) => c.term === effectiveTermFilter);
+    if (effectiveTermFilter !== 'all') result = result.filter(inFilterTerm);
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -195,7 +202,9 @@ export function ContactsListView() {
       const newContact: Contact = {
         id: crypto.randomUUID(),
         courseId: values.courseId,
-        ...(course?.term ? { term: course.term } : {}),
+        ...(course && courseTermLabel(course, state.terms)
+          ? { term: courseTermLabel(course, state.terms) }
+          : {}),
         role: values.role,
         fullName: values.fullName.trim(),
         ...(values.title.trim() ? { title: values.title.trim() } : {}),
@@ -397,7 +406,7 @@ export function ContactsListView() {
                   {primary.email && (
                     <a
                       href={`mailto:${primary.email}`}
-                      className="block truncate text-primary hover:underline"
+                      className="-my-3.5 flex min-h-11 items-center truncate text-primary hover:underline"
                     >
                       {primary.email}
                     </a>
@@ -411,19 +420,20 @@ export function ContactsListView() {
                   <ul className="space-y-2">
                     {records.map((record) => (
                       <li key={record.id} className="text-xs">
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <span className="font-medium text-foreground">
                             {courseLabel(courseById.get(record.courseId))}
                           </span>
-                          <div className="flex flex-wrap items-center justify-end gap-2">
+                          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                             {confirmingDeleteId === record.id ? (
                               <>
-                                <button
+                                <RowActionButton
+                                  tone="destructive"
+                                  className="min-h-[44px] min-w-[44px]"
                                   onClick={() => handleDelete(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-destructive/10 px-3 font-semibold text-destructive transition-colors hover:bg-destructive/20"
                                 >
                                   Confirm
-                                </button>
+                                </RowActionButton>
                                 <button
                                   onClick={() => setConfirmingDeleteId(null)}
                                   className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 text-muted-foreground transition-colors hover:bg-accent"
@@ -434,48 +444,49 @@ export function ContactsListView() {
                             ) : (
                               <>
                                 {(record.officeHours || record.role === 'classmate') && (
-                                  <button
+                                  <RowActionButton
+                                    className="min-h-[44px] min-w-[44px]"
                                     aria-label={`${
                                       record.role === 'classmate'
                                         ? 'Schedule Study Session'
                                         : 'Schedule Visit'
                                     } with ${record.fullName}`}
                                     onClick={() => setSchedulingContact(record)}
-                                    className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                   >
                                     {record.role === 'classmate'
                                       ? 'Schedule Study Session'
                                       : 'Schedule Visit'}
-                                  </button>
+                                  </RowActionButton>
                                 )}
-                                <button
+                                <RowActionButton
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Draft email to ${record.fullName}`}
                                   onClick={() => setDrafterContact(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Draft Email
-                                </button>
-                                <button
+                                </RowActionButton>
+                                <RowActionButton
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`vCard/QR for ${record.fullName}`}
                                   onClick={() => setShareContact(record)}
-                                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   vCard/QR
-                                </button>
-                                <button
+                                </RowActionButton>
+                                <RowActionButton
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Edit ${record.fullName}`}
                                   onClick={() => openEdit(record)}
-                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-primary transition-colors hover:bg-primary/10"
                                 >
                                   Edit
-                                </button>
-                                <button
+                                </RowActionButton>
+                                <RowActionButton
+                                  tone="destructive"
+                                  className="min-h-[44px] min-w-[44px]"
                                   aria-label={`Delete ${record.fullName}`}
                                   onClick={() => setConfirmingDeleteId(record.id)}
-                                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-3 font-semibold text-destructive transition-colors hover:bg-destructive/10"
                                 >
                                   Delete
-                                </button>
+                                </RowActionButton>
                               </>
                             )}
                           </div>

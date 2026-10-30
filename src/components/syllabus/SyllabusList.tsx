@@ -91,9 +91,10 @@ export function SyllabusList({ userId, courseId }: SyllabusListProps) {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewingSyllabus(syllabus)}
-                className="truncate text-left font-medium text-foreground hover:text-primary hover:underline"
+                // 44px tall to tap; the padding is pulled back so the row keeps its height.
+                className="-my-3 flex min-h-11 min-w-0 items-center text-left font-medium text-foreground hover:text-primary hover:underline"
               >
-                {syllabus.fileName}
+                <span className="truncate">{syllabus.fileName}</span>
               </button>
               {syllabus.id === primaryId && (
                 <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary">
