@@ -417,8 +417,8 @@ export function GpaGoalRadial({
                               {course.standingNote ?? 'No grades entered yet'}
                             </span>
                           </td>
-                          <td className="px-3.5 py-2.5 max-sm:p-0">
-                            <span className="mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-sm:block">
+                          <td className="px-3.5 py-2.5 max-sm:flex max-sm:flex-col max-sm:justify-end max-sm:p-0">
+                            <span className="mb-1 hidden text-xs font-semibold uppercase leading-tight tracking-wide text-muted-foreground max-sm:block">
                               Credits
                             </span>
                             <input
@@ -433,8 +433,8 @@ export function GpaGoalRadial({
                               className="min-h-10 w-16 max-sm:w-full px-2 py-1 bg-background border border-border rounded-lg text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             />
                           </td>
-                          <td className="px-3.5 py-2.5 max-sm:p-0">
-                            <span className="mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-sm:block">
+                          <td className="px-3.5 py-2.5 max-sm:flex max-sm:flex-col max-sm:justify-end max-sm:p-0">
+                            <span className="mb-1 hidden text-xs font-semibold uppercase leading-tight tracking-wide text-muted-foreground max-sm:block">
                               What-if grade
                             </span>
                             <select
@@ -464,7 +464,7 @@ export function GpaGoalRadial({
                             </select>
                           </td>
                           <td className="px-3.5 py-2.5 text-right font-mono font-bold text-indigo-600 dark:text-indigo-400 max-sm:col-span-2 max-sm:flex max-sm:items-center max-sm:justify-between max-sm:p-0">
-                            <span className="hidden font-sans text-[11px] font-semibold uppercase tracking-wide text-muted-foreground max-sm:inline">
+                            <span className="hidden font-sans text-xs font-semibold uppercase leading-tight tracking-wide text-muted-foreground max-sm:inline">
                               Quality points
                             </span>
                             {points === null ? '\u2014' : points.toFixed(1)}
