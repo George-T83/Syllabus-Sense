@@ -60,7 +60,7 @@ function headlineFor(top: BriefingItem): { title: string; detail: string } {
 
 function Readiness({ readiness }: { readiness: NonNullable<BriefingItem['readiness']> }) {
   const base =
-    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold transition-colors';
+    'inline-flex min-h-9 items-center gap-1 rounded-full px-3 py-0.5 text-xs font-semibold transition-colors';
   if (readiness.cards === 0) {
     return (
       <Link
@@ -116,7 +116,7 @@ function BriefingRow({ entry, rank }: { entry: BriefingItem; rank: number }) {
           )}
           <Link
             href={`/tasks/${item.id}`}
-            className="min-w-0 truncate text-sm font-semibold text-foreground hover:text-primary"
+            className="-my-3 flex min-h-11 min-w-0 items-center truncate text-sm font-semibold text-foreground hover:text-primary"
           >
             {item.title}
           </Link>

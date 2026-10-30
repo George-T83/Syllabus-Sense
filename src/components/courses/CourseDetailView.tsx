@@ -12,6 +12,7 @@ import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
 import { useUndoToast } from '@/hooks/useUndoToast';
 import { useAppState } from '@/context/AppStateContext';
+import { courseTermLabel, termFieldsFromForm } from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { updateCourse, deleteCourse } from '@/lib/firestore/courses';
 import {
@@ -303,11 +304,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       ...(values.instructor ? { instructor: values.instructor } : {}),
       ...(values.modality ? { modality: values.modality } : {}),
     };
-    if (values.term) {
-      updatedCourse.term = values.term;
-    } else {
-      delete updatedCourse.term;
-    }
+    // The term picker holds a term id (or, for a course whose label has no
+    // term object yet, a placeholder that keeps that label as it was).
+    delete updatedCourse.termId;
+    delete updatedCourse.term;
+    Object.assign(updatedCourse, termFieldsFromForm(values.termId, state.terms, course.term));
     if (values.credits) {
       updatedCourse.credits = Number(values.credits);
     } else {
@@ -418,7 +419,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         {
           id: crypto.randomUUID(),
           courseId: course.id,
-          ...(course.term ? { term: course.term } : {}),
+          ...(courseTermLabel(course, state.terms)
+            ? { term: courseTermLabel(course, state.terms) }
+            : {}),
           role: newContact.role,
           fullName: newContact.fullName.trim(),
           source: 'manual',
@@ -727,8 +730,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     {course.title}
                   </h1>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {[course.instructor, course.term].filter(Boolean).join(' · ') ||
-                      'No details yet'}
+                    {[course.instructor, courseTermLabel(course, state.terms)]
+                      .filter(Boolean)
+                      .join(' · ') || 'No details yet'}
                   </p>
                 </div>
               </div>

@@ -55,18 +55,22 @@ export function FloatingActionPill({
         aria-label={ariaLabel}
         title={title}
         className={cn(
-          'flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2',
+          'flex items-center gap-2.5 rounded-full border px-3.5 py-3 text-xs font-semibold sm:px-4 sm:py-2.5 text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2',
           colorClassName,
         )}
       >
         {showActiveDot && (
-          <div className="relative flex h-2 w-2 items-center justify-center">
+          <div className="relative hidden h-2 w-2 items-center justify-center sm:flex">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
           </div>
         )}
         {icon}
-        <span className={cn('font-bold tracking-wide', labelClassName)}>{label}</span>
+        {/* Icon-only on a phone: two wide pills covered the bottom of every page and
+          fell off the screen edge. The accessible name stays on the button. */}
+        <span className={cn('hidden font-bold tracking-wide sm:inline', labelClassName)}>
+          {label}
+        </span>
         {shortcut && (
           <span
             className={cn(
