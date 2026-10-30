@@ -25,7 +25,12 @@ export function CheckSyllabusButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={cn('font-semibold text-primary hover:underline', className)}
+        // The hit area is padded to 44px tall and pulled back with negative margins, so
+        // the surrounding text does not move.
+        className={cn(
+          '-my-3 inline-flex min-h-11 items-center font-semibold text-primary hover:underline',
+          className,
+        )}
       >
         Check the syllabus
       </button>

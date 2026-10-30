@@ -1,4 +1,5 @@
 import type { Course, MeetingTime, ScheduleItem } from '@/types/schedule';
+import type { Term } from '@/types/term';
 import { getMeetingsForDay, timeToFractionalHours } from '@/lib/calendar/meetings';
 import { toDayKey, addDays, sortItemsByUrgency } from '@/lib/calendar/dates';
 
@@ -52,9 +53,10 @@ function computeFreeIntervals(
   courses: Course[],
   workShifts: MeetingTime[],
   day: Date,
+  terms: Term[],
 ): FreeInterval[] {
   const dayOfWeek = day.getDay();
-  const classBusy = getMeetingsForDay(courses, day).map((occurrence) => ({
+  const classBusy = getMeetingsForDay(courses, day, terms).map((occurrence) => ({
     start: timeToFractionalHours(occurrence.meeting.startTime),
     end: timeToFractionalHours(occurrence.meeting.endTime),
   }));
@@ -125,6 +127,7 @@ export function suggestStudyBlocks(
   courses: Course[],
   workShifts: MeetingTime[] = [],
   referenceDate: Date = new Date(),
+  terms: Term[] = [],
 ): StudyScheduleEntry[] {
   const today = new Date(
     referenceDate.getFullYear(),
@@ -149,7 +152,7 @@ export function suggestStudyBlocks(
   for (let dayOffset = 0; dayOffset <= HORIZON_DAYS && queueIndex < queue.length; dayOffset++) {
     const day = addDays(today, dayOffset);
     const dayKey = toDayKey(day);
-    const freeIntervals = computeFreeIntervals(courses, workShifts, day);
+    const freeIntervals = computeFreeIntervals(courses, workShifts, day, terms);
     let dailyAllocated = 0;
 
     for (const interval of freeIntervals) {

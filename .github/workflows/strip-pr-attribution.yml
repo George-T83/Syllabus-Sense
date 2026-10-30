@@ -12,7 +12,11 @@ on:
   pull_request:
     types: [opened, edited, reopened]
 
+# Declaring any permission drops every other one to "none". The repository is
+# private, so without `contents: read` the checkout below cannot fetch it and
+# fails with "Repository not found" before the job does any work.
 permissions:
+  contents: read
   pull-requests: write
 
 jobs:
