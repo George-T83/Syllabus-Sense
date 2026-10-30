@@ -1,0 +1,4 @@
+after 1280 light {"cellW":116,"cellH":122,"chipW":100,"chipH":24,"chipText":"Lab Report 2 | Essay draft"}
+after 1280 dark {"cellW":116,"cellH":122,"chipW":100,"chipH":24,"chipText":"Lab Report 2 | Essay draft"}
+after 390 light {"cellW":42,"cellH":95,"chipW":38,"chipH":19,"chipText":"Assign | Assign"}
+after 390 dark {"cellW":42,"cellH":95,"chipW":38,"chipH":19,"chipText":"Assign | Assign"}
