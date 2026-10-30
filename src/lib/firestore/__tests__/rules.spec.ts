@@ -85,6 +85,10 @@ const ownedDocPaths: Array<{ label: string; path: (uid: string) => string }> = [
     path: (uid) => `users/${uid}/moodEntries/2026-09-03`,
   },
   {
+    label: 'term (users/{uid}/terms/{id})',
+    path: (uid) => `users/${uid}/terms/term-fall-2026`,
+  },
+  {
     label: 'degree profile (users/{uid}/degreeProfile/{id})',
     path: (uid) => `users/${uid}/degreeProfile/profile`,
   },
@@ -155,6 +159,7 @@ describe('firestore.rules: cross-user collection queries', () => {
     { label: 'quizzes', path: (uid) => `users/${uid}/quizzes` },
     { label: 'quizAttempts', path: (uid) => `users/${uid}/quizAttempts` },
     { label: 'moodEntries', path: (uid) => `users/${uid}/moodEntries` },
+    { label: 'terms', path: (uid) => `users/${uid}/terms` },
     { label: 'degreeProfile', path: (uid) => `users/${uid}/degreeProfile` },
     { label: 'degreeCourses', path: (uid) => `users/${uid}/degreeCourses` },
     { label: 'advisorMessages', path: (uid) => `users/${uid}/advisorMessages` },
