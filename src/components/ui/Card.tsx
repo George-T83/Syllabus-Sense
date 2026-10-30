@@ -28,6 +28,29 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   opaque?: boolean;
 }
 
+const PADDING_TOKEN = /^(p|px|py|pt|pr|pb|pl)-/;
+const paddingGroup = (token: string) => (PADDING_TOKEN.exec(token) ?? [])[1];
+
+/**
+ * Joins a section's default padding with the caller's classes. `cn` only
+ * concatenates, and when two padding classes of the same kind are both
+ * present the one defined later in the stylesheet wins, not the caller's. So
+ * `<CardHeader className="p-0">` kept its default `p-6` and the card ended up
+ * with its own padding plus 24px more on every side: on a 390px phone the
+ * content of the Workload and forecast cards was squeezed into about 250px.
+ * A default padding class is dropped when the caller supplies one of the same
+ * kind (p with p, pt with pt, and so on), which is what the caller meant.
+ */
+export function withPaddingDefaults(defaults: string, className?: string): string {
+  if (!className) return defaults;
+  const groups = new Set(className.split(/\s+/).map(paddingGroup).filter(Boolean));
+  const kept = defaults.split(/\s+/).filter((token) => {
+    const group = paddingGroup(token);
+    return !group || !groups.has(group);
+  });
+  return cn(kept.join(' '), className);
+}
+
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, children, interactive, hoverable, accent, opaque, ...props }, ref) => {
     const isInteractive = interactive || hoverable;
@@ -62,7 +85,11 @@ Card.displayName = 'Card';
 export type CardHeaderProps = React.HTMLAttributes<HTMLDivElement>;
 export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('flex flex-col space-y-1.5 p-6', className)} {...props} />
+    <div
+      ref={ref}
+      className={withPaddingDefaults('flex flex-col space-y-1.5 p-6', className)}
+      {...props}
+    />
   ),
 );
 CardHeader.displayName = 'CardHeader';
@@ -93,7 +120,7 @@ CardDescription.displayName = 'CardDescription';
 export type CardContentProps = React.HTMLAttributes<HTMLDivElement>;
 export const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+    <div ref={ref} className={withPaddingDefaults('p-6 pt-0', className)} {...props} />
   ),
 );
 CardContent.displayName = 'CardContent';
@@ -103,7 +130,7 @@ export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn(
+      className={withPaddingDefaults(
         'flex items-center p-6 pt-4 mt-2 border-t border-white/10 dark:border-white/5',
         className,
       )}
