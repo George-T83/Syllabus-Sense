@@ -208,13 +208,15 @@ const LEGEND_LEVELS: WorkloadLevel[] = ['low', 'medium', 'high', 'critical'];
 // with the item's type instead keeps mobile chips distinguishable even
 // fully truncated. Short and uppercase so it reads as a tag, not a
 // truncated word.
+// Whole short words at 10px (a month cell is about 42px wide on a phone, so
+// "ASSIGN" / "PROJECT" / "READING" were cut to two letters).
 const TYPE_MOBILE_LABEL: Record<AssignmentType, string> = {
-  assignment: 'ASSIGN',
-  exam: 'EXAM',
-  quiz: 'QUIZ',
-  project: 'PROJECT',
-  reading: 'READING',
-  other: 'OTHER',
+  assignment: 'Assign',
+  exam: 'Exam',
+  quiz: 'Quiz',
+  project: 'Proj',
+  reading: 'Read',
+  other: 'Other',
 };
 
 function buildDayAriaLabel(
@@ -761,10 +763,10 @@ export function MonthCalendar() {
             <div
               role="grid"
               aria-label={`Calendar ${monthLabelFormatter.format(viewMonth)}`}
-              className="space-y-0.5 sm:space-y-1"
+              className="space-y-1 sm:space-y-1.5"
               onKeyDown={handleGridKeyDown}
             >
-              <div role="row" className="grid grid-cols-7 gap-0.5 mb-1 sm:gap-1">
+              <div role="row" className="grid grid-cols-7 gap-0.5 mb-1 sm:gap-1.5">
                 {WEEKDAY_LABELS.map((label, idx) => (
                   <div
                     key={label}
@@ -779,7 +781,7 @@ export function MonthCalendar() {
               </div>
 
               {weeks.map((week, weekIdx) => (
-                <div key={weekIdx} role="row" className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                <div key={weekIdx} role="row" className="grid grid-cols-7 gap-0.5 sm:gap-1.5">
                   {week.map((day) => {
                     const dayKey = toDayKey(day);
                     const dayItems = visibleDayItems(day);
@@ -828,7 +830,7 @@ export function MonthCalendar() {
                           selectDay(day);
                         }}
                         className={cn(
-                          'min-h-[4rem] rounded-lg p-1 flex flex-col items-start gap-0.5 text-left transition-colors sm:min-h-[6.5rem] sm:rounded-xl sm:p-1.5 sm:gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                          'min-h-[5rem] rounded-lg px-0.5 py-1.5 flex flex-col items-stretch gap-1 text-left transition-colors sm:min-h-[7.5rem] sm:rounded-xl sm:p-2 sm:gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                           inCurrentMonth ? 'hover:bg-accent' : 'opacity-40 hover:bg-accent/50',
                           isSelected && 'ring-2 ring-primary',
                           !isSelected &&
@@ -840,17 +842,17 @@ export function MonthCalendar() {
                       >
                         <span
                           className={cn(
-                            'flex h-5 w-5 items-center justify-center rounded-full text-xs sm:h-6 sm:w-6',
+                            'flex h-6 w-6 shrink-0 items-center justify-center self-center rounded-full text-sm tabular-nums sm:h-7 sm:w-7 sm:self-start',
                             isToday
                               ? 'bg-gradient-brand font-bold text-white shadow-card'
-                              : 'text-foreground',
+                              : 'text-foreground sm:justify-start sm:pl-1.5',
                           )}
                         >
                           {day.getDate()}
                         </span>
 
                         {dayMeetings.length > 0 && (
-                          <div className="flex w-full flex-wrap gap-0.5">
+                          <div className="flex w-full flex-wrap justify-center gap-1 sm:justify-start">
                             {dayMeetings.slice(0, 6).map((m, i) => (
                               <span
                                 key={`${m.course.id}-${i}`}
@@ -867,12 +869,12 @@ export function MonthCalendar() {
                           </div>
                         )}
 
-                        <div className="flex w-full flex-col gap-0.5">
+                        <div className="flex w-full flex-col gap-1">
                           {visibleChips.map((item) => (
                             <span
                               key={item.id}
                               className={cn(
-                                'flex w-full min-w-0 items-center gap-0.5 overflow-hidden rounded px-1 py-0.5 text-xs font-medium leading-tight text-white',
+                                'flex w-full min-w-0 items-start justify-center gap-1 overflow-hidden rounded-md px-[3px] py-[3px] text-[10px] font-semibold leading-tight tracking-tight text-white sm:justify-start sm:px-1.5 sm:py-1 sm:text-xs sm:font-medium sm:tracking-normal',
                                 courseSwatch(courseOf(item)?.color).className,
                                 item.completed && 'opacity-40 line-through',
                               )}
@@ -883,7 +885,7 @@ export function MonthCalendar() {
                                   pixel goes to the type label (CA-3) - the icon
                                   still fulfills the legend's promise (CA-2) at
                                   sm+, where there's room for both. */}
-                              <FlagIcon className="hidden h-2 w-2 shrink-0 sm:block" />
+                              <FlagIcon className="hidden h-2.5 w-2.5 shrink-0 sm:mt-0.5 sm:block" />
                               {/* #CA-3: mobile-width chips only fit a handful of
                                   characters, so several similarly-titled items
                                   ("Final Exam"/"Final Project"/...) all truncate
@@ -894,13 +896,13 @@ export function MonthCalendar() {
                               <span className="min-w-0 truncate sm:hidden">
                                 {TYPE_MOBILE_LABEL[item.type]}
                               </span>
-                              <span className="hidden min-w-0 truncate sm:inline">
+                              <span className="hidden min-w-0 break-words sm:line-clamp-2">
                                 {item.title}
                               </span>
                             </span>
                           ))}
                           {hiddenCount > 0 && (
-                            <span className="text-xs font-semibold leading-none text-muted-foreground">
+                            <span className="whitespace-nowrap text-center text-[10px] font-semibold leading-none tracking-tight text-muted-foreground sm:px-1.5 sm:text-left sm:text-xs sm:tracking-normal">
                               +{hiddenCount} more
                             </span>
                           )}
