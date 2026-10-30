@@ -279,7 +279,7 @@ export function GpaGoalRadial({
                 placeholder="None yet"
                 onChange={(e) => setPriorGpaText(e.target.value)}
                 aria-label="Prior cumulative GPA"
-                className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-11 w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -295,7 +295,7 @@ export function GpaGoalRadial({
                 placeholder="None yet"
                 onChange={(e) => setPriorCreditsText(e.target.value)}
                 aria-label="Prior earned credits"
-                className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-11 w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -311,7 +311,7 @@ export function GpaGoalRadial({
                 value={targetGpa}
                 onChange={(e) => setTargetGpa(Number(e.target.value))}
                 aria-label="Target cumulative GPA"
-                className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                className="min-h-11 w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
@@ -424,7 +424,7 @@ export function GpaGoalRadial({
                                 handleCreditsChange(course.courseId, Number(e.target.value))
                               }
                               aria-label={`${course.courseCode} credits`}
-                              className="w-14 px-2 py-1 bg-background border border-border rounded-lg text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              className="min-h-10 w-16 px-2 py-1 bg-background border border-border rounded-lg text-foreground font-mono text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             />
                           </td>
                           <td className="px-3.5 py-2.5">
@@ -437,7 +437,7 @@ export function GpaGoalRadial({
                                 )
                               }
                               aria-label={`${course.courseCode} grade`}
-                              className="px-2 py-1 bg-background border border-border rounded-lg text-foreground font-bold text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer min-h-[36px]"
+                              className="px-2 py-1 bg-background border border-border rounded-lg text-foreground font-bold text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer min-h-10"
                             >
                               <option value="">Not graded yet</option>
                               <option value="A+">A+ (4.0)</option>
