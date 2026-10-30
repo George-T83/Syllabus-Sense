@@ -12,6 +12,7 @@ import {
 import { CardActionButton } from '@/components/ui/CardAction';
 import { courseFormSchema, type CourseFormValues } from '@/lib/validation/course';
 import type { Course, CourseModality, MeetingTime } from '@/types/schedule';
+import type { Term } from '@/types/term';
 import { cn } from '@/lib/utils';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { useDirtyClose } from '@/hooks/useDirtyClose';
@@ -20,6 +21,8 @@ import { useAppState } from '@/context/AppStateContext';
 import { COURSE_COLOR_PRESETS, pickNextCourseColor } from '@/lib/courseColors';
 import { COURSE_ICON_PRESETS, DEFAULT_COURSE_ICON } from '@/lib/courseIcons';
 import { CourseIconGlyph } from '@/components/ui/CourseIconGlyph';
+import { TermPicker } from '@/components/terms/TermPicker';
+import { LEGACY_TERM_VALUE, courseTerm } from '@/lib/terms/termResolve';
 
 const isCustomColor = (color: string) => color.startsWith('#');
 
@@ -54,11 +57,19 @@ export interface CourseFormModalProps {
   initialCourse?: Course;
 }
 
+/** What the term picker starts on for an existing course: its term, the
+ * placeholder for a label that has no term yet, or nothing. */
+function initialTermValue(course: Course, terms: Term[]): string {
+  const term = courseTerm(course, terms);
+  if (term) return term.id;
+  return course.term?.trim() ? LEGACY_TERM_VALUE : '';
+}
+
 const emptyValues: CourseFormValues = {
   code: '',
   title: '',
   instructor: '',
-  term: '',
+  termId: '',
   credits: '',
   color: COURSE_COLOR_PRESETS[0].value,
   icon: DEFAULT_COURSE_ICON,
@@ -81,6 +92,8 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
   // half-filled form.
   const coursesRef = useRef(state.courses);
   coursesRef.current = state.courses;
+  const coursesTermsRef = useRef(state.terms);
+  coursesTermsRef.current = state.terms;
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +102,7 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
           code: initialCourse.code,
           title: initialCourse.title,
           instructor: initialCourse.instructor ?? '',
-          term: initialCourse.term ?? '',
+          termId: initialTermValue(initialCourse, coursesTermsRef.current),
           credits: initialCourse.credits?.toString() ?? '',
           color: initialCourse.color ?? COURSE_COLOR_PRESETS[0].value,
           icon: initialCourse.icon ?? DEFAULT_COURSE_ICON,
@@ -254,12 +267,13 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                       placeholder="CSCI 213"
                     />
                     <Field
-                      id="term"
-                      label="Term"
-                      value={values.term ?? ''}
-                      error={errors.term}
-                      onChange={(v) => updateField('term', v)}
-                      placeholder="Fall 2026"
+                      id="credits"
+                      label="Credit Hours"
+                      type="number"
+                      value={values.credits ?? ''}
+                      error={errors.credits}
+                      onChange={(v) => updateField('credits', v)}
+                      placeholder="3"
                     />
                   </div>
 
@@ -272,25 +286,28 @@ export function CourseFormModal({ open, onClose, onSubmit, initialCourse }: Cour
                     placeholder="Computer Science I"
                   />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field
-                      id="instructor"
-                      label="Instructor"
-                      value={values.instructor ?? ''}
-                      error={errors.instructor}
-                      onChange={(v) => updateField('instructor', v)}
-                      placeholder="Dr. Ada Lovelace"
-                    />
-                    <Field
-                      id="credits"
-                      label="Credit Hours"
-                      type="number"
-                      value={values.credits ?? ''}
-                      error={errors.credits}
-                      onChange={(v) => updateField('credits', v)}
-                      placeholder="3"
-                    />
-                  </div>
+                  {/* Full width: creating a term opens its form right under
+                      this field, which needs the room. */}
+                  <TermPicker
+                    id="term"
+                    value={values.termId ?? ''}
+                    error={errors.termId}
+                    legacyLabel={
+                      initialCourse && !courseTerm(initialCourse, state.terms)
+                        ? initialCourse.term?.trim() || undefined
+                        : undefined
+                    }
+                    onChange={(v) => updateField('termId', v)}
+                  />
+
+                  <Field
+                    id="instructor"
+                    label="Instructor"
+                    value={values.instructor ?? ''}
+                    error={errors.instructor}
+                    onChange={(v) => updateField('instructor', v)}
+                    placeholder="Dr. Ada Lovelace"
+                  />
 
                   <div className="space-y-1.5">
                     <span className="text-sm font-medium text-foreground">Color</span>
