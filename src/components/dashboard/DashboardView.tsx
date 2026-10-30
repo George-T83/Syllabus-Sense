@@ -11,7 +11,13 @@ import { NavIcon } from '@/components/layout/NavIcon';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import {
+  courseInTerm,
+  courseTermLabel,
+  resolveActiveTerm,
+  termFieldsFromForm,
+} from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { SampleDataBanner } from '@/components/sample/SampleDataBanner';
@@ -118,10 +124,12 @@ export function DashboardView() {
     (setup.next === 'course' || setup.next === 'deadlines');
 
   const currentTerm = useMemo(
-    () => resolveActiveTerm(state.selectedTerm, courses),
-    [state.selectedTerm, courses],
+    () => resolveActiveTerm(state.selectedTerm, courses, state.terms),
+    [state.selectedTerm, courses, state.terms],
   );
-  const semesterCourses = currentTerm ? courses.filter((c) => c.term === currentTerm) : courses;
+  const semesterCourses = currentTerm
+    ? courses.filter((c) => courseInTerm(c, currentTerm, state.terms))
+    : courses;
   // All the stats below need to respect the selected term too, not just the
   // Course Load card - previously they always used the full, unfiltered
   // scheduleItems, so switching the term dropdown left the progress ring,
@@ -198,7 +206,7 @@ export function DashboardView() {
         meetingTimes: values.meetingTimes ?? [],
         skipDates: values.skipDates ?? [],
         ...(values.instructor ? { instructor: values.instructor } : {}),
-        ...(values.term ? { term: values.term } : {}),
+        ...termFieldsFromForm(values.termId, state.terms),
         ...(values.modality ? { modality: values.modality } : {}),
       },
       dispatch,
@@ -245,7 +253,9 @@ export function DashboardView() {
         <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              {currentTerm || courses[0]?.term || 'Welcome'}
+              {currentTerm?.label ||
+                (courses[0] && courseTermLabel(courses[0], state.terms)) ||
+                'Welcome'}
             </p>
             <h1 className="mt-1.5 font-display text-4xl font-medium tracking-tight text-foreground sm:text-5xl">
               {greeting}, <span className="text-gradient-brand">{firstName}</span>
@@ -419,7 +429,7 @@ export function DashboardView() {
                       <div className="min-w-0">
                         <h2 className="text-sm font-semibold text-foreground">Course Load</h2>
                         {currentTerm && (
-                          <p className="text-xs text-muted-foreground">{currentTerm}</p>
+                          <p className="text-xs text-muted-foreground">{currentTerm.label}</p>
                         )}
                       </div>
                     </div>

@@ -257,13 +257,34 @@ export function WorkloadOverviewDashboard({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={!!item.completed}
-                            onChange={() => handleToggleTask(item.id)}
-                            aria-label={`Mark ${item.title} as ${item.completed ? 'not done' : 'done'}`}
-                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                          />
+                          {/* A 16px box is too small to hit on a phone. The real input
+                           * fills a 44px square (pulled back with negative margins so the
+                           * row looks the same) and the visible box is drawn beside it. */}
+                          <label className="relative -m-3.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={!!item.completed}
+                              onChange={() => handleToggleTask(item.id)}
+                              aria-label={`Mark ${item.title} as ${item.completed ? 'not done' : 'done'}`}
+                              className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className="flex h-4 w-4 items-center justify-center rounded border-2 border-border bg-card transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card [&>svg]:hidden peer-checked:[&>svg]:block"
+                            >
+                              <svg
+                                viewBox="0 0 12 12"
+                                className="h-2.5 w-2.5 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M2.5 6.2l2.4 2.4 4.6-5" />
+                              </svg>
+                            </span>
+                          </label>
                           <span
                             className={cn(
                               'font-medium text-foreground truncate',
@@ -325,7 +346,7 @@ export function WorkloadOverviewDashboard({
                               aria-label={`Shift date for ${item.title}`}
                               value={activeDay.dateStr}
                               onChange={(e) => handleShiftTaskDate(item.id, e.target.value)}
-                              className="min-w-0 rounded border border-border bg-input px-1.5 py-0.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="min-h-10 min-w-0 rounded border border-border bg-input px-1.5 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </div>
                         </div>
