@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { WeekView } from '@/components/calendar/WeekView';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import { courseInTerm, resolveActiveTerm } from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
@@ -304,12 +305,15 @@ export function MonthCalendar() {
   // this treatment - a concrete deadline is real regardless of which term is
   // "selected" right now, so hiding it here could cause a missed assignment.
   const activeTerm = useMemo(
-    () => resolveActiveTerm(state.selectedTerm, state.courses),
-    [state.selectedTerm, state.courses],
+    () => resolveActiveTerm(state.selectedTerm, state.courses, state.terms),
+    [state.selectedTerm, state.courses, state.terms],
   );
   const termScopedCourses = useMemo(
-    () => (activeTerm ? state.courses.filter((c) => c.term === activeTerm) : state.courses),
-    [state.courses, activeTerm],
+    () =>
+      activeTerm
+        ? state.courses.filter((c) => courseInTerm(c, activeTerm, state.terms))
+        : state.courses,
+    [state.courses, activeTerm, state.terms],
   );
 
   const toggleCourseVisibility = (courseId: string) => {
@@ -330,7 +334,7 @@ export function MonthCalendar() {
 
   const visibleMeetings = (day: Date): MeetingOccurrence[] => {
     if (!showClasses) return [];
-    return getMeetingsForDay(termScopedCourses, day).filter(
+    return getMeetingsForDay(termScopedCourses, day, state.terms).filter(
       (m) => !hiddenCourseIds.has(m.course.id),
     );
   };

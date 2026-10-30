@@ -3,6 +3,7 @@ import type { Source } from '@/types/source';
 import type { Flashcard } from '@/types/flashcard';
 import type { Quiz, QuizAttempt } from '@/types/quiz';
 import type { MoodEntry } from '@/types/mood';
+import type { Term } from '@/types/term';
 import type { GradeScenario } from '@/types/gradeScenario';
 import type { SyllabusUpload } from '@/types/syllabus';
 import type { DegreeCourse, DegreeProfile } from '@/types/degreeCompass';
@@ -16,8 +17,9 @@ import type { PomodoroSession } from '@/lib/focus/pomodoroSessions';
  *       preferences, syllabi (no version field)
  *   2 - adds sources, flashcards, quizzes, quizAttempts, degreeProfile,
  *       degreeCourses, advisorMessages, focusSessions, and this field
+ *   3 - adds terms (each course's `termId` points at one)
  */
-export const EXPORT_SCHEMA_VERSION = 2;
+export const EXPORT_SCHEMA_VERSION = 3;
 
 export interface DataExportInput {
   account: { email: string | null; displayName: string | null; memberSince: string | null };
@@ -29,6 +31,7 @@ export interface DataExportInput {
   quizzes: Quiz[];
   quizAttempts: QuizAttempt[];
   moodEntries: MoodEntry[];
+  terms: Term[];
   gradeScenarios: GradeScenario[];
   syllabi: SyllabusUpload[];
   degreeProfile: DegreeProfile | null;
