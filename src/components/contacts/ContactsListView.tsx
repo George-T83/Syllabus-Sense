@@ -392,14 +392,14 @@ export function ContactsListView() {
                   {ROLE_LABEL[primary.role]}
                 </span>
 
-                <div className="mt-2">
+                <div className="mt-3">
                   <div className="font-semibold text-foreground">{primary.fullName}</div>
                   {primary.title && (
                     <div className="text-xs text-muted-foreground">{primary.title}</div>
                   )}
                 </div>
 
-                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                   {primary.howToAddress && <div>Address as: {primary.howToAddress}</div>}
                   {primary.email && (
                     <a
@@ -411,18 +411,18 @@ export function ContactsListView() {
                   )}
                 </div>
 
-                <div className="mt-3 space-y-2 border-t border-border pt-3">
+                <div className="mt-5 space-y-3 border-t border-border pt-4">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {records.length === 1 ? 'Course' : 'Courses'}
                   </span>
-                  <ul className="space-y-2">
+                  <ul className="space-y-4">
                     {records.map((record) => (
                       <li key={record.id} className="text-xs">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <span className="font-medium text-foreground">
                             {courseLabel(courseById.get(record.courseId))}
                           </span>
-                          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-3 sm:justify-end">
                             {confirmingDeleteId === record.id ? (
                               <>
                                 <RowActionButton
@@ -490,7 +490,7 @@ export function ContactsListView() {
                           </div>
                         </div>
                         {(record.officeHours || record.officeLocation) && (
-                          <div className="mt-0.5 text-muted-foreground">
+                          <div className="mt-3 text-muted-foreground">
                             {record.officeHours && <div>Office hours: {record.officeHours}</div>}
                             {record.officeLocation && <div>Office: {record.officeLocation}</div>}
                           </div>
