@@ -1,0 +1,4 @@
+before 1280 light {"cardHeight":365,"pillRowTops":[528,580]}
+before 1280 dark {"cardHeight":365,"pillRowTops":[528,580]}
+before 390 light {"cardHeight":389,"pillRowTops":[604,656]}
+before 390 dark {"cardHeight":389,"pillRowTops":[604,656]}
