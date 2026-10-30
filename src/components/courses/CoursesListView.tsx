@@ -6,7 +6,14 @@ import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonCard } from '@/components/ui/Skeleton';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import {
+  courseInTerm,
+  courseTermLabel,
+  resolveActiveTerm,
+  sortTerms,
+  termFieldsFromForm,
+} from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { useSampleData } from '@/components/sample/useSampleData';
@@ -66,30 +73,25 @@ export function CoursesListView() {
     }
   }, []);
 
-  const terms = useMemo(
-    () => Array.from(new Set(courses.map((c) => c.term).filter(Boolean))) as string[],
-    [courses],
-  );
+  const terms = useMemo(() => sortTerms(state.terms), [state.terms]);
 
   const activeTerm = useMemo(
-    () => resolveActiveTerm(state.selectedTerm, courses),
-    [state.selectedTerm, courses],
+    () => resolveActiveTerm(state.selectedTerm, courses, state.terms),
+    [state.selectedTerm, courses, state.terms],
   );
-  const effectiveTermFilter = termFilter ?? activeTerm ?? 'all';
-  const hiddenByTermCount =
-    effectiveTermFilter !== 'all'
-      ? courses.filter((c) => c.term !== effectiveTermFilter).length
-      : 0;
+  // A term id, or 'all'.
+  const effectiveTermFilter = termFilter ?? activeTerm?.id ?? 'all';
+  const filterTerm = terms.find((t) => t.id === effectiveTermFilter) ?? null;
+  const hiddenByTermCount = filterTerm
+    ? courses.filter((c) => !courseInTerm(c, filterTerm, state.terms)).length
+    : 0;
 
   // Scoped to the term filter (not the free-text search, which shouldn't
   // make the headline GPA jump around as someone types) so "This term's
   // GPA" means what it says once a term is selected.
   const termCourses = useMemo(
-    () =>
-      effectiveTermFilter === 'all'
-        ? courses
-        : courses.filter((c) => c.term === effectiveTermFilter),
-    [courses, effectiveTermFilter],
+    () => (filterTerm ? courses.filter((c) => courseInTerm(c, filterTerm, state.terms)) : courses),
+    [courses, filterTerm, state.terms],
   );
 
   const gpaSummary = useMemo(() => {
@@ -105,8 +107,7 @@ export function CoursesListView() {
   const filteredCourses = useMemo(() => {
     let result = courses.slice();
 
-    if (effectiveTermFilter !== 'all')
-      result = result.filter((c) => c.term === effectiveTermFilter);
+    if (filterTerm) result = result.filter((c) => courseInTerm(c, filterTerm, state.terms));
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -120,12 +121,16 @@ export function CoursesListView() {
 
     result.sort((a, b) => {
       if (sortMode === 'title') return a.title.localeCompare(b.title);
-      if (sortMode === 'term') return (a.term ?? '').localeCompare(b.term ?? '');
+      if (sortMode === 'term') {
+        return (courseTermLabel(a, state.terms) ?? '').localeCompare(
+          courseTermLabel(b, state.terms) ?? '',
+        );
+      }
       return a.code.localeCompare(b.code);
     });
 
     return result;
-  }, [courses, search, effectiveTermFilter, sortMode]);
+  }, [courses, search, filterTerm, sortMode, state.terms]);
 
   const handleAddCourse = async (values: CourseFormValues) => {
     if (!user) throw new Error('You must be signed in to add a course.');
@@ -138,7 +143,7 @@ export function CoursesListView() {
         color: values.color,
         icon: values.icon,
         ...(values.instructor ? { instructor: values.instructor } : {}),
-        ...(values.term ? { term: values.term } : {}),
+        ...termFieldsFromForm(values.termId, state.terms),
         ...(values.credits ? { credits: Number(values.credits) } : {}),
         ...(values.modality ? { modality: values.modality } : {}),
         ...(values.meetingTimes?.length ? { meetingTimes: values.meetingTimes } : {}),
@@ -205,7 +210,7 @@ export function CoursesListView() {
         {gpaSummary && (
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg bg-primary/5 px-3 py-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              {effectiveTermFilter === 'all' ? 'GPA' : `${effectiveTermFilter} GPA`}
+              {filterTerm ? `${filterTerm.label} GPA` : 'GPA'}
             </span>
             <span className="font-display text-lg font-medium tabular-nums text-foreground">
               {gpaSummary.gpa.toFixed(2)}
@@ -235,14 +240,13 @@ export function CoursesListView() {
               // Emphasized (bordered, tinted) whenever narrowed to one term,
               // so a filter that's hiding courses is never just a quiet
               // dropdown - it visibly looks "on."
-              effectiveTermFilter !== 'all' &&
-                'border-primary/50 bg-primary/5 font-semibold text-primary',
+              filterTerm && 'border-primary/50 bg-primary/5 font-semibold text-primary',
             )}
           >
             <option value="all">All Terms</option>
             {terms.map((term) => (
-              <option key={term} value={term}>
-                {term}
+              <option key={term.id} value={term.id}>
+                {term.label}
               </option>
             ))}
           </select>
@@ -264,7 +268,7 @@ export function CoursesListView() {
         {hiddenByTermCount > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-primary/5 px-3 py-2 text-xs text-foreground">
             <span>
-              Showing <span className="font-semibold">{effectiveTermFilter}</span> ·{' '}
+              Showing <span className="font-semibold">{filterTerm?.label}</span> ·{' '}
               {hiddenByTermCount} more {hiddenByTermCount === 1 ? 'course' : 'courses'} in other
               terms.
             </span>
@@ -377,12 +381,12 @@ export function CoursesListView() {
                         <span
                           className={cn(
                             'rounded-full px-2 py-0.5 text-xs font-medium',
-                            course.term
+                            courseTermLabel(course, state.terms)
                               ? 'bg-accent text-muted-foreground'
                               : 'bg-accent/60 italic text-muted-foreground/70',
                           )}
                         >
-                          {course.term || 'No term set'}
+                          {courseTermLabel(course, state.terms) || 'No term set'}
                         </span>
                         {meetingDays && (
                           <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-muted-foreground">
