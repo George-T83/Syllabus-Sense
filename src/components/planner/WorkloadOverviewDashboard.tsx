@@ -242,7 +242,7 @@ export function WorkloadOverviewDashboard({
                   No tasks scheduled for this day.
                 </p>
               ) : (
-                <ul className="space-y-2.5 max-h-64 overflow-y-auto overflow-x-hidden pr-1">
+                <ul className="space-y-2.5 overflow-x-hidden sm:max-h-64 sm:overflow-y-auto sm:pr-1">
                   {activeDay.items.map((item) => (
                     <li
                       key={item.id}
@@ -257,13 +257,34 @@ export function WorkloadOverviewDashboard({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={!!item.completed}
-                            onChange={() => handleToggleTask(item.id)}
-                            aria-label={`Mark ${item.title} as ${item.completed ? 'not done' : 'done'}`}
-                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                          />
+                          {/* A 16px box is too small to hit on a phone. The real input
+                           * fills a 44px square (pulled back with negative margins so the
+                           * row looks the same) and the visible box is drawn beside it. */}
+                          <label className="relative -m-3.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={!!item.completed}
+                              onChange={() => handleToggleTask(item.id)}
+                              aria-label={`Mark ${item.title} as ${item.completed ? 'not done' : 'done'}`}
+                              className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className="flex h-4 w-4 items-center justify-center rounded border-2 border-border bg-card transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card [&>svg]:hidden peer-checked:[&>svg]:block"
+                            >
+                              <svg
+                                viewBox="0 0 12 12"
+                                className="h-2.5 w-2.5 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M2.5 6.2l2.4 2.4 4.6-5" />
+                              </svg>
+                            </span>
+                          </label>
                           <span
                             className={cn(
                               'font-medium text-foreground truncate',
@@ -288,13 +309,16 @@ export function WorkloadOverviewDashboard({
                       {!item.completed && (
                         <div className="flex flex-col gap-1.5 border-t border-border/30 pt-1.5 text-xs text-muted-foreground">
                           <span>Move to another day:</span>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <div className="flex items-center gap-0.5">
+                          {/* Three equal quick-shift buttons on one row and the date
+                           * picker on its own full-width row below, so nothing is
+                           * squeezed on a phone. */}
+                          <div className="grid grid-cols-3 gap-2 [&>input]:col-span-3 [&>input]:w-full">
+                            <div className="contents">
                               <button
                                 type="button"
                                 title="Shift back 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, -1)}
-                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
+                                className="min-h-10 rounded-lg border border-border px-2 py-1 text-xs font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
                               >
                                 -1d
                               </button>
@@ -304,7 +328,7 @@ export function WorkloadOverviewDashboard({
                                 onClick={() =>
                                   handleShiftTaskDate(item.id, breakdown.today.dateStr)
                                 }
-                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
+                                className="min-h-10 rounded-lg border border-border px-2 py-1 text-xs font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
                               >
                                 Today
                               </button>
@@ -312,7 +336,7 @@ export function WorkloadOverviewDashboard({
                                 type="button"
                                 title="Shift ahead 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, 1)}
-                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
+                                className="min-h-10 rounded-lg border border-border px-2 py-1 text-xs font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
                               >
                                 +1d
                               </button>
@@ -322,7 +346,7 @@ export function WorkloadOverviewDashboard({
                               aria-label={`Shift date for ${item.title}`}
                               value={activeDay.dateStr}
                               onChange={(e) => handleShiftTaskDate(item.id, e.target.value)}
-                              className="min-w-0 rounded border border-border bg-input px-1.5 py-0.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="min-h-10 min-w-0 rounded border border-border bg-input px-1.5 py-1.5 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </div>
                         </div>
