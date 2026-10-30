@@ -22,7 +22,8 @@ export const courseFormSchema = z.object({
     .min(1, 'Course title is required')
     .max(150, 'Keep it under 150 characters'),
   instructor: z.string().trim().max(100, 'Keep it under 100 characters').optional(),
-  term: z.string().trim().max(50, 'Keep it under 50 characters').optional(),
+  /** A term id from the student's terms (see types/term.ts), or empty. */
+  termId: z.string().optional(),
   credits: z
     .string()
     .optional()
