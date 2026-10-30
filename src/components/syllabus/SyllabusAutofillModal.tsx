@@ -2130,6 +2130,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                               layout (and order) is unchanged. */}
                           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                             <input
+                              aria-label={`Title of item ${i + 1}`}
                               value={it.title}
                               onChange={(e) => updateItem(it.key, { title: e.target.value })}
                               className="w-full min-w-0 rounded-md border border-border bg-input px-2 py-1 font-medium text-foreground sm:order-2 sm:flex-1"
@@ -2177,6 +2178,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                               </select>
                               <input
                                 type="date"
+                                aria-label={`Due date of item ${i + 1}`}
                                 value={it.dueDate ?? ''}
                                 onChange={(e) =>
                                   updateItem(it.key, {
