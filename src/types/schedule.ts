@@ -66,8 +66,14 @@ export interface Course {
    * shown alongside color, e.g. a flask for a science course. Missing or
    * unrecognized values resolve to the default via resolveCourseIcon(). */
   icon?: string;
-  /** The academic term, e.g., 'Fall 2026' */
+  /** The academic term's label, e.g., 'Fall 2026'. Kept alongside `termId`
+   * (and set from the term when a course is saved) for contacts, the advisor
+   * and any other reader that wants text; the term object is the source of
+   * truth for dates. On courses saved before terms were objects this is the
+   * only term field, until they are linked. */
   term?: string;
+  /** The term (users/{uid}/terms/{id}, see types/term.ts) this course runs in. */
+  termId?: string;
   /** Credit hours, for weighting this course into a semester GPA. Every
    * GPA calculation on the app treats a missing value as 3 - the common
    * case - rather than skipping the course, so this only needs setting
