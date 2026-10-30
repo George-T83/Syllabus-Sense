@@ -404,7 +404,7 @@ export function ContactsListView() {
                   {primary.email && (
                     <a
                       href={`mailto:${primary.email}`}
-                      className="block truncate text-primary hover:underline"
+                      className="-my-3.5 flex min-h-11 items-center truncate text-primary hover:underline"
                     >
                       {primary.email}
                     </a>
