@@ -242,7 +242,7 @@ export function WorkloadOverviewDashboard({
                   No tasks scheduled for this day.
                 </p>
               ) : (
-                <ul className="space-y-2.5 max-h-64 overflow-y-auto overflow-x-hidden pr-1">
+                <ul className="space-y-2.5 overflow-x-hidden sm:max-h-64 sm:overflow-y-auto sm:pr-1">
                   {activeDay.items.map((item) => (
                     <li
                       key={item.id}
@@ -309,13 +309,16 @@ export function WorkloadOverviewDashboard({
                       {!item.completed && (
                         <div className="flex flex-col gap-1.5 border-t border-border/30 pt-1.5 text-xs text-muted-foreground">
                           <span>Move to another day:</span>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <div className="flex items-center gap-0.5">
+                          {/* Three equal quick-shift buttons on one row and the date
+                           * picker on its own full-width row below, so nothing is
+                           * squeezed on a phone. */}
+                          <div className="grid grid-cols-3 gap-2 [&>input]:col-span-3 [&>input]:w-full">
+                            <div className="contents">
                               <button
                                 type="button"
                                 title="Shift back 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, -1)}
-                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
+                                className="min-h-10 rounded-lg border border-border px-2 py-1 text-xs font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
                               >
                                 -1d
                               </button>
@@ -325,7 +328,7 @@ export function WorkloadOverviewDashboard({
                                 onClick={() =>
                                   handleShiftTaskDate(item.id, breakdown.today.dateStr)
                                 }
-                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
+                                className="min-h-10 rounded-lg border border-border px-2 py-1 text-xs font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
                               >
                                 Today
                               </button>
@@ -333,7 +336,7 @@ export function WorkloadOverviewDashboard({
                                 type="button"
                                 title="Shift ahead 1 day"
                                 onClick={() => handleQuickShift(item.id, activeDay.dateStr, 1)}
-                                className="min-h-9 min-w-9 rounded border border-border px-2 py-1 text-xs font-semibold hover:bg-accent"
+                                className="min-h-10 rounded-lg border border-border px-2 py-1 text-xs font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
                               >
                                 +1d
                               </button>
