@@ -1,33 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { inferCurrentTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import { TermFormModal } from '@/components/terms/TermFormModal';
+import { resolveActiveTerm, sortTerms } from '@/lib/terms/termResolve';
 import { cn } from '@/lib/utils';
-
-/** NV-4 (b): season ordering within a year - Spring < Summer < Fall < Winter.
- * Terms that don't parse (unrecognized format) sort after every parseable
- * term, alphabetically among themselves, rather than throwing or silently
- * keeping their arbitrary insertion order. */
-const SEASON_ORDER: Record<string, number> = { spring: 0, summer: 1, fall: 2, winter: 3 };
-
-function parseTermSortKey(term: string): number | null {
-  const match = term.match(/(spring|summer|fall|winter)\s+(\d{4})/i);
-  if (!match) return null;
-  const season = match[1].toLowerCase();
-  const year = Number(match[2]);
-  return year * 10 + SEASON_ORDER[season];
-}
-
-function sortTermsChronologically(terms: string[]): string[] {
-  return [...terms].sort((a, b) => {
-    const keyA = parseTermSortKey(a);
-    const keyB = parseTermSortKey(b);
-    if (keyA !== null && keyB !== null) return keyA - keyB;
-    if (keyA !== null) return -1;
-    if (keyB !== null) return 1;
-    return a.localeCompare(b);
-  });
-}
 
 /** #101 semester switcher. Hidden entirely when there's nothing to switch
  * between (zero or one distinct term across the user's courses) so it
@@ -59,24 +36,22 @@ export function TermSwitcher() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open]);
 
-  const terms = useMemo(
-    () =>
-      sortTermsChronologically(
-        Array.from(new Set(state.courses.map((c) => c.term).filter(Boolean))) as string[],
-      ),
-    [state.courses],
-  );
+  const [creating, setCreating] = useState(false);
+  const terms = useMemo(() => sortTerms(state.terms), [state.terms]);
 
+  // Only offered once there is something to switch between. The first term
+  // is created where a course is added (or on the Mood page), not here.
   if (terms.length < 2) return null;
 
   // Mirrors resolveActiveTerm's fallback so the dropdown's displayed value
   // always matches what the rest of the app is actually scoped to, even
   // before the user has made an explicit choice.
-  const displayValue = state.selectedTerm ?? inferCurrentTerm(state.courses) ?? 'all';
-  const displayLabel = displayValue === 'all' ? 'All Terms' : displayValue;
+  const active = resolveActiveTerm(state.selectedTerm, state.courses, state.terms);
+  const displayValue = active?.id ?? 'all';
+  const displayLabel = active?.label ?? 'All Terms';
 
-  const select = (term: string) => {
-    dispatch({ type: 'SELECT_TERM', payload: term });
+  const select = (termId: string) => {
+    dispatch({ type: 'SELECT_TERM', payload: termId });
     close();
   };
 
@@ -109,45 +84,58 @@ export function TermSwitcher() {
       {open && (
         <>
           <div className="fixed inset-0 z-[60] bg-transparent" onClick={close} aria-hidden="true" />
-          <div
-            role="listbox"
-            aria-label="Select term"
-            className="absolute left-0 top-full z-[61] mt-2 w-full min-w-[9rem] overflow-hidden rounded-glass border border-border/40 bg-card glass shadow-glass"
-          >
-            <button
-              type="button"
-              role="option"
-              aria-selected={displayValue === 'all'}
-              onClick={() => select('all')}
-              className={cn(
-                'flex w-full items-center px-4 py-3 text-left text-sm font-medium transition-colors',
-                displayValue === 'all'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-foreground hover:bg-accent hover:text-accent-foreground',
-              )}
-            >
-              All Terms
-            </button>
-            {terms.map((term) => (
+          <div className="absolute left-0 top-full z-[61] mt-2 w-full min-w-[9rem] overflow-hidden rounded-glass border border-border/40 bg-card glass shadow-glass">
+            <div role="listbox" aria-label="Select term">
               <button
-                key={term}
                 type="button"
                 role="option"
-                aria-selected={displayValue === term}
-                onClick={() => select(term)}
+                aria-selected={displayValue === 'all'}
+                onClick={() => select('all')}
                 className={cn(
                   'flex w-full items-center px-4 py-3 text-left text-sm font-medium transition-colors',
-                  displayValue === term
+                  displayValue === 'all'
                     ? 'bg-primary text-primary-foreground'
                     : 'text-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
               >
-                {term}
+                All Terms
               </button>
-            ))}
+              {terms.map((term) => (
+                <button
+                  key={term.id}
+                  type="button"
+                  role="option"
+                  aria-selected={displayValue === term.id}
+                  onClick={() => select(term.id)}
+                  className={cn(
+                    'flex w-full items-center px-4 py-3 text-left text-sm font-medium transition-colors',
+                    displayValue === term.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  {term.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setCreating(true);
+                setOpen(false);
+              }}
+              className="flex w-full items-center border-t border-border/40 px-4 py-3 text-left text-sm font-medium text-primary transition-colors hover:bg-accent"
+            >
+              + New term…
+            </button>
           </div>
         </>
       )}
+      <TermFormModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        onSaved={(term) => dispatch({ type: 'SELECT_TERM', payload: term.id })}
+      />
     </div>
   );
 }
