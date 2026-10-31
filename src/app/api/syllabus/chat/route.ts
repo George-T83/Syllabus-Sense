@@ -3,6 +3,13 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { requireUserOutsideDemo } from '@/lib/auth/requireUser';
 import { checkAndIncrementAiUsage } from '@/lib/ai/aiUsageLimit';
 import { getAnthropicClient, SYLLABUS_EXTRACTION_MODEL } from '@/lib/ai/anthropic';
+import {
+  describeSkippedChunks,
+  parseSuggestedChunks,
+  resolveStudentToday,
+  type SkippedChunk,
+  type SuggestedChunk,
+} from '@/lib/syllabus/suggestedChunks';
 import { generateOfflineSyllabusAnswer, type ChatRequestBody } from '@/lib/syllabus/chatEngine';
 
 export const runtime = 'nodejs';
@@ -131,7 +138,7 @@ To suggest these subtasks, you must output a JSON structure at the very end of y
 ]
 where:
 - "estimatedHours" is the estimated time to complete that subtask (numbers like 1.5, 2, 0.5).
-- "dueDateOffsetDays" is the recommended relative offset in days from today's date to complete this task (e.g. 2 means due in 2 days).
+- "dueDateOffsetDays" is the recommended relative offset in days from today's date to complete this task (e.g. 2 means due in 2 days, 0 means today). It must be a whole number from 0 to 365, never negative.
 - "type" must be exactly one of: "assignment", "exam", "quiz", "project", "reading", "other" (use "other" for anything that doesn't fit, e.g. coding work or a paper).
 
 Format the main body of your answer with clear markdown headings, bullet points, and specific citations in brackets (e.g. [Syllabus § 3 - Grading Policy] or [Rubric - Format Requirements]). Be concise, encouraging, and academically precise.`;
@@ -161,14 +168,8 @@ Format the main body of your answer with clear markdown headings, bullet points,
         'reading',
         'other',
       ]);
-      interface SuggestedChunkType {
-        title: string;
-        notes: string;
-        estimatedHours: number;
-        dueDate: string;
-        type: string;
-      }
-      let suggestedChunks: SuggestedChunkType[] = [];
+      let suggestedChunks: SuggestedChunk[] = [];
+      let skippedChunks: SkippedChunk[] = [];
 
       const startTag = '---SUGGESTED_CHUNKS_START---';
       const endTag = '---SUGGESTED_CHUNKS_END---';
@@ -188,21 +189,11 @@ Format the main body of your answer with clear markdown headings, bullet points,
           try {
             const parsedChunks = JSON.parse(jsonStr);
             if (Array.isArray(parsedChunks)) {
-              suggestedChunks = parsedChunks.map((chunk: Record<string, unknown>) => {
-                const daysOffset = Number(chunk.dueDateOffsetDays) || 1;
-                const targetDate = new Date();
-                targetDate.setDate(targetDate.getDate() + daysOffset);
-                return {
-                  title: typeof chunk.title === 'string' ? chunk.title : 'Subtask',
-                  notes: typeof chunk.notes === 'string' ? chunk.notes : '',
-                  estimatedHours: Number(chunk.estimatedHours) || 1,
-                  dueDate: targetDate.toISOString().split('T')[0],
-                  type:
-                    typeof chunk.type === 'string' && VALID_ASSIGNMENT_TYPES.has(chunk.type)
-                      ? chunk.type
-                      : 'other',
-                };
-              });
+              ({ chunks: suggestedChunks, skipped: skippedChunks } = parseSuggestedChunks(
+                parsedChunks,
+                resolveStudentToday(body.todayKey),
+                VALID_ASSIGNMENT_TYPES,
+              ));
             }
           } catch (err) {
             console.warn('Failed to parse suggested chunks JSON from AI:', err);
@@ -211,6 +202,9 @@ Format the main body of your answer with clear markdown headings, bullet points,
         const tail = hasEndTag ? textResponse.slice(endIndex + endTag.length).trim() : '';
         textResponse = (textResponse.slice(0, startIndex).trim() + '\n' + tail).trim();
       }
+
+      const skippedNote = describeSkippedChunks(skippedChunks);
+      if (skippedNote) textResponse = `${textResponse}\n\n${skippedNote}`.trim();
 
       // Only claim a syllabus citation when real syllabus/rubric content was
       // actually in the prompt - otherwise the prompt fell back to a generic
