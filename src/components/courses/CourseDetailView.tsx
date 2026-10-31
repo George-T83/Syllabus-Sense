@@ -5,16 +5,19 @@ import { useRouter } from 'next/navigation';
 import { BackLink } from '@/components/ui/BackLink';
 import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
-import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { RingGauge } from '@/components/ui/RingGauge';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
 import { useUndoToast } from '@/hooks/useUndoToast';
 import { useAppState } from '@/context/AppStateContext';
+import { ConfirmDeleteInline } from '@/components/ui/ConfirmDeleteInline';
 import { courseTermLabel, termFieldsFromForm } from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
-import { updateCourse, deleteCourse } from '@/lib/firestore/courses';
+import { updateCourse } from '@/lib/firestore/courses';
+import { DeleteCourseDialog } from '@/components/courses/DeleteCourseDialog';
+import { ArchivedCourseNotice } from '@/components/courses/ArchivedCourseNotice';
+import { countContents, useCourseArchive } from '@/components/courses/useCourseArchive';
 import {
   createScheduleItem,
   updateScheduleItem,
@@ -212,10 +215,11 @@ function ContactFormFields({
 }
 
 export function CourseDetailView({ courseId }: { courseId: string }) {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, archived } = useAppState();
   const { user } = useAuth();
   const router = useRouter();
-  const { showSuccess, showError, showWarning } = useToast();
+  const { showSuccess, showError } = useToast();
+  const courseArchive = useCourseArchive();
   const showUndo = useUndoToast();
   const syllabi = useSyllabi(user?.uid, courseId);
   const currentPrimarySyllabus = getPrimarySyllabus(syllabi) ?? null;
@@ -228,8 +232,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   const [gradeCalculatorOpen, setGradeCalculatorOpen] = useState(false);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
-  const [confirmingDeleteCourse, setConfirmingDeleteCourse] = useState(false);
-  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
+  const [deleteCourseOpen, setDeleteCourseOpen] = useState(false);
   const [confirmingDeleteItemId, setConfirmingDeleteItemId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [confirmingDeleteObjectiveIndex, setConfirmingDeleteObjectiveIndex] = useState<
@@ -275,6 +278,8 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
   );
 
   if (!course) {
+    const archivedCourse = archived.courses.find((c) => c.id === courseId);
+    if (archivedCourse) return <ArchivedCourseNotice course={archivedCourse} />;
     return (
       <div className="max-w-3xl space-y-4">
         <h1 className="font-display text-2xl font-medium tracking-tight text-foreground">
@@ -318,24 +323,17 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
     await updateCourse(user.uid, course, updatedCourse, dispatch, courseContacts);
   };
 
+  const handleArchiveCourse = async () => {
+    if (await courseArchive.archive(course)) {
+      setDeleteCourseOpen(false);
+      router.push('/courses');
+    }
+  };
+
   const handleDeleteCourse = async () => {
-    if (!user) return;
-    setIsDeletingCourse(true);
-    try {
-      const { failedFiles } = await deleteCourse(user.uid, course, items, dispatch, courseContacts);
-      if (failedFiles > 0) {
-        showWarning(
-          'Course deleted, but not all files',
-          `${failedFiles} uploaded ${failedFiles === 1 ? 'file' : 'files'} for ${course.code} couldn't be removed from storage.`,
-        );
-      } else {
-        showSuccess('Course deleted', `${course.code} and everything in it was removed.`);
-      }
+    if (await courseArchive.deleteForever(course, items, courseContacts)) {
+      setDeleteCourseOpen(false);
       router.push('/dashboard');
-    } catch (err) {
-      showError('Could not delete course', err instanceof Error ? err.message : undefined);
-    } finally {
-      setIsDeletingCourse(false);
     }
   };
 
@@ -852,22 +850,12 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                 </CardActionButton>
               )}
               <div className="ml-auto">
-                {confirmingDeleteCourse ? (
-                  <ConfirmDeleteInline
-                    deleting={isDeletingCourse}
-                    onConfirm={handleDeleteCourse}
-                    onCancel={() => setConfirmingDeleteCourse(false)}
-                    size="lg"
-                    message="Delete this course and everything in it?"
-                  />
-                ) : (
-                  <button
-                    onClick={() => setConfirmingDeleteCourse(true)}
-                    className="inline-flex min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
-                  >
-                    Delete
-                  </button>
-                )}
+                <button
+                  onClick={() => setDeleteCourseOpen(true)}
+                  className="inline-flex min-h-9 items-center rounded-full px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>
@@ -1586,6 +1574,15 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         </Card>
       </div>
 
+      <DeleteCourseDialog
+        open={deleteCourseOpen}
+        course={course}
+        contents={countContents(course.id, state)}
+        busy={courseArchive.busy}
+        onArchive={handleArchiveCourse}
+        onDeleteForever={handleDeleteCourse}
+        onClose={() => setDeleteCourseOpen(false)}
+      />
       <CourseFormModal
         open={editCourseOpen}
         onClose={() => setEditCourseOpen(false)}

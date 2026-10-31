@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { createCourse } from '@/lib/firestore/courses';
 import { useSampleData } from '@/components/sample/useSampleData';
 import { CourseFormModal } from '@/components/courses/CourseFormModal';
+import { ArchivedCoursesSection } from '@/components/courses/ArchivedCoursesSection';
 import { SyllabusAutofillModal } from '@/components/syllabus/SyllabusAutofillModal';
 import type { CourseFormValues } from '@/lib/validation/course';
 import { courseSwatch, courseWash } from '@/lib/courseColors';
@@ -432,6 +433,8 @@ export function CoursesListView() {
             })}
           </div>
         )}
+
+        <ArchivedCoursesSection />
       </div>
 
       <CourseFormModal
