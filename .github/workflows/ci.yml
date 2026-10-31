@@ -155,8 +155,14 @@ jobs:
       # critical finding against scripts/acceptedCriticalVulnerabilities.json
       # so an already-tracked, dated, reasoned exception doesn't block every
       # future PR forever - see that file for what's currently accepted.
+      #
+      # Takes about a minute (npm fetches metadata for every vulnerable
+      # package), so on a pull request it runs only when something it reads
+      # changed (scripts/ciScope.js). It always runs on main, and
+      # dependency-audit.yml runs it every night, so a newly published advisory
+      # is still caught without being re-checked on every unrelated push.
       - name: Check for Critical Dependency Vulnerabilities
-        if: steps.scope.outputs.code == 'true'
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.audit == 'true'
         id: audit
         run: |
           if node scripts/check-critical-audit.mjs; then
@@ -178,13 +184,17 @@ jobs:
           echo "| Build | ${{ steps.build.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ steps.test.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Firestore Rules Tests | ${{ steps.rules-test.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dependency Audit (critical) | ${{ steps.audit.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Audit (critical) | ${{ steps.audit.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || steps.scope.outputs.audit == 'false' && 'Skipped (no dependency changes; checked on main and nightly)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
 
   # Runs the real app against the Firebase emulators in a browser. It is a
   # separate job so a flaky browser run never blocks the required check above;
   # it reports on every PR so a broken sign-in or empty dashboard shows up.
   e2e:
     name: End-to-end smoke
+    # Branch protection requires a PR to be up to date with main, so its run
+    # already tested exactly the tree that lands; repeating this non-required
+    # job on the push to main would only re-bill it.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -225,9 +235,22 @@ jobs:
         if: steps.scope.outputs.code == 'true' && steps.deps.outputs.cache-hit != 'true'
         run: npm ci --no-audit --no-fund
 
+      - name: Cache Browser
+        id: browser
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install Browser
         if: steps.scope.outputs.code == 'true'
-        run: npx playwright install --with-deps chromium
+        run: |
+          if [ "${{ steps.browser.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Run End-to-End Smoke Tests
         if: steps.scope.outputs.code == 'true'

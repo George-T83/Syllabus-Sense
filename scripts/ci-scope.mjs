@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
- * CI helper: prints `code=true` or `code=false` (and appends it to
- * $GITHUB_OUTPUT when set) for the checked-out pull-request merge commit.
- * `code=false` means the PR changes only prose, see scripts/ciScope.js.
+ * CI helper: prints `code=true|false` and `audit=true|false` (and appends them
+ * to $GITHUB_OUTPUT when set) for the checked-out pull-request merge commit.
+ * `code=false` means the PR changes only prose; `audit=false` means it touches
+ * nothing the dependency audit reads. See scripts/ciScope.js.
  *
  * Fails safe: on anything but a pull-request merge commit, or if git cannot
  * produce the file list, it says `code=true` so the full pipeline runs.
  */
 import { execSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
-import { isDocsOnly } from './ciScope.js';
+import { isDocsOnly, auditNeeded } from './ciScope.js';
 
 function changedFiles() {
   // actions/checkout on a pull_request event checks out the merge of the PR
@@ -21,11 +22,15 @@ function changedFiles() {
 }
 
 let code = true;
+let audit = true;
 try {
   const files = changedFiles();
   if (files) {
     code = !isDocsOnly(files);
-    console.log(`${files.filter(Boolean).length} changed file(s); docs-only: ${!code}`);
+    audit = auditNeeded(files);
+    console.log(
+      `${files.filter(Boolean).length} changed file(s); docs-only: ${!code}; audit needed: ${audit}`,
+    );
   } else {
     console.log('Not a pull request: running everything.');
   }
@@ -33,6 +38,6 @@ try {
   console.log(`Could not list changed files (${err.message}): running everything.`);
 }
 
-const line = `code=${code}`;
-console.log(line);
-if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, line + '\n');
+const lines = [`code=${code}`, `audit=${audit}`];
+console.log(lines.join('\n'));
+if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, lines.join('\n') + '\n');

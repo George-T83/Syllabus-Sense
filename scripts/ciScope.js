@@ -31,6 +31,24 @@ function isDocsOnly(files) {
   return list.length > 0 && list.every(isNonCodePath);
 }
 
-module.exports = { isDocsOnly, isNonCodePath };
-// measurement run 2
-// measurement run 5
+/**
+ * The critical-dependency audit reads the lockfile and the advisory database,
+ * so a pull request can only change its outcome by touching the dependencies,
+ * the waiver list, the audit script itself, or the pipeline. Everything else
+ * is covered by the run on main and the scheduled audit (see
+ * .github/workflows/dependency-audit.yml), which also catch an advisory
+ * published after a dependency was added. An empty list means "could not
+ * tell", which audits.
+ */
+const AUDIT_INPUTS = [
+  /^package(-lock)?\.json$/,
+  /^scripts\/(check-critical-audit\.mjs|criticalAuditPolicy\.js|acceptedCriticalVulnerabilities\.json)$/,
+  /^\.github\/workflows\//,
+];
+
+function auditNeeded(files) {
+  const list = files.map((f) => f.trim()).filter(Boolean);
+  return list.length === 0 || list.some((f) => AUDIT_INPUTS.some((re) => re.test(f)));
+}
+
+module.exports = { isDocsOnly, isNonCodePath, auditNeeded };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDocsOnly, isNonCodePath } from '../ciScope.js';
+import { isDocsOnly, isNonCodePath, auditNeeded } from '../ciScope.js';
 import { stripAiAttribution } from '../attributionPatterns.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -31,6 +31,25 @@ describe('isDocsOnly', () => {
   it('does not treat a markdown-looking name inside code as prose', () => {
     expect(isNonCodePath('src/lib/readme.md.ts')).toBe(false);
     expect(isNonCodePath('src/docs/helper.ts')).toBe(false);
+  });
+});
+
+describe('auditNeeded', () => {
+  it('audits when dependencies, waivers, the audit scripts or the pipeline change', () => {
+    expect(auditNeeded(['package.json'])).toBe(true);
+    expect(auditNeeded(['src/a.ts', 'package-lock.json'])).toBe(true);
+    expect(auditNeeded(['scripts/acceptedCriticalVulnerabilities.json'])).toBe(true);
+    expect(auditNeeded(['scripts/check-critical-audit.mjs'])).toBe(true);
+    expect(auditNeeded(['.github/workflows/ci.yml'])).toBe(true);
+  });
+
+  it('skips when nothing the audit reads changed', () => {
+    expect(auditNeeded(['src/app/page.tsx', 'README.md'])).toBe(false);
+    expect(auditNeeded(['src/package.json.ts'])).toBe(false);
+  });
+
+  it('audits when the file list is empty', () => {
+    expect(auditNeeded([])).toBe(true);
   });
 });
 

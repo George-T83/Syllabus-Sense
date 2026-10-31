@@ -1,0 +1,34 @@
+name: Dependency Audit
+
+# The critical-vulnerability gate in ci.yml runs on a pull request only when
+# something it reads changed, and on every push to main. This runs the same
+# script every night so an advisory published against a dependency we already
+# ship still surfaces within a day, without being re-checked (about a minute
+# of runner time) on every unrelated push. Audits the lockfile, so it needs no
+# install.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Critical dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Check for Critical Dependency Vulnerabilities
+        run: node scripts/check-critical-audit.mjs

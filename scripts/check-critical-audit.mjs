@@ -25,7 +25,10 @@ try {
   // --package-lock-only audits the lockfile (exactly what `npm ci` installs)
   // instead of walking node_modules, which takes about a minute on a restored
   // cache and returns the identical findings.
-  const out = execSync('npm audit --json --package-lock-only', { encoding: 'utf8', maxBuffer: 1024 * 1024 * 32 });
+  const out = execSync('npm audit --json --package-lock-only', {
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 32,
+  });
   auditJson = JSON.parse(out);
 } catch (err) {
   // npm audit exits non-zero whenever it finds anything - the JSON report
