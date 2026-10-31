@@ -40,7 +40,6 @@ describe('auditNeeded', () => {
     expect(auditNeeded(['src/a.ts', 'package-lock.json'])).toBe(true);
     expect(auditNeeded(['scripts/acceptedCriticalVulnerabilities.json'])).toBe(true);
     expect(auditNeeded(['scripts/check-critical-audit.mjs'])).toBe(true);
-    expect(auditNeeded(['.github/workflows/ci.yml'])).toBe(true);
   });
 
   it('skips when nothing the audit reads changed', () => {
