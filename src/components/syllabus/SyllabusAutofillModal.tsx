@@ -11,7 +11,7 @@ import { INLINE_UPLOAD_LIMIT_BYTES } from '@/lib/syllabus/pendingUpload';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 import { createCourseWithScheduleItems } from '@/lib/firestore/courses';
 import { createContacts, updateContact } from '@/lib/firestore/contacts';
-import { courseFormSchema } from '@/lib/validation/course';
+import { courseFormSchema, creditsProblem } from '@/lib/validation/course';
 import { TermPicker } from '@/components/terms/TermPicker';
 import { findTermByLabel, termFieldsFromForm } from '@/lib/terms/termResolve';
 import { scheduleItemFormSchema } from '@/lib/validation/scheduleItem';
@@ -390,6 +390,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [creditsError, setCreditsError] = useState<string | null>(null);
   const [termError, setTermError] = useState<string | null>(null);
   /** False when the failure is the file's (or the account's) and sending the
    * same request again cannot help, so "Try again" would only mislead. */
@@ -666,6 +667,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       const nextContactDrafts = buildContactDrafts(result.course.contacts, state.contacts);
 
       setCourse(nextCourse);
+      setCreditsError(null);
       setItems(nextItems);
       setUnresolved(nextUnresolved);
       setLearningObjectivesText(nextLearningObjectivesText);
@@ -749,6 +751,7 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
       credits: '',
     };
     setCourse(nextCourse);
+    setCreditsError(null);
     setItems([]);
     setUnresolved([]);
     setLearningObjectivesText('');
@@ -990,6 +993,14 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
     if (course.term.trim() && !course.termId) {
       setTermError(`Choose a term, or create “${course.term.trim()}” with its first and last day.`);
       document.getElementById('autofill-course-term')?.focus();
+      return;
+    }
+    // Credit hours are required, and follow the same 1-12 rule as the Add
+    // Course dialog (see creditsProblem in lib/validation/course.ts).
+    const creditsMessage = creditsProblem(course.credits);
+    if (creditsMessage) {
+      setCreditsError(creditsMessage);
+      document.getElementById('autofill-course-credits')?.focus();
       return;
     }
     const courseCheck = courseFormSchema.safeParse(course);
@@ -1487,7 +1498,11 @@ export function SyllabusAutofillModal({ open, onClose }: SyllabusAutofillModalPr
                       id="autofill-course-credits"
                       label="Credit Hours"
                       value={course.credits}
-                      onChange={(v) => setCourse((c) => c && { ...c, credits: v })}
+                      error={creditsError}
+                      onChange={(v) => {
+                        setCreditsError(null);
+                        setCourse((c) => c && { ...c, credits: v });
+                      }}
                     />
                   </div>
 
@@ -2458,11 +2473,13 @@ function TextField({
   label,
   value,
   onChange,
+  error,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
+  error?: string | null;
 }) {
   return (
     <div className="space-y-1">
@@ -2473,8 +2490,18 @@ function TextField({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={cn(
+          'w-full rounded-lg border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary',
+          error ? 'border-load-critical' : 'border-border',
+        )}
       />
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-xs text-load-critical">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
