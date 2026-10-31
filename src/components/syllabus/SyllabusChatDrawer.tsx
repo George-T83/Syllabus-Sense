@@ -17,7 +17,7 @@ import type { AdvisorMessage } from '@/types/advisor';
 import { AdvisorWarningCard } from '@/components/advisor/AdvisorWarningCard';
 import { cn } from '@/lib/utils';
 import { withoutSample } from '@/lib/sample/sampleSemester';
-import { isOverdue } from '@/lib/calendar/dates';
+import { isOverdue, toDayKey } from '@/lib/calendar/dates';
 import { aiRequestErrorFrom, describeAiFailure } from '@/lib/ai/requestFailure';
 
 function formatTimestamp(): string {
@@ -190,6 +190,7 @@ export function SyllabusChatDrawer({ isOpen, onClose, initialCourseId }: Syllabu
             learningObjectives: aiCourse?.learningObjectives,
             fileBase64: attachedFile?.base64 || undefined,
             fileName: attachedFile?.name || undefined,
+            todayKey: toDayKey(new Date()),
           }),
         });
 
