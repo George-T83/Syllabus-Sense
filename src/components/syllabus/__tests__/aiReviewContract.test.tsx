@@ -7,6 +7,18 @@ import {
 } from '@/components/syllabus/SyllabusAutofillModal';
 import { AppStateProvider } from '@/context/AppStateContext';
 import type { SyllabusExtractionResult } from '@/types/extraction';
+import type { Term } from '@/types/term';
+
+const FALL: Term = {
+  id: 't-fall',
+  label: 'Fall 2026',
+  startDate: '2026-08-24',
+  endDate: '2026-12-18',
+};
+const mockSaveTerm = vi.fn();
+vi.mock('@/lib/firestore/terms', () => ({
+  saveTerm: (...args: unknown[]) => mockSaveTerm(...args),
+}));
 
 const mockCreateCourseWithScheduleItems = vi.fn();
 const mockCreateContacts = vi.fn();
@@ -124,13 +136,17 @@ const sampleExtractionResult: SyllabusExtractionResult = {
   unresolved: ['Reading Check has no date assigned in syllabus'],
 };
 
-function renderAutofillModal(props: { open: boolean; onClose: () => void }) {
+function renderAutofillModal(
+  props: { open: boolean; onClose: () => void },
+  terms: Term[] = [FALL],
+) {
   return render(
     <AppStateProvider
       initialState={{
         courses: [],
         scheduleItems: [],
         contacts: [],
+        terms,
       }}
     >
       <SyllabusAutofillModal {...props} />
@@ -144,6 +160,13 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     mockCreateCourseWithScheduleItems.mockResolvedValue(undefined);
     mockCreateContacts.mockResolvedValue(undefined);
     mockUpdateContact.mockResolvedValue(undefined);
+    mockSaveTerm.mockReset();
+    // Like the real saveTerm: the term lands in app state straight away.
+    mockSaveTerm.mockImplementation(
+      async (_uid: string, term: Term, dispatch: (a: unknown) => void) => {
+        dispatch({ type: 'ADD_TERM', payload: term });
+      },
+    );
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -247,6 +270,10 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
 
     const [, savedCourse] = mockCreateCourseWithScheduleItems.mock.calls[0];
     expect(savedCourse.title).toBe('Advanced Cellular Biology');
+    // The extracted "Fall 2026" matched the student's stored term, so the
+    // course points at it and keeps its label.
+    expect(savedCourse.termId).toBe('t-fall');
+    expect(savedCourse.term).toBe('Fall 2026');
     expect(savedCourse.learningObjectives).toEqual([
       'Understand cellular respiration',
       'Perform DNA electrophoresis experiments',
@@ -281,6 +308,54 @@ describe('AI Review Contract & Client-Memory Guarantee', () => {
     // email was unchecked, so it should not be populated on the contact
     expect(createdContacts[0].email).toBeUndefined();
     expect(createdContacts[0].fieldApprovals?.email).toBe(false);
+  });
+
+  describe('term', () => {
+    async function openReview(terms: Term[]) {
+      renderAutofillModal({ open: true, onClose: vi.fn() }, terms);
+      const file = new File(['%PDF-1.4 test syllabus'], 'bio201.pdf', { type: 'application/pdf' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+      await screen.findByDisplayValue('BIO 201', {}, { timeout: 3000 });
+    }
+    const clickSave = () =>
+      fireEvent.click(screen.getByRole('button', { name: /Add Course & \d+ Task/i }));
+
+    it('picks the stored term whose label the syllabus names', async () => {
+      await openReview([FALL]);
+      expect((screen.getByLabelText('Term') as HTMLSelectElement).value).toBe('t-fall');
+    });
+
+    it('will not save a course whose syllabus term is not one of the student’s terms yet', async () => {
+      await openReview([]);
+      expect((screen.getByLabelText('Term') as HTMLSelectElement).value).toBe('');
+      clickSave();
+      expect(
+        (await screen.findByText(/Choose a term, or create “Fall 2026”/)).textContent,
+      ).toBeTruthy();
+      expect(mockCreateCourseWithScheduleItems).not.toHaveBeenCalled();
+    });
+
+    it('creates the syllabus term with its usual dates to confirm, then saves the course on it', async () => {
+      await openReview([]);
+      fireEvent.change(screen.getByLabelText('Term'), { target: { value: '__new__' } });
+      // Prefilled from the syllabus's label; the dates are the usual ones, not yet stored.
+      expect((screen.getByLabelText('Term name') as HTMLInputElement).value).toBe('Fall 2026');
+      expect((screen.getByLabelText('First day') as HTMLInputElement).value).toBe('2026-08-24');
+      expect((screen.getByLabelText('Last day') as HTMLInputElement).value).toBe('2026-12-18');
+      expect(mockSaveTerm).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save term' }));
+      await waitFor(() => expect(mockSaveTerm).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.queryByLabelText('Term name')).toBeNull());
+
+      clickSave();
+      await waitFor(() => expect(mockCreateCourseWithScheduleItems).toHaveBeenCalledTimes(1));
+      const savedTerm = mockSaveTerm.mock.calls[0][1] as Term;
+      const [, savedCourse] = mockCreateCourseWithScheduleItems.mock.calls[0];
+      expect(savedCourse.termId).toBe(savedTerm.id);
+      expect(savedCourse.term).toBe('Fall 2026');
+    });
   });
 });
 

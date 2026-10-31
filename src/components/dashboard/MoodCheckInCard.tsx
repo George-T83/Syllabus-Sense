@@ -49,7 +49,7 @@ export function MoodCheckInCard() {
 
   return (
     <Card className="rounded-2xl p-5">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">How&apos;s today going?</h2>
           {streak > 1 && (

@@ -410,7 +410,13 @@ function CardRow({
         // onto its own line at a narrow width (MO-1), instead of it either
         // overflowing (shrink-0) or fighting the title for the same line.
         <div
-          className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1"
+          className={cn(
+            'flex min-w-0 flex-wrap items-center justify-start gap-x-2 gap-y-1 sm:ml-0 sm:justify-end',
+            // When this block wraps under the title on a phone, line it up with
+            // the title instead of the card's left edge: past the checkbox
+            // (44px) and the course icon (28px) and their two 12px gaps.
+            onToggleComplete ? 'ml-24' : 'ml-10',
+          )}
           onClick={(e) => {
             // See the checkbox label's onClick above for why both calls are
             // needed when this row also has an `href` (e.g. Edit/Delete
@@ -608,7 +614,12 @@ function TouchRow({
         </div>
         {trailing && (
           <div
-            className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1"
+            className={cn(
+              'flex min-w-0 flex-wrap items-center justify-start gap-x-2 gap-y-1 sm:ml-0 sm:justify-end',
+              // Lined up with the title when it wraps below it on a phone (past
+              // the 44px checkbox and its 12px gap).
+              onToggleComplete ? 'ml-14' : 'ml-0',
+            )}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

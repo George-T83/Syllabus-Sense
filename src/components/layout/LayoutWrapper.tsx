@@ -25,8 +25,10 @@ import { MAIN_CONTENT_ID } from '@/components/layout/SkipLink';
 // it needs a course in scope to be coherent, and silently falls back to
 // `state.courses[0]` when there isn't one. Account/settings pages have no
 // course context at all, so the trigger, drawer, and its Alt+A shortcut
-// stay off those routes rather than floating over unrelated content.
-const COPILOT_EXCLUDED_ROUTES = ['/profile'];
+// stay off those routes rather than floating over unrelated content. The
+// Advisor page is itself the Advisor, so a second button for it would only
+// cover the page's own message box on a phone.
+const COPILOT_EXCLUDED_ROUTES = ['/profile', '/advisor'];
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [isChatOpen, setIsChatOpen] = useState(false);

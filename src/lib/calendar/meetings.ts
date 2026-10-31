@@ -1,4 +1,6 @@
 import type { Course, MeetingTime } from '@/types/schedule';
+import type { Term } from '@/types/term';
+import { courseTerm } from '@/lib/terms/termResolve';
 import { isWithinEstimatedTerm } from '@/lib/calendar/termDates';
 import { toDayKey } from '@/lib/calendar/dates';
 
@@ -13,22 +15,31 @@ export interface MeetingOccurrence {
  * Date.getDay()-compatible (0=Sunday), so no conversion is needed against
  * the calendar grid, which is also Sunday-first.
  *
- * There's no real term-boundary data yet (courses only carry a free-text
- * `term` label, not start/end dates - that's #101), so this bounds the
- * recurrence to `estimateTermRange`'s parse of that label instead of
- * matching every week forever - without it, a Spring course's MWF pattern
- * kept rendering on every month of the calendar, including next August.
+ * Recurrence is bounded to the course's term: its real first and last day
+ * when the course has a term object (`terms`), else `estimateTermRange`'s
+ * parse of its plain-text label (a course not linked to a term yet) -
+ * without a bound, a Spring course's MWF pattern kept rendering on every
+ * month of the calendar, including next August.
  *
  * A course's `skipDates` (holidays/breaks the AI extracted from the
  * syllabus) is checked here too - without it, a class explicitly marked
  * cancelled for a break still rendered as happening that day.
  */
-export function getMeetingsForDay(courses: Course[], day: Date): MeetingOccurrence[] {
+export function getMeetingsForDay(
+  courses: Course[],
+  day: Date,
+  terms: Term[] = [],
+): MeetingOccurrence[] {
   const dayOfWeek = day.getDay();
   const dayKey = toDayKey(day);
   const occurrences: MeetingOccurrence[] = [];
   for (const course of courses) {
-    if (!isWithinEstimatedTerm(course.term, day)) continue;
+    const term = courseTerm(course, terms);
+    if (term) {
+      if (dayKey < term.startDate || dayKey > term.endDate) continue;
+    } else if (!isWithinEstimatedTerm(course.term, day)) {
+      continue;
+    }
     if (course.skipDates?.includes(dayKey)) continue;
     for (const meeting of course.meetingTimes ?? []) {
       if (meeting.dayOfWeek === dayOfWeek) {

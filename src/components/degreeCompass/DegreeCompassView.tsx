@@ -108,7 +108,7 @@ export function DegreeCompassView() {
               type="button"
               onClick={() => setViewMode('path')}
               className={cn(
-                'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+                'min-h-10 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors',
                 viewMode === 'path'
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground',
@@ -121,7 +121,7 @@ export function DegreeCompassView() {
               type="button"
               onClick={() => setViewMode('ledger')}
               className={cn(
-                'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+                'min-h-10 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors',
                 viewMode === 'ledger'
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground',

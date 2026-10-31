@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { formatTimeLabel, getMeetingsForDay } from '@/lib/calendar/meetings';
 import type { Course } from '@/types/schedule';
+import type { Term } from '@/types/term';
 
 const monday = new Date(2026, 8, 7); // Sep 7, 2026 is a Monday
 const tuesday = new Date(2026, 8, 8);
@@ -95,6 +96,43 @@ describe('getMeetingsForDay skipDates', () => {
     expect(getMeetingsForDay([courseWithBreak], nextMonday).map((m) => m.course.id)).toEqual([
       'c6',
     ]);
+  });
+});
+
+describe('getMeetingsForDay with term objects', () => {
+  const fall: Term = {
+    id: 't-fall',
+    label: 'Fall 2026',
+    startDate: '2026-08-24',
+    endDate: '2026-12-18',
+  };
+  const course: Course = {
+    id: 'c7',
+    code: 'BIO 201',
+    title: 'Cell Biology',
+    termId: 't-fall',
+    term: 'Fall 2026',
+    meetingTimes: [{ dayOfWeek: 1, startTime: '09:00', endTime: '10:15' }],
+  };
+  const ids = (day: Date, terms: Term[] = [fall]) =>
+    getMeetingsForDay([course], day, terms).map((m) => m.course.id);
+
+  it("recurs on the term's own first and last day, inclusive", () => {
+    expect(ids(new Date(2026, 7, 24))).toEqual(['c7']); // Mon Aug 24: first day
+    expect(ids(new Date(2026, 11, 14))).toEqual(['c7']); // Mon Dec 14
+  });
+
+  it("stops outside the term's real dates, where the label estimate (Aug 1 to Dec 31) would not", () => {
+    expect(ids(new Date(2026, 7, 17))).toEqual([]); // Mon Aug 17: before the term starts
+    expect(ids(new Date(2026, 11, 21))).toEqual([]); // Mon Dec 21: after it ends
+    expect(
+      getMeetingsForDay([{ ...course, termId: undefined }], new Date(2026, 7, 17)),
+    ).toHaveLength(1);
+  });
+
+  it('finds the term through the label for a course that is not linked yet', () => {
+    const unlinked = { ...course, termId: undefined };
+    expect(getMeetingsForDay([unlinked], new Date(2026, 7, 17), [fall])).toEqual([]);
   });
 });
 
