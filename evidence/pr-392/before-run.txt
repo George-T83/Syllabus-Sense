@@ -1,0 +1,24 @@
+### BEFORE: run 41166320106 (typical code PR, main workflow)
+Lint, Build, and Test         283s  5 billed min  (success)
+End-to-end smoke              131s  3 billed min  (success)
+TOTAL billed minutes: 8
+JOB Lint, Build, and Test
+   Checkout Code: 2s
+   Setup Node.js: 8s
+   Setup Java (for Firestore emulator): 0s
+   Install Dependencies: 77s
+   Check Commit Messages for AI Attribution: 1s
+   Run Linter: 8s
+   Run Build: 59s
+   Run Unit Tests: 101s
+   Run Firestore Rules Tests: 17s
+   Check for Critical Dependency Vulnerabilities: 4s
+   Generate Job Summary: 0s
+JOB End-to-end smoke
+   Checkout Code: 1s
+   Setup Node.js: 8s
+   Setup Java (for the emulators): 0s
+   Install Dependencies: 45s
+   Install Browser: 24s
+   Run End-to-End Smoke Tests: 48s
+   (skipped) Upload Failure Artifacts

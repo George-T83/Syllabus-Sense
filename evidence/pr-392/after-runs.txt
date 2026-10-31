@@ -1,0 +1,65 @@
+### AFTER, typical code PR: run 41207738508
+Lint, Build, and Test         198s  4 billed min  (success)
+End-to-end smoke               80s  2 billed min  (success)
+TOTAL billed minutes: 6
+JOB Lint, Build, and Test
+   Checkout Code: 2s
+   Decide What Needs Running: 0s
+   Check Commit Messages for AI Attribution: 0s
+   Setup Node.js: 4s
+   Setup Java (for Firestore emulator): 0s
+   Cache Dependencies: 6s
+   Get Cache Week: 0s
+   Restore Build Cache: 1s
+   Run Linter: 9s
+   Run Build: 46s
+   Run Unit Tests: 110s
+   Run Firestore Rules Tests: 16s
+   Generate Job Summary: 0s
+   (skipped) Install Dependencies
+   (skipped) Save Build Cache
+   (skipped) Check for Critical Dependency Vulnerabilities
+JOB End-to-end smoke
+   Checkout Code: 2s
+   Decide What Needs Running: 0s
+   Setup Node.js: 4s
+   Setup Java (for the emulators): 0s
+   Cache Dependencies: 7s
+   Cache Browser: 3s
+   Install Browser: 9s
+   Run End-to-End Smoke Tests: 50s
+   (skipped) Install Dependencies
+   (skipped) Upload Failure Artifacts
+
+### AFTER, prose-only PR: run 41207743206
+Lint, Build, and Test           6s  1 billed min  (success)
+End-to-end smoke                5s  1 billed min  (success)
+TOTAL billed minutes: 2
+JOB Lint, Build, and Test
+   Checkout Code: 1s
+   Decide What Needs Running: 1s
+   Check Commit Messages for AI Attribution: 0s
+   Generate Job Summary: 0s
+   (skipped) Setup Node.js
+   (skipped) Setup Java (for Firestore emulator)
+   (skipped) Cache Dependencies
+   (skipped) Install Dependencies
+   (skipped) Get Cache Week
+   (skipped) Restore Build Cache
+   (skipped) Run Linter
+   (skipped) Run Build
+   (skipped) Save Build Cache
+   (skipped) Run Unit Tests
+   (skipped) Run Firestore Rules Tests
+   (skipped) Check for Critical Dependency Vulnerabilities
+JOB End-to-end smoke
+   Checkout Code: 1s
+   Decide What Needs Running: 0s
+   (skipped) Setup Node.js
+   (skipped) Setup Java (for the emulators)
+   (skipped) Cache Dependencies
+   (skipped) Install Dependencies
+   (skipped) Cache Browser
+   (skipped) Install Browser
+   (skipped) Run End-to-End Smoke Tests
+   (skipped) Upload Failure Artifacts

@@ -1,0 +1,19 @@
+### Strip PR Attribution runs on the two scratch PRs (new filter + concurrency)
+ci/measure-a run 41204924090: skipped, 3s wall
+ci/measure-a run 41204918727: cancelled, 7s wall
+ci/measure-b run 41207747139: skipped, 3s wall
+ci/measure-b run 41207743221: cancelled, 6s wall
+
+### Strip PR Attribution on earlier real PRs (old workflow)
+feat/archive-courses-ui run 41166327203: success, 9s wall, billed 1 min
+feat/archive-courses-ui run 41166320173: success, 9s wall, billed 1 min
+feat/archive-courses-core run 41163516214: success, 8s wall, billed 1 min
+feat/archive-courses-core run 41163507989: success, 10s wall, billed 1 min
+fix/autofill-credits run 41158471365: success, 8s wall, billed 1 min
+fix/mobile-courses-calendar run 41145492709: success, 9s wall, billed 1 min
+fix/calendar-day-cells run 41116724191: success, 10s wall, billed 1 min
+fix/calendar-day-cells run 41116710090: success, 9s wall, billed 1 min
+fix/contact-card-spacing run 41116079138: success, 11s wall, billed 1 min
+fix/contact-card-spacing run 41116067968: success, 10s wall, billed 1 min
+fix/mobile-profile-gpa run 40605649649: success, 10s wall, billed 1 min
+feat/mood-full-semester-grid run 40583476299: success, 9s wall, billed 1 min
