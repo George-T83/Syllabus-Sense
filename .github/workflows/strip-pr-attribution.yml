@@ -29,7 +29,7 @@ jobs:
     # Cheap pre-filter evaluated before any runner is started, so a PR body
     # with nothing to scrub costs no Actions minutes at all. It is a superset
     # of everything scripts/attributionPatterns.js matches (every pattern there
-    # contains "claude" or "co-authored-by"; `contains` ignores case), and
+    # matches one of the keywords the stripper looks for; `contains` ignores case), and
     # scripts/__tests__/ciScope.test.ts guards that. The script below remains
     # the one that decides what is actually removed.
     if: contains(github.event.pull_request.body, 'claude') || contains(github.event.pull_request.body, 'co-authored-by')
