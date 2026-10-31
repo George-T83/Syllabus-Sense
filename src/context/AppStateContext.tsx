@@ -6,6 +6,7 @@ import type { Source } from '@/types/source';
 import type { Flashcard } from '@/types/flashcard';
 import type { Quiz, QuizAttempt } from '@/types/quiz';
 import type { MoodEntry } from '@/types/mood';
+import type { Term } from '@/types/term';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
 
 export interface AppState {
@@ -19,11 +20,18 @@ export interface AppState {
   /** One check-in per day at most - see `moodEntries.ts`'s upsert-by-dateKey
    * write. Whole-account, not scoped to any one course. */
   moodEntries: MoodEntry[];
+  /** The student's terms (users/{uid}/terms), each with its first and last
+   * day. Courses point at one by `termId`. */
+  terms: Term[];
+  /** True once the first terms snapshot has arrived, so the label migration
+   * (see useTermMigration) never runs against a list that is still loading. */
+  termsLoaded: boolean;
   selectedCourseId: string | null;
   /** #101 semester switcher. `null` means "no explicit choice made yet" -
    * consumers should fall back to `inferCurrentTerm`. The literal string
    * 'all' is an explicit user choice to see every term, distinct from "no
-   * opinion yet". A specific term string filters to that term. */
+   * opinion yet". Otherwise the id of the chosen term (a label saved by an
+   * older version is still understood: see `resolveActiveTerm`). */
   selectedTerm: string | null;
   /** Account-level settings (lib/firestore/preferences.ts), kept live here
    * by useFirestoreSync's `users/{uid}` listener - centralizing it means
@@ -67,6 +75,9 @@ export type AppAction =
   | { type: 'SET_MOOD_ENTRIES'; payload: MoodEntry[] }
   | { type: 'UPSERT_MOOD_ENTRY'; payload: MoodEntry }
   | { type: 'REMOVE_MOOD_ENTRY'; payload: string }
+  | { type: 'SET_TERMS'; payload: Term[] }
+  | { type: 'ADD_TERM'; payload: Term }
+  | { type: 'UPDATE_TERM'; payload: Term }
   | { type: 'SELECT_COURSE'; payload: string | null }
   | { type: 'SELECT_TERM'; payload: string | null }
   | { type: 'SET_PREFERENCES'; payload: UserPreferences };
@@ -80,6 +91,8 @@ export const initialAppState: AppState = {
   quizzes: [],
   quizAttempts: [],
   moodEntries: [],
+  terms: [],
+  termsLoaded: false,
   selectedCourseId: null,
   selectedTerm: null,
   preferences: DEFAULT_PREFERENCES,
@@ -199,6 +212,18 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
       };
     case 'REMOVE_MOOD_ENTRY':
       return { ...state, moodEntries: state.moodEntries.filter((m) => m.id !== action.payload) };
+    case 'SET_TERMS':
+      return { ...state, terms: action.payload, termsLoaded: true };
+    case 'ADD_TERM':
+      return {
+        ...state,
+        terms: [...state.terms.filter((t) => t.id !== action.payload.id), action.payload],
+      };
+    case 'UPDATE_TERM':
+      return {
+        ...state,
+        terms: state.terms.map((t) => (t.id === action.payload.id ? action.payload : t)),
+      };
     case 'SELECT_COURSE':
       return { ...state, selectedCourseId: action.payload };
     case 'SELECT_TERM':
@@ -290,46 +315,4 @@ export function getSelectedCourse(state: AppState): Course | null {
 export function getScheduleItemsByCourse(state: AppState, courseId: string | null): ScheduleItem[] {
   if (!courseId) return [];
   return state.scheduleItems.filter((item) => item.courseId === courseId);
-}
-
-/**
- * #101 semester switcher support.
- *
- * Infers the "current" term as whichever term the most courses belong to.
- * There's no explicit term-boundary data (courses only carry a free-text
- * `term` label, not start/end dates) - this is a reasonable default that
- * degrades gracefully to "show everything" once a user has courses spanning
- * multiple terms without a clear majority.
- */
-export function inferCurrentTerm(courses: Pick<Course, 'term'>[]): string | null {
-  const counts = new Map<string, number>();
-  for (const course of courses) {
-    if (!course.term) continue;
-    counts.set(course.term, (counts.get(course.term) ?? 0) + 1);
-  }
-  let best: string | null = null;
-  let bestCount = 0;
-  for (const [term, count] of Array.from(counts)) {
-    if (count > bestCount) {
-      best = term;
-      bestCount = count;
-    }
-  }
-  return best;
-}
-
-/**
- * Resolves what term the app should actually scope views to, given the
- * user's stored preference (`AppState.selectedTerm`) and their courses.
- * Returns `null` to mean "no filter - show every term" (either because the
- * user explicitly chose 'All Terms', or because there's nothing to infer
- * yet), or a specific term string to filter by.
- */
-export function resolveActiveTerm(
-  selectedTerm: string | null,
-  courses: Pick<Course, 'term'>[],
-): string | null {
-  if (selectedTerm === 'all') return null;
-  if (selectedTerm) return selectedTerm;
-  return inferCurrentTerm(courses);
 }

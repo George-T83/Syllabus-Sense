@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskRow } from '@/components/ui/TaskRow';
 import { WeekView } from '@/components/calendar/WeekView';
-import { resolveActiveTerm, useAppState } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import { courseInTerm, resolveActiveTerm } from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { updateScheduleItem } from '@/lib/firestore/scheduleItems';
@@ -304,12 +305,15 @@ export function MonthCalendar() {
   // this treatment - a concrete deadline is real regardless of which term is
   // "selected" right now, so hiding it here could cause a missed assignment.
   const activeTerm = useMemo(
-    () => resolveActiveTerm(state.selectedTerm, state.courses),
-    [state.selectedTerm, state.courses],
+    () => resolveActiveTerm(state.selectedTerm, state.courses, state.terms),
+    [state.selectedTerm, state.courses, state.terms],
   );
   const termScopedCourses = useMemo(
-    () => (activeTerm ? state.courses.filter((c) => c.term === activeTerm) : state.courses),
-    [state.courses, activeTerm],
+    () =>
+      activeTerm
+        ? state.courses.filter((c) => courseInTerm(c, activeTerm, state.terms))
+        : state.courses,
+    [state.courses, activeTerm, state.terms],
   );
 
   const toggleCourseVisibility = (courseId: string) => {
@@ -330,7 +334,7 @@ export function MonthCalendar() {
 
   const visibleMeetings = (day: Date): MeetingOccurrence[] => {
     if (!showClasses) return [];
-    return getMeetingsForDay(termScopedCourses, day).filter(
+    return getMeetingsForDay(termScopedCourses, day, state.terms).filter(
       (m) => !hiddenCourseIds.has(m.course.id),
     );
   };
@@ -727,7 +731,7 @@ export function MonthCalendar() {
         )}
 
         {viewMode === 'month' && (monthStats.pendingCount > 0 || monthStats.totalHours > 0) && (
-          <div className="flex flex-wrap items-center gap-3 mb-4 rounded-xl bg-accent/50 px-3 py-2 text-xs">
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-0 rounded-xl bg-accent/50 px-3 py-2 text-xs">
             <span className="font-semibold text-foreground">
               {monthStats.pendingCount} due this month
             </span>
@@ -737,7 +741,7 @@ export function MonthCalendar() {
             {monthStats.busiestDay && (
               <button
                 onClick={() => selectDay(monthStats.busiestDay!.day)}
-                className="ml-auto flex min-h-9 items-center gap-1.5 font-semibold text-primary hover:underline"
+                className="flex min-h-9 w-full items-center gap-1.5 font-semibold text-primary hover:underline sm:ml-auto sm:w-auto"
               >
                 <span
                   className={cn(
