@@ -8,6 +8,7 @@ import type { Quiz, QuizAttempt } from '@/types/quiz';
 import type { MoodEntry } from '@/types/mood';
 import type { Term } from '@/types/term';
 import { DEFAULT_PREFERENCES, type UserPreferences } from '@/lib/firestore/preferences';
+import { useActiveView, type ArchivedData } from '@/lib/archive/useActiveView';
 
 export interface AppState {
   courses: Course[];
@@ -236,8 +237,13 @@ export function appStateReducer(state: AppState, action: AppAction): AppState {
 }
 
 interface AppContextType {
+  /** What is in use: archived courses, and everything that belongs to them,
+   * are not in it (see lib/archive). Every screen reads this. */
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  /** What the student has archived, for the Archived list and the data
+   * export. Empty when nothing is archived. */
+  archived: ArchivedData;
 }
 
 const AppStateContext = createContext<AppContextType | undefined>(undefined);
@@ -272,11 +278,13 @@ export function AppStateProvider({ children, initialState }: AppStateProviderPro
   // restored value entirely. Guarded on the caller's own initialState so a
   // test/consumer that explicitly passes initialState.selectedTerm is never
   // silently overridden by a stale value from a previous session.
-  const [state, dispatch] = useReducer(appStateReducer, mergedInitialState, (init) => {
+  const [fullState, dispatch] = useReducer(appStateReducer, mergedInitialState, (init) => {
     if (init.selectedTerm !== null) return init;
     const stored = readStoredTerm();
     return stored ? { ...init, selectedTerm: stored } : init;
   });
+
+  const { state, archived } = useActiveView(fullState);
 
   useEffect(() => {
     try {
@@ -293,7 +301,7 @@ export function AppStateProvider({ children, initialState }: AppStateProviderPro
   // Memoized so consumers only re-render when app state actually changes.
   // This provider sits below SidebarProvider and ThemeProvider, so without
   // this every drawer open or theme toggle would re-render every consumer.
-  const value = useMemo(() => ({ state, dispatch }), [state]);
+  const value = useMemo(() => ({ state, dispatch, archived }), [state, archived]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
 }
