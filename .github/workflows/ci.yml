@@ -8,10 +8,21 @@ on:
     branches:
       - main
 
+# A newer push to the same PR makes the run still going for the old commit
+# pointless, so it is cancelled instead of being billed to the end. Runs on
+# main are never cancelled: each merge keeps its own full result.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  HUSKY: '0'
+
 jobs:
   ci:
     name: Lint, Build, and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 12
 
     steps:
       - name: Checkout Code
@@ -19,21 +30,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          cache: 'npm'
+      # Always runs, so this required check reports on every PR. A PR that
+      # changes only prose (see scripts/ciScope.js) skips the heavy steps below.
+      - name: Decide What Needs Running
+        id: scope
+        run: node scripts/ci-scope.mjs
 
-      - name: Setup Java (for Firestore emulator)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Install Dependencies
-        run: npm ci
-
+      # Cheap and needs no dependencies, so it runs first: a bad commit message
+      # fails in seconds instead of after the install.
       - name: Check Commit Messages for AI Attribution
         id: attribution
         if: github.event_name == 'pull_request'
@@ -45,7 +49,55 @@ jobs:
             exit 1
           fi
 
+      # The npm download cache is what keeps `npm audit` quick below (without
+      # it the audit re-fetches package metadata, about a minute).
+      - name: Setup Node.js
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Setup Java (for Firestore emulator)
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Restoring node_modules is faster than `npm ci`, and the key is the
+      # lockfile, so it is a fresh install whenever dependencies change.
+      - name: Cache Dependencies
+        id: deps
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: deps-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Dependencies
+        if: steps.scope.outputs.code == 'true' && steps.deps.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+
+      # Next's own build cache (webpack/SWC). Written from main at most once a
+      # week per lockfile; pull requests only read it.
+      - name: Get Cache Week
+        id: week
+        if: steps.scope.outputs.code == 'true'
+        run: echo "value=$(date +%G-%V)" >> $GITHUB_OUTPUT
+
+      - name: Restore Build Cache
+        id: next-cache
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ steps.week.outputs.value }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
       - name: Run Linter
+        if: steps.scope.outputs.code == 'true'
         id: lint
         run: |
           if npm run lint; then
@@ -56,6 +108,7 @@ jobs:
           fi
 
       - name: Run Build
+        if: steps.scope.outputs.code == 'true'
         id: build
         run: |
           if npm run build; then
@@ -65,7 +118,15 @@ jobs:
             exit 1
           fi
 
+      - name: Save Build Cache
+        if: github.ref == 'refs/heads/main' && steps.next-cache.outputs.cache-hit != 'true' && steps.scope.outputs.code == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ steps.week.outputs.value }}
+
       - name: Run Unit Tests
+        if: steps.scope.outputs.code == 'true'
         id: test
         run: |
           if npm run test; then
@@ -76,6 +137,7 @@ jobs:
           fi
 
       - name: Run Firestore Rules Tests
+        if: steps.scope.outputs.code == 'true'
         id: rules-test
         run: |
           if npm run test:rules; then
@@ -93,7 +155,14 @@ jobs:
       # critical finding against scripts/acceptedCriticalVulnerabilities.json
       # so an already-tracked, dated, reasoned exception doesn't block every
       # future PR forever - see that file for what's currently accepted.
+      #
+      # Takes about a minute (npm fetches metadata for every vulnerable
+      # package), so on a pull request it runs only when something it reads
+      # changed (scripts/ciScope.js). It always runs on main, and
+      # dependency-audit.yml runs it every night, so a newly published advisory
+      # is still caught without being re-checked on every unrelated push.
       - name: Check for Critical Dependency Vulnerabilities
+        if: steps.scope.outputs.code == 'true' && steps.scope.outputs.audit == 'true'
         id: audit
         run: |
           if node scripts/check-critical-audit.mjs; then
@@ -111,42 +180,80 @@ jobs:
           echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| Commit Attribution | ${{ steps.attribution.outputs.status || 'N/A (push to main)' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ steps.lint.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ steps.build.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Unit Tests | ${{ steps.test.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Firestore Rules Tests | ${{ steps.rules-test.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Dependency Audit (critical) | ${{ steps.audit.outputs.status || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ steps.lint.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ steps.build.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ steps.test.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Firestore Rules Tests | ${{ steps.rules-test.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Audit (critical) | ${{ steps.audit.outputs.status || (steps.scope.outputs.code == 'false' && 'Skipped (docs only)' || steps.scope.outputs.audit == 'false' && 'Skipped (no dependency changes; checked on main and nightly)' || 'Fail') }} |" >> $GITHUB_STEP_SUMMARY
 
   # Runs the real app against the Firebase emulators in a browser. It is a
   # separate job so a flaky browser run never blocks the required check above;
   # it reports on every PR so a broken sign-in or empty dashboard shows up.
   e2e:
     name: End-to-end smoke
+    # Branch protection requires a PR to be up to date with main, so its run
+    # already tested exactly the tree that lands; repeating this non-required
+    # job on the push to main would only re-bill it.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # A prose-only PR cannot change what the browser run exercises.
+      - name: Decide What Needs Running
+        id: scope
+        run: node scripts/ci-scope.mjs
 
       - name: Setup Node.js
+        if: steps.scope.outputs.code == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: 'npm'
 
       - name: Setup Java (for the emulators)
+        if: steps.scope.outputs.code == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
+      # Same key as the job above, so one of them installs and the other restores.
+      - name: Cache Dependencies
+        id: deps
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: deps-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
+
       - name: Install Dependencies
-        run: npm ci
+        if: steps.scope.outputs.code == 'true' && steps.deps.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Cache Browser
+        id: browser
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install Browser
-        run: npx playwright install --with-deps chromium
+        if: steps.scope.outputs.code == 'true'
+        run: |
+          if [ "${{ steps.browser.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Run End-to-End Smoke Tests
+        if: steps.scope.outputs.code == 'true'
         run: npm run test:e2e:emulated
 
       - name: Upload Failure Artifacts
