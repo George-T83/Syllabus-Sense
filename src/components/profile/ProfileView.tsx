@@ -599,7 +599,7 @@ export function ProfileView() {
       />
 
       <Card className="rounded-2xl p-6" data-testid="work-schedule-card">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             Suggested Study Blocks on the Planner page will work around these too, the same way it
             already does for your class meetings.
@@ -702,7 +702,7 @@ export function ProfileView() {
           {canChangePassword ? (
             <>
               {!changingPassword && !passwordSuccess && (
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">Change your account password.</p>
                   <button
                     type="button"
@@ -711,7 +711,7 @@ export function ProfileView() {
                       setPasswordFormError(null);
                       clearError();
                     }}
-                    className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                    className="-ml-2.5 min-h-9 rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 sm:ml-0"
                   >
                     Change password
                   </button>
