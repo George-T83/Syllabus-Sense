@@ -731,7 +731,7 @@ export function MonthCalendar() {
         )}
 
         {viewMode === 'month' && (monthStats.pendingCount > 0 || monthStats.totalHours > 0) && (
-          <div className="flex flex-wrap items-center gap-3 mb-4 rounded-xl bg-accent/50 px-3 py-2 text-xs">
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-0 rounded-xl bg-accent/50 px-3 py-2 text-xs">
             <span className="font-semibold text-foreground">
               {monthStats.pendingCount} due this month
             </span>
@@ -741,7 +741,7 @@ export function MonthCalendar() {
             {monthStats.busiestDay && (
               <button
                 onClick={() => selectDay(monthStats.busiestDay!.day)}
-                className="ml-auto flex min-h-9 items-center gap-1.5 font-semibold text-primary hover:underline"
+                className="flex min-h-9 w-full items-center gap-1.5 font-semibold text-primary hover:underline sm:ml-auto sm:w-auto"
               >
                 <span
                   className={cn(

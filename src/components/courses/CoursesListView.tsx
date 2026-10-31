@@ -154,7 +154,7 @@ export function CoursesListView() {
   };
 
   const selectClass =
-    'min-h-11 rounded-lg border border-border bg-input px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary';
+    'min-h-11 w-full rounded-lg border border-border bg-input px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary sm:w-auto';
 
   return (
     <>
@@ -223,13 +223,13 @@ export function CoursesListView() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search courses"
             placeholder="Search by code, title, or instructor..."
-            className="min-h-11 flex-1 min-w-[200px] rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="col-span-2 min-h-11 w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary sm:min-w-[200px] sm:flex-1"
           />
           <select
             aria-label="Filter by term"
