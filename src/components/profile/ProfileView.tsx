@@ -124,7 +124,7 @@ function hasPasswordProvider(providerData: { providerId: string }[]): boolean {
 export function ProfileView() {
   const { user, error, updateDisplayName, changePassword, deleteAccount, signOut, clearError } =
     useAuth();
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, archived } = useAppState();
   const { showError } = useToast();
   const sample = useSampleData();
   const router = useRouter();
@@ -271,14 +271,17 @@ export function ProfileView() {
     if (!firestore) return;
     setDownloadingData(true);
     try {
+      // Everything the student has, archived courses included: archiving
+      // takes a course out of the app, not out of their data.
+      const everyCourse = [...state.courses, ...archived.courses];
       const [syllabiByCourse, scenariosByCourse] = await Promise.all([
         Promise.all(
-          state.courses.map((course) =>
+          everyCourse.map((course) =>
             getDocs(collection(firestore, 'users', user.uid, 'courses', course.id, 'syllabi')),
           ),
         ),
         Promise.all(
-          state.courses.map((course) =>
+          everyCourse.map((course) =>
             getDocs(
               collection(firestore, 'users', user.uid, 'courses', course.id, 'gradeScenarios'),
             ),
@@ -304,13 +307,13 @@ export function ProfileView() {
           displayName: user.displayName,
           memberSince: user.metadata.creationTime ?? null,
         },
-        courses: state.courses,
-        scheduleItems: state.scheduleItems,
-        contacts: state.contacts,
-        sources: state.sources,
-        flashcards: state.flashcards,
-        quizzes: state.quizzes,
-        quizAttempts: state.quizAttempts,
+        courses: everyCourse,
+        scheduleItems: [...state.scheduleItems, ...archived.scheduleItems],
+        contacts: [...state.contacts, ...archived.contacts],
+        sources: [...state.sources, ...archived.sources],
+        flashcards: [...state.flashcards, ...archived.flashcards],
+        quizzes: [...state.quizzes, ...archived.quizzes],
+        quizAttempts: [...state.quizAttempts, ...archived.quizAttempts],
         moodEntries: state.moodEntries,
         terms: state.terms,
         gradeScenarios,
