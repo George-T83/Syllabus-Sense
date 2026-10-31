@@ -12,6 +12,8 @@
 
 const NON_CODE = [
   /\.md$/i,
+  /^\.github\//,
+  /^scripts\//,
   /^docs\//,
   /^LICENSE(\.[a-z]+)?$/i,
   /^\.github\/ISSUE_TEMPLATE\//,

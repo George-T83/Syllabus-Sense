@@ -53,3 +53,4 @@ Commit messages are checked for AI attribution by a `commit-msg` hook and again 
 - A page that works locally but denies reads in production usually means rules are not deployed. Check the deploy workflow ran for the last change to `firestore.rules`.
 - A spike in AI cost: set `AI_DAILY_CALL_LIMIT` and turn the cap on (`docs/AI_USAGE_CAP.md`), and check the provider's own spend limit.
 - To roll back a bad release, promote the previous deployment in Vercel. Firestore data is not rolled back by that.
+  Scratch docs-only line for CI measurement.
