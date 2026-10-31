@@ -182,7 +182,7 @@ export function AdvisorView() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-      <Card className="flex h-[70vh] flex-col rounded-2xl p-4 sm:p-6">
+      <Card className="flex h-[calc(100dvh-19rem)] min-h-[20rem] flex-col rounded-2xl p-4 sm:p-6 lg:h-[70vh]">
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto pr-1">
           {!messagesLoading && messages.length === 0 && (
             <div className="flex justify-start">

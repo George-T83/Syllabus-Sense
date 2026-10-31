@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { CardActionButton } from '@/components/ui/CardAction';
 import { SectionIcon } from '@/components/ui/SectionIcon';
 import { TaskRow } from '@/components/ui/TaskRow';
-import { useAppState, resolveActiveTerm } from '@/context/AppStateContext';
+import { useAppState } from '@/context/AppStateContext';
+import { courseInTerm, resolveActiveTerm } from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { RemoveSampleDataButton } from '@/components/sample/RemoveSampleDataButton';
@@ -137,14 +138,16 @@ export function ProfileView() {
 
   // Same term scoping as the Courses page headline, so both start from the
   // same GPA: the active term's courses, or every course when no term applies.
-  const gpaTerm = resolveActiveTerm(state.selectedTerm, state.courses);
+  const gpaTerm = resolveActiveTerm(state.selectedTerm, state.courses, state.terms);
   const gpaGoalCourses = useMemo(
     () =>
       buildGpaGoalCourses(
-        gpaTerm ? state.courses.filter((c) => c.term === gpaTerm) : state.courses,
+        gpaTerm
+          ? state.courses.filter((c) => courseInTerm(c, gpaTerm, state.terms))
+          : state.courses,
         state.scheduleItems,
       ),
-    [gpaTerm, state.courses, state.scheduleItems],
+    [gpaTerm, state.courses, state.scheduleItems, state.terms],
   );
 
   // --- Account & Data: password change (email/password accounts only) ---
@@ -309,6 +312,7 @@ export function ProfileView() {
         quizzes: state.quizzes,
         quizAttempts: state.quizAttempts,
         moodEntries: state.moodEntries,
+        terms: state.terms,
         gradeScenarios,
         syllabi,
         degreeProfile: profileSnap.exists() ? (profileSnap.data() as DegreeProfile) : null,
@@ -476,7 +480,7 @@ export function ProfileView() {
         </div>
       </Card>
 
-      <GpaGoalRadial courses={gpaGoalCourses} termLabel={gpaTerm ?? undefined} />
+      <GpaGoalRadial courses={gpaGoalCourses} termLabel={gpaTerm?.label} />
 
       {/* ---------------------------------------------------------------
           Appearance - visual/cosmetic controls only. Dark mode stays in
@@ -595,7 +599,7 @@ export function ProfileView() {
       />
 
       <Card className="rounded-2xl p-6" data-testid="work-schedule-card">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             Suggested Study Blocks on the Planner page will work around these too, the same way it
             already does for your class meetings.
@@ -698,7 +702,7 @@ export function ProfileView() {
           {canChangePassword ? (
             <>
               {!changingPassword && !passwordSuccess && (
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">Change your account password.</p>
                   <button
                     type="button"
@@ -707,7 +711,7 @@ export function ProfileView() {
                       setPasswordFormError(null);
                       clearError();
                     }}
-                    className="rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                    className="-ml-2.5 min-h-9 rounded-full px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 sm:ml-0"
                   >
                     Change password
                   </button>

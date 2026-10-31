@@ -925,3 +925,27 @@
     }
   }
 }
+
+/* The Firebase SDK pins an "Running in emulator mode" banner to the bottom of
+ * the page in local development. There it covered the phone bottom navigation
+ * and the floating Focus Timer / AI Advisor buttons and swallowed taps meant
+ * for them. Park it as a small, click-through tab on the top edge instead.
+ * It does not exist in production builds. */
+.firebase-emulator-warning {
+  top: 0 !important;
+  bottom: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  width: auto !important;
+  max-width: 94vw;
+  transform: translateX(-50%);
+  padding: 0 10px !important;
+  font-size: 10px !important;
+  line-height: 14px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 0 0 8px 8px;
+  opacity: 0.85;
+  pointer-events: none !important;
+}

@@ -12,6 +12,7 @@ import { TaskRow } from '@/components/ui/TaskRow';
 import { useToast } from '@/components/ui/Toast';
 import { useUndoToast } from '@/hooks/useUndoToast';
 import { useAppState } from '@/context/AppStateContext';
+import { courseTermLabel, termFieldsFromForm } from '@/lib/terms/termResolve';
 import { useAuth } from '@/context/AuthContext';
 import { updateCourse, deleteCourse } from '@/lib/firestore/courses';
 import {
@@ -303,11 +304,11 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
       ...(values.instructor ? { instructor: values.instructor } : {}),
       ...(values.modality ? { modality: values.modality } : {}),
     };
-    if (values.term) {
-      updatedCourse.term = values.term;
-    } else {
-      delete updatedCourse.term;
-    }
+    // The term picker holds a term id (or, for a course whose label has no
+    // term object yet, a placeholder that keeps that label as it was).
+    delete updatedCourse.termId;
+    delete updatedCourse.term;
+    Object.assign(updatedCourse, termFieldsFromForm(values.termId, state.terms, course.term));
     if (values.credits) {
       updatedCourse.credits = Number(values.credits);
     } else {
@@ -418,7 +419,9 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
         {
           id: crypto.randomUUID(),
           courseId: course.id,
-          ...(course.term ? { term: course.term } : {}),
+          ...(courseTermLabel(course, state.terms)
+            ? { term: courseTermLabel(course, state.terms) }
+            : {}),
           role: newContact.role,
           fullName: newContact.fullName.trim(),
           source: 'manual',
@@ -708,7 +711,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
             style={courseSwatch(course.color).style}
           />
           <div className="p-6">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-4">
                 <span
                   className={cn(
@@ -727,13 +730,14 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                     {course.title}
                   </h1>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {[course.instructor, course.term].filter(Boolean).join(' · ') ||
-                      'No details yet'}
+                    {[course.instructor, courseTermLabel(course, state.terms)]
+                      .filter(Boolean)
+                      .join(' · ') || 'No details yet'}
                   </p>
                 </div>
               </div>
               {items.length > 0 && (
-                <div className="flex shrink-0 flex-col items-center gap-1">
+                <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:gap-1">
                   {items.length < RING_MIN_TASK_COUNT ? (
                     // Too few tracked tasks for a percentage to mean anything -
                     // a muted dashed outline stands in for the bold gradient
@@ -758,7 +762,7 @@ export function CourseDetailView({ courseId }: { courseId: string }) {
                       <span className="text-xs font-bold text-foreground">{progressPct}%</span>
                     </RingGauge>
                   )}
-                  <span className="max-w-[88px] text-center text-xs leading-tight text-muted-foreground">
+                  <span className="text-left text-xs leading-tight text-muted-foreground sm:max-w-[88px] sm:text-center">
                     {completedCount} of {items.length} tracked task{items.length === 1 ? '' : 's'}{' '}
                     done
                   </span>
