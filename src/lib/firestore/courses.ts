@@ -1,4 +1,13 @@
-import { collection, doc, getDocs, query, setDoc, where, writeBatch } from 'firebase/firestore';
+import {
+  collection,
+  deleteField,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+  writeBatch,
+} from 'firebase/firestore';
 import { deleteObject, ref } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/client';
 import type { AppAction } from '@/context/AppStateContext';
@@ -245,6 +254,57 @@ export async function updateCourse(
     if (termChanged && affectedContacts.length > 0) {
       affectedContacts.forEach((c) => dispatch({ type: 'UPDATE_CONTACT', payload: c }));
     }
+    throw err;
+  }
+}
+
+/**
+ * Archives a course: it, and everything that belongs to it, drops out of the
+ * active app (see lib/archive) but nothing is deleted. Only the course's
+ * `archivedAt` is written (a field merge), so a concurrent edit to the course
+ * is not overwritten. Same optimistic dispatch, write, roll back on failure
+ * pattern as updateCourse.
+ */
+export async function archiveCourse(
+  userId: string,
+  course: Course,
+  dispatch: React.Dispatch<AppAction>,
+  now: Date = new Date(),
+): Promise<void> {
+  const archivedAt = now.toISOString();
+  const archivedCourse: Course = { ...course, archivedAt };
+  dispatch({ type: 'UPDATE_COURSE', payload: archivedCourse });
+  try {
+    const database = requireDb();
+    await enqueueCourseWrite(course.id, archivedCourse, () =>
+      setDoc(doc(database, 'users', userId, 'courses', course.id), { archivedAt }, { merge: true }),
+    );
+  } catch (err) {
+    dispatch({ type: 'UPDATE_COURSE', payload: course });
+    throw err;
+  }
+}
+
+/** Brings an archived course back, with everything it had. */
+export async function restoreCourse(
+  userId: string,
+  course: Course,
+  dispatch: React.Dispatch<AppAction>,
+): Promise<void> {
+  const restoredCourse: Course = { ...course };
+  delete restoredCourse.archivedAt;
+  dispatch({ type: 'UPDATE_COURSE', payload: restoredCourse });
+  try {
+    const database = requireDb();
+    await enqueueCourseWrite(course.id, restoredCourse, () =>
+      setDoc(
+        doc(database, 'users', userId, 'courses', course.id),
+        { archivedAt: deleteField() },
+        { merge: true },
+      ),
+    );
+  } catch (err) {
+    dispatch({ type: 'UPDATE_COURSE', payload: course });
     throw err;
   }
 }

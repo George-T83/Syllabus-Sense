@@ -114,6 +114,11 @@ export interface Course {
   absences?: AbsenceRecord[];
   /** The syllabus's attendance limit, entered by the student. */
   attendancePolicy?: AttendancePolicy;
+  /** When the student archived this course (ISO instant). An archived course
+   * keeps all of its data (tasks, contacts, flashcards, quizzes, files) but is
+   * left out of every active screen, the calendar feed and the Advisor until
+   * it is restored; see lib/archive. Absent on a course in use. */
+  archivedAt?: string;
   /** True on records created by "Try a sample semester" (lib/sample). Lets
    * the whole sample be removed in one step and keeps it out of AI requests.
    * Absent on everything the student entered. */
