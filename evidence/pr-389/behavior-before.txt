@@ -1,0 +1,4 @@
+[before 1280-light] clicking Delete shows an inline confirm (Confirm / Cancel) that permanently deletes; there is no archive
+[before 1280-dark] clicking Delete shows an inline confirm (Confirm / Cancel) that permanently deletes; there is no archive
+[before 390-light] clicking Delete shows an inline confirm (Confirm / Cancel) that permanently deletes; there is no archive
+[before 390-dark] clicking Delete shows an inline confirm (Confirm / Cancel) that permanently deletes; there is no archive

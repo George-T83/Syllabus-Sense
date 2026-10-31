@@ -1,0 +1,5 @@
+[after] dialog title: "Archive or delete CSCI 213?", focus on open: "Archive" (Archive is the default)
+[after] after Archive: course doc kept, archivedAt set=true, its tasks still stored=2
+[after] dashboard shows CSCI 213=false, "Problem Set 4"=false, ENGL 110 still shown=true
+[after] after one-tap Restore: archivedAt cleared=true, tasks=2, course back in the list=true
+[after] Delete forever from the dialog: course doc exists=false, its tasks=0, contact kept? (deleted with course)=false
