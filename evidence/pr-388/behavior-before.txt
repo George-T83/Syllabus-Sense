@@ -1,0 +1,7 @@
+[before] dashboard: MATH 201=SHOWN, "Linear Algebra Midterm"=SHOWN
+[before] courses:   MATH 201=SHOWN, CSCI 213=SHOWN
+[before] contacts:  Dr. Noor Haddad=SHOWN, Dr. Amara Chen=SHOWN
+[before] tasks:     Matrix quiz=SHOWN, Problem Set 4=SHOWN
+[before] calendar feed (HTTP 200) events: CSCI 213: Problem Set 4 | ENGL 110: Essay draft | MATH 201: Linear Algebra Midterm | MATH 201: Matrix quiz
+[before] advisor request: courses=["CSCI 213","ENGL 110","MATH 201"] pendingTaskCount=4
+[before] only-archived dashboard: "Get set up" checklist=SHOWN, "Add your courses" step=SHOWN, MATH 201=SHOWN

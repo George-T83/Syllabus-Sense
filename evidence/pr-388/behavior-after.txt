@@ -1,0 +1,7 @@
+[after] dashboard: MATH 201=absent, "Linear Algebra Midterm"=absent
+[after] courses:   MATH 201=absent, CSCI 213=SHOWN
+[after] contacts:  Dr. Noor Haddad=absent, Dr. Amara Chen=SHOWN
+[after] tasks:     Matrix quiz=absent, Problem Set 4=SHOWN
+[after] calendar feed (HTTP 200) events: CSCI 213: Problem Set 4 | ENGL 110: Essay draft
+[after] advisor request: courses=["CSCI 213","ENGL 110"] pendingTaskCount=2
+[after] only-archived dashboard: "Get set up" checklist=SHOWN, "Add your courses" step=SHOWN, MATH 201=absent

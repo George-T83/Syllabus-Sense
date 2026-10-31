@@ -1,0 +1,7 @@
+    at HTMLUnknownElementImpl._dispatch (/home/user/Syllabus-Sense/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9)
+
+ Test Files  195 passed (195)
+      Tests  1985 passed (1985)
+   Start at  03:12:33
+   Duration  87.65s (transform 7.56s, setup 0ms, import 32.54s, tests 62.86s, environment 132.84s)
+
