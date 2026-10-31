@@ -19,12 +19,28 @@ permissions:
   contents: read
   pull-requests: write
 
+# One scrub at a time per PR; a newer edit supersedes a run still going.
+concurrency:
+  group: strip-attribution-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   strip:
+    # Cheap pre-filter evaluated before any runner is started, so a PR body
+    # with nothing to scrub costs no Actions minutes at all. It is a superset
+    # of everything scripts/attributionPatterns.js matches (every pattern there
+    # matches one of the keywords the stripper looks for; `contains` ignores case), and
+    # scripts/__tests__/ciScope.test.ts guards that. The script below remains
+    # the one that decides what is actually removed.
+    if: contains(github.event.pull_request.body, 'claude') || contains(github.event.pull_request.body, 'co-authored-by')
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/attributionPatterns.js
+          sparse-checkout-cone-mode: false
 
       - name: Strip AI attribution from PR body
         uses: actions/github-script@v7
