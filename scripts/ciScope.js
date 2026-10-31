@@ -43,7 +43,6 @@ function isDocsOnly(files) {
 const AUDIT_INPUTS = [
   /^package(-lock)?\.json$/,
   /^scripts\/(check-critical-audit\.mjs|criticalAuditPolicy\.js|acceptedCriticalVulnerabilities\.json)$/,
-  /^\.github\/workflows\//,
 ];
 
 function auditNeeded(files) {
